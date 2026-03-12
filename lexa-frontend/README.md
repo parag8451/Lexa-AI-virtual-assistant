@@ -7,9 +7,6 @@ A next-generation AI chat interface with stunning visual design, advanced featur
 ## Features
 
 - **Multi-model AI** - Switch between different AI models for various use cases
-- **Voice Chat** - Real-time voice conversations with AI
-- **Image Generation** - Create stunning images with AI
-- **Video Generation** - Generate videos using Veo 3.1
 - **Deep Research** - Comprehensive AI-powered research
 - **Knowledge Base** - Personal knowledge management
 - **Goals & Tasks** - AI-assisted productivity
