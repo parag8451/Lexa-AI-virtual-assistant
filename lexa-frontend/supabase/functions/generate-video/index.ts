@@ -52,50 +52,50 @@ serve(async (req) => {
 
     console.log(`Generating video for user ${user.id}:`, { prompt, aspectRatio, duration, hasStartingFrame: !!startingFrameUrl });
 
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!geminiApiKey) {
+      throw new Error("GEMINI_API_KEY not configured");
     }
 
     // Build the message content
-    let messageContent: any;
+    let messageParts: any[];
     if (startingFrameUrl) {
       // Image-to-video: animate from starting frame
-      messageContent = [
+      messageParts = [
+        { text: `Create a ${duration} second video animation from this image. Motion instruction: ${prompt}. Aspect ratio: ${aspectRatio}.` },
         {
-          type: "text",
-          text: `Create a ${duration} second video animation from this image. Motion instruction: ${prompt}. Aspect ratio: ${aspectRatio}.`,
-        },
-        {
-          type: "image_url",
-          image_url: {
-            url: startingFrameUrl,
+          inlineData: {
+            mimeType: "image/png",
+            data: startingFrameUrl.startsWith("data:") ? startingFrameUrl.replace(/^data:image\/\w+;base64,/, "") : startingFrameUrl,
           },
         },
       ];
     } else {
       // Text-to-video
-      messageContent = `Generate a ${duration} second video with aspect ratio ${aspectRatio}: ${prompt}. Make it smooth, cinematic, and visually engaging.`;
+      messageParts = [
+        { text: `Generate a ${duration} second video with aspect ratio ${aspectRatio}: ${prompt}. Make it smooth, cinematic, and visually engaging.` },
+      ];
     }
 
-    // Use Gemini for video generation (using image model with video modality)
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: messageContent,
+    // Use Gemini for video generation
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: messageParts,
+            },
+          ],
+          generationConfig: {
+            responseModalities: ["IMAGE", "TEXT"],
           },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -128,8 +128,16 @@ serve(async (req) => {
     console.log("Video generation result received");
 
     // For now, Gemini generates images - we'll create an animated sequence
-    const imageUrl = result.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    const revisedPrompt = result.choices?.[0]?.message?.content || prompt;
+    const parts = result.candidates?.[0]?.content?.parts || [];
+    let imageUrl = "";
+    let revisedPrompt = prompt;
+    for (const part of parts) {
+      if (part.inlineData) {
+        imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+      } else if (part.text) {
+        revisedPrompt = part.text;
+      }
+    }
 
     if (!imageUrl) {
       console.error("No media in response:", result);

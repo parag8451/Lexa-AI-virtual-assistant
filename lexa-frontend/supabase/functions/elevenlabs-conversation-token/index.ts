@@ -4,16 +4,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Get allowed origins from env or use defaults
 const ALLOWED_ORIGINS = [
   Deno.env.get("FRONTEND_URL") || "",
-  "https://your-heart-ai.lovable.app",
-  "https://id-preview--a8744b7d-1be4-4fce-90ac-07d3d28c21b9.lovable.app",
+  
+  
 ].filter(Boolean);
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
-  // Check if origin is allowed (include both lovable.app and lovableproject.com for dev)
+  // Check if origin is allowed
   const allowedOrigin = origin && (
     ALLOWED_ORIGINS.some(allowed => origin === allowed) || 
-    origin.endsWith(".lovable.app") ||
-    origin.endsWith(".lovableproject.com")
+    
+    false
   ) ? origin : ALLOWED_ORIGINS[0] || "*";
   
   return {

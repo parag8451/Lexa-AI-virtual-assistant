@@ -58,7 +58,7 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const moodTimeoutRef = useRef<NodeJS.Timeout>();
-  
+
   const { analyzeSentiment } = useSentiment();
   const { analyzeComplexity, routeMessage } = useModelRouting();
 

@@ -1,627 +1,361 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { ChatSidebar } from "@/components/chat/ChatSidebar";
-import { ChatInput } from "@/components/chat/ChatInput";
-import { ChatMessage } from "@/components/chat/ChatMessage";
-import { WelcomeScreen } from "@/components/chat/WelcomeScreen";
-import { TypingIndicator } from "@/components/chat/TypingIndicator";
-import { CitationsPanel } from "@/components/chat/CitationsPanel";
-import { ChatHeader, getPersonalityPrompt } from "@/components/chat/ChatHeader";
-import { ScrollToBottom } from "@/components/chat/ScrollToBottom";
-import { KeyboardShortcuts } from "@/components/chat/KeyboardShortcuts";
-import { ExportDialog } from "@/components/chat/ExportDialog";
-import { ErrorMessage } from "@/components/chat/ErrorMessage";
-import { ConversationInsights } from "@/components/chat/ConversationInsights";
-import { FocusMode } from "@/components/chat/FocusMode";
-import { VoiceChatMode } from "@/components/chat/VoiceChatMode";
-import { RealtimeVoiceChat } from "@/components/chat/RealtimeVoiceChat";
-import { OnboardingTour } from "@/components/chat/OnboardingTour";
-import { AppLoadingScreen } from "@/components/chat/AppLoadingScreen";
-import { useAuth } from "@/hooks/useAuth";
-import { useConversations } from "@/hooks/useConversations";
-import { useVoice } from "@/hooks/useVoice";
-import { useWebSearch, Citation } from "@/hooks/useWebSearch";
-import { useSentiment } from "@/hooks/useSentiment";
-import { useUserPreferences, PersonalityType } from "@/hooks/useUserPreferences";
-import { useMemories } from "@/hooks/useMemories";
-import { useSearchThrottle } from "@/hooks/useSearchThrottle";
-import { useModelRouting, ComplexityLevel } from "@/hooks/useModelRouting";
-import { useCustomInstructions } from "@/hooks/useCustomInstructions";
-import { streamChat, ChatMessage as StreamMessage } from "@/lib/streaming";
-import { AI_MODELS } from "@/types/chat";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import React, { useEffect, useRef } from "react";
+import "@/components/chat/CustomChatUI.css";
 
 export default function Index() {
-  const navigate = useNavigate();
-  const { user, loading, signOut } = useAuth();
-  
-  const {
-    conversations,
-    currentConversation,
-    messages,
-    isLoading: conversationsLoading,
-    createConversation,
-    selectConversation,
-    deleteConversation,
-    addMessage,
-    updateLastAssistantMessage,
-    saveAssistantMessage,
-    startNewChat,
-    setMessages,
-  } = useConversations();
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const {
-    isRecording,
-    isTranscribing,
-    isSpeaking,
-    startRecording,
-    stopRecording,
-    speak,
-    stopSpeaking,
-  } = useVoice();
-
-  const { search: webSearch } = useWebSearch();
-  const { getOverallMood } = useSentiment();
-  const { preferences, setPersonality, setSearchModel } = useUserPreferences();
-  const { getMemoryContext, addMemory } = useMemories();
-  const { isOnCooldown, remainingSeconds, startCooldown } = useSearchThrottle({
-    cooldownSeconds: preferences?.search_cooldown_seconds || 30,
-  });
-  const { autoRouting, setAutoRouting, routeMessage } = useModelRouting();
-  const { getActiveInstructionsPrompt } = useCustomInstructions();
-
-  // UI state
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(AI_MODELS[0].id);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
-  const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
-  const [showCitations, setShowCitations] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
-  const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showExport, setShowExport] = useState(false);
-  const [focusModeActive, setFocusModeActive] = useState(false);
-  const [showInsights, setShowInsights] = useState(false);
-  const [voiceChatActive, setVoiceChatActive] = useState(false);
-  const [realtimeVoiceActive, setRealtimeVoiceActive] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUserMessage, setLastUserMessage] = useState<string>("");
-  const [routedModel, setRoutedModel] = useState<string | null>(null);
-  
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Redirect to landing if not logged in
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/");
-    }
-  }, [user, loading, navigate]);
+    if (!containerRef.current) return;
+    
+    // We bind the elements scoped to this container to avoid global document collisions
+    const chatInput = containerRef.current.querySelector('#chatInput') as HTMLTextAreaElement;
+    const sendBtn = containerRef.current.querySelector('#sendBtn') as HTMLButtonElement;
+    const welcomeState = containerRef.current.querySelector('#welcomeState') as HTMLDivElement;
+    const messagesContainer = containerRef.current.querySelector('#messagesContainer') as HTMLDivElement;
+    const chatArea = containerRef.current.querySelector('#chatArea') as HTMLDivElement;
+    const bgGlow = containerRef.current.querySelector('#bgGlow') as HTMLDivElement;
+    const micBtn = containerRef.current.querySelector('#micBtn') as HTMLButtonElement;
+    
+    // We attach suggestion buttons manually
+    const suggestionChips = containerRef.current.querySelectorAll('.suggestion-chip');
+    
+    let hasMessages = false;
 
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
-    if (scrollRef.current && isStreaming) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, isStreaming]);
+    const AI_RESPONSES = [
+      "I'd be happy to help with that! Let me think through this carefully for you. The key aspects to consider here are the context, your specific goals, and the best approach to achieve them. I'll provide a thoughtful and comprehensive response tailored to your needs.",
+      "Great question! There are several ways to approach this. First, let's consider the fundamentals — understanding the core concepts will help us navigate the details. I'll walk you through a step-by-step breakdown that should make things crystal clear.",
+      "Absolutely! This is something I can help you with. Based on what you've shared, I think the most effective approach would be to start by breaking this down into manageable parts. Here's what I'd recommend...",
+      "Of course! Let me give you a thorough answer. This topic has a few important dimensions worth exploring. I'll cover the main points and make sure you have everything you need to move forward confidently.",
+    ];
 
-  // Track scroll position for scroll-to-bottom button
-  useEffect(() => {
-    const scrollEl = scrollRef.current;
-    if (!scrollEl) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = scrollEl;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-      setShowScrollButton(!isNearBottom && messages.length > 0);
-    };
-
-    scrollEl.addEventListener("scroll", handleScroll);
-    return () => scrollEl.removeEventListener("scroll", handleScroll);
-  }, [messages.length]);
-
-  // Global keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // New chat: Ctrl+Shift+N
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "n") {
-        e.preventDefault();
-        startNewChat();
-      }
-      // Export: Ctrl+Shift+E
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "e") {
-        e.preventDefault();
-        if (messages.length > 0) setShowExport(true);
-      }
-      // Show shortcuts: ?
-      if (e.key === "?" && e.shiftKey && !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName)) {
-        e.preventDefault();
-        setShowShortcuts(true);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [startNewChat, messages.length]);
-
-  const scrollToBottom = useCallback(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    }
-  }, []);
-
-  // Handle sending messages with auto model routing
-  const handleSend = useCallback(async (content: string, attachments?: File[]) => {
-    if (!content.trim() && !attachments?.length) return;
-
-    // Determine the model to use (auto-routed or manually selected)
-    const modelToUse = autoRouting && routedModel ? routedModel : selectedModel;
-
-    setError(null);
-    setLastUserMessage(content);
-
-    let conv = currentConversation;
-    if (!conv) {
-      conv = await createConversation();
-      if (!conv) return;
-    }
-
-    // Pass conversation explicitly to ensure user message shows immediately
-    addMessage("user", content, attachments || [], [], conv);
-    setIsStreaming(true);
-    abortControllerRef.current = new AbortController();
-
-    try {
-      let responseContent = "";
-      let citations: Citation[] = [];
-
-      if (webSearchEnabled) {
-        if (isOnCooldown) {
-          toast.error(`Please wait ${remainingSeconds}s before searching again`);
-          return;
-        }
-        
-        try {
-          const searchResult = await webSearch(
-            content, 
-            messages.map(m => ({ role: m.role, content: m.content })),
-            preferences?.preferred_search_model
-          );
-          
-          // Handle rate limiting
-          if (searchResult.rateLimited) {
-            startCooldown(searchResult.retryAfter || 30);
-            toast.warning("Search is busy. Please wait and try again.");
-          }
-          
-          responseContent = searchResult.content;
-          citations = searchResult.citations;
-          setActiveCitations(citations);
-          setShowCitations(citations.length > 0);
-          updateLastAssistantMessage(responseContent, citations);
-        } catch (error) {
-          const errMsg = error instanceof Error ? error.message : "Web search failed";
-          setError(errMsg);
-          toast.error(errMsg);
-        }
+    function onInput() {
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 180) + 'px';
+      const has = chatInput.value.trim().length > 0;
+      if (has) {
+        sendBtn.classList.add('visible');
+        micBtn.classList.add('hidden-el');
       } else {
-        const streamMessages: StreamMessage[] = [
-          ...messages.map(m => ({ role: m.role, content: m.content })),
-          { role: "user" as const, content },
-        ];
-        
-        // Get personality, custom instructions, and memory context
-        const personalityPrompt = getPersonalityPrompt(preferences?.personality || "friendly");
-        const customInstructionsPrompt = getActiveInstructionsPrompt();
-        const memoryContext = getMemoryContext(content);
-        const fullSystemPrompt = personalityPrompt + customInstructionsPrompt;
-
-        await streamChat({
-          messages: streamMessages,
-          model: modelToUse,
-          systemPrompt: fullSystemPrompt,
-          memoryContext,
-          signal: abortControllerRef.current.signal,
-          onDelta: (delta) => {
-            responseContent += delta;
-            updateLastAssistantMessage(responseContent);
-          },
-          onDone: () => {
-            setIsStreaming(false);
-          },
-          onError: (error) => {
-            const errMsg = error.message || "Something went wrong";
-            setError(errMsg);
-            toast.error(errMsg);
-            setIsStreaming(false);
-          },
-        });
+        sendBtn.classList.remove('visible');
+        micBtn.classList.remove('hidden-el');
       }
-
-      if (responseContent) {
-        saveAssistantMessage(responseContent, modelToUse, citations);
-      }
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : "Something went wrong";
-      setError(errMsg);
-      toast.error(errMsg);
-    } finally {
-      setIsStreaming(false);
-      setRoutedModel(null); // Reset routed model after send
     }
-  }, [
-    currentConversation,
-    createConversation,
-    addMessage,
-    webSearchEnabled,
-    webSearch,
-    messages,
-    updateLastAssistantMessage,
-    saveAssistantMessage,
-    selectedModel,
-    autoRouting,
-    routedModel,
-    getActiveInstructionsPrompt,
-    preferences?.personality,
-    getMemoryContext,
-    isOnCooldown,
-    remainingSeconds,
-    startCooldown,
-  ]);
 
-  // Handle retry after error
-  const handleRetry = useCallback(() => {
-    if (lastUserMessage) {
-      setError(null);
-      // Remove the last failed messages
-      if (messages.length > 0) {
-        const lastMsg = messages[messages.length - 1];
-        if (lastMsg.role === "assistant" && lastMsg.content === "") {
-          setMessages(prev => prev.slice(0, -2));
-        } else if (lastMsg.role === "user") {
-          setMessages(prev => prev.slice(0, -1));
-        }
+    function onKeydown(e: KeyboardEvent) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (chatInput.value.trim()) sendMessage();
       }
-      handleSend(lastUserMessage);
     }
-  }, [lastUserMessage, messages, setMessages, handleSend]);
 
-  // Handle regenerating last response
-  const handleRegenerate = useCallback(async () => {
-    if (messages.length < 2) return;
-    
-    const lastUserMsgIndex = [...messages].reverse().findIndex(m => m.role === "user");
-    if (lastUserMsgIndex === -1) return;
-    
-    const lastUserMsg = messages[messages.length - 1 - lastUserMsgIndex];
-    
-    setMessages(prev => prev.slice(0, -1));
-    setIsStreaming(true);
-    setError(null);
-    abortControllerRef.current = new AbortController();
-    
-    let responseContent = "";
-    const streamMessages: StreamMessage[] = messages.slice(0, -1).map(m => ({
-      role: m.role,
-      content: m.content,
-    }));
+    function sendSuggestion(btn: HTMLElement) {
+      chatInput.value = btn.textContent?.replace(/^[^\w]+ /, '') || '';
+      onInput();
+      sendMessage();
+    }
 
-    await streamChat({
-      messages: streamMessages,
-      model: selectedModel,
-      signal: abortControllerRef.current.signal,
-      onDelta: (delta) => {
-        responseContent += delta;
-        updateLastAssistantMessage(responseContent);
-      },
-      onDone: () => {
-        setIsStreaming(false);
-        if (responseContent) {
-          saveAssistantMessage(responseContent, selectedModel);
-        }
-      },
-      onError: (error) => {
-        setError(error.message);
-        toast.error(error.message);
-        setIsStreaming(false);
-      },
+    // Attach to window so onclick works, or better yet, attach listeners directly
+    suggestionChips.forEach(chip => {
+      chip.addEventListener('click', function(this: HTMLElement) {
+        sendSuggestion(this);
+      });
     });
-  }, [messages, selectedModel, updateLastAssistantMessage, saveAssistantMessage, setMessages]);
 
-  const handleStop = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
+    // Handle new chat button
+    const newChatBtn = containerRef.current.querySelector('.sidebar-btn[title="New chat"]');
+    if (newChatBtn) {
+      newChatBtn.addEventListener('click', newChat);
     }
-    setIsStreaming(false);
-  }, []);
 
-  const handleSuggestionClick = useCallback((prompt: string) => {
-    handleSend(prompt);
-  }, [handleSend]);
-
-  const handleQuickAction = useCallback((action: string, prompt: string) => {
-    handleSend(prompt);
-  }, [handleSend]);
-
-  const handleSelectConversation = useCallback((id: string) => {
-    const conv = conversations.find(c => c.id === id);
-    if (conv) {
-      selectConversation(conv);
-      setMobileSidebarOpen(false);
-      setError(null);
+    function newChat() {
+      messagesContainer.innerHTML = '';
+      messagesContainer.style.display = 'none';
+      welcomeState.style.display = 'block';
+      chatArea.classList.remove('has-messages');
+      bgGlow.classList.remove('hidden');
+      hasMessages = false;
     }
-  }, [conversations, selectConversation]);
 
-  const handleRenameConversation = useCallback(async (id: string, title: string) => {
-    console.log("Rename:", id, title);
+    // Handle send button
+    if (sendBtn) {
+      sendBtn.addEventListener('click', sendMessage);
+    }
+    
+    if (chatInput) {
+      chatInput.addEventListener('input', onInput);
+      chatInput.addEventListener('keydown', onKeydown);
+    }
+
+    function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      if (!hasMessages) {
+        welcomeState.style.display = 'none';
+        messagesContainer.style.display = 'flex';
+        chatArea.classList.add('has-messages');
+        bgGlow.classList.add('hidden');
+        hasMessages = true;
+      }
+
+      appendMessage('user', text);
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+      sendBtn.classList.remove('visible');
+
+      // Typing indicator
+      const typingId = appendTyping();
+
+      setTimeout(() => {
+        removeTyping(typingId);
+        const response = AI_RESPONSES[Math.floor(Math.random() * AI_RESPONSES.length)];
+        appendMessage('ai', response);
+      }, 1200 + Math.random() * 800);
+    }
+
+    function appendMessage(role: string, text: string) {
+      const msg = document.createElement('div');
+      msg.className = `message ${role}`;
+
+      const avatarHtml = role === 'ai'
+        ? `<div class="msg-avatar ai">
+            <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
+              <defs><linearGradient id="mg" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#4285f4"/><stop offset="100%" stop-color="#9b59b6"/>
+              </linearGradient></defs>
+              <path d="M14 2 C14 8.5 19.5 14 14 14 C19.5 14 14 19.5 14 26 C14 19.5 8.5 14 14 14 C8.5 14 14 8.5 14 2Z" fill="url(#mg)"/>
+            </svg>
+          </div>`
+        : `<div class="msg-avatar user">P</div>`;
+
+      const actionsHtml = `
+        <div class="msg-actions">
+          <button class="msg-action-btn" title="Copy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+          </button>
+          <button class="msg-action-btn" title="Good response">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/>
+              <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/>
+            </svg>
+          </button>
+          <button class="msg-action-btn" title="Bad response">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z"/>
+              <path d="M17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/>
+            </svg>
+          </button>
+          <button class="msg-action-btn" title="Regenerate">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+            </svg>
+          </button>
+        </div>`;
+
+      msg.innerHTML = `
+        ${avatarHtml}
+        <div>
+          <div class="msg-bubble">${escHtml(text)}</div>
+          ${role === 'ai' ? actionsHtml : ''}
+        </div>`;
+
+      messagesContainer.appendChild(msg);
+      scrollToBottom();
+    }
+
+    let typingCounter = 0;
+    function appendTyping() {
+      const id = 'typing-' + (++typingCounter);
+      const el = document.createElement('div');
+      el.className = 'message ai';
+      el.id = id;
+      el.innerHTML = `
+        <div class="msg-avatar ai">
+          <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
+            <defs><linearGradient id="mg2" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#4285f4"/><stop offset="100%" stop-color="#9b59b6"/>
+            </linearGradient></defs>
+            <path d="M14 2 C14 8.5 19.5 14 14 14 C19.5 14 14 19.5 14 26 C14 19.5 8.5 14 14 14 C8.5 14 14 8.5 14 2Z" fill="url(#mg2)"/>
+          </svg>
+        </div>
+        <div class="msg-bubble">
+          <div class="typing-indicator">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>`;
+      messagesContainer.appendChild(el);
+      scrollToBottom();
+      return id;
+    }
+
+    function removeTyping(id: string) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+
+    function scrollToBottom() {
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function escHtml(str: string) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    }
+
+    // Cleanup listeners
+    return () => {
+      if (newChatBtn) newChatBtn.removeEventListener('click', newChat);
+      if (sendBtn) sendBtn.removeEventListener('click', sendMessage);
+      if (chatInput) {
+        chatInput.removeEventListener('input', onInput);
+        chatInput.removeEventListener('keydown', onKeydown);
+      }
+    };
   }, []);
-
-  // Handle template usage - puts content in chat input
-  const handleUseTemplate = useCallback((content: string) => {
-    handleSend(content);
-  }, [handleSend]);
-
-  // Handle complexity change from ChatInput for auto-routing
-  const handleComplexityChange = useCallback((complexity: ComplexityLevel | null, modelId: string | null) => {
-    setRoutedModel(modelId);
-  }, []);
-
-  if (loading) {
-    return <AppLoadingScreen />;
-  }
-
-  if (!user) {
-    return null;
-  }
 
   return (
-    <TooltipProvider>
-      <div className="flex h-screen w-full overflow-hidden bg-background relative">
-        {/* Ambient background effects */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 right-1/4 w-[800px] h-[800px] bg-primary/3 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-violet-500/3 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-cyan-500/2 rounded-full blur-3xl animate-[breathe_15s_ease-in-out_infinite]" />
+    <div className="custom-chat-wrapper" ref={containerRef}>
+      {/* SIDEBAR */}
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          {/* Lexa-style 4-point star (Replaced Gemini with Lexa star symbol) */}
+          <svg className="lexa-star" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#4285f4"/>
+                <stop offset="33%" stopColor="#9b59b6"/>
+                <stop offset="66%" stopColor="#ea4335"/>
+                <stop offset="100%" stopColor="#fbbc04"/>
+              </linearGradient>
+            </defs>
+            <path d="M14 2 C14 8.5 19.5 14 14 14 C19.5 14 14 19.5 14 26 C14 19.5 8.5 14 14 14 C8.5 14 14 8.5 14 2Z" fill="url(#g1)"/>
+            <path d="M2 14 C8.5 14 14 8.5 14 14 C14 8.5 19.5 14 26 14 C19.5 14 14 19.5 14 14 C14 19.5 8.5 14 2 14Z" fill="url(#g1)" opacity="0.6"/>
+          </svg>
         </div>
 
-        {/* Mobile sidebar overlay */}
-        <AnimatePresence>
-          {mobileSidebarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/60 lg:hidden backdrop-blur-sm"
-              onClick={() => setMobileSidebarOpen(false)}
-            />
-          )}
-        </AnimatePresence>
+        {/* New chat */}
+        <button className="sidebar-btn" title="New chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+        </button>
 
-        {/* Sidebar */}
-        <div
-          className={cn(
-            "fixed inset-y-0 left-0 z-50 lg:relative lg:z-0",
-            "transition-transform duration-300 ease-out",
-            mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-          )}
-        >
-          <ChatSidebar
-            conversations={conversations}
-            currentConversationId={currentConversation?.id || null}
-            onNewChat={startNewChat}
-            onSelectConversation={handleSelectConversation}
-            onDeleteConversation={deleteConversation}
-            onRenameConversation={handleRenameConversation}
-            onSignOut={signOut}
-            isCollapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          />
+        {/* Search */}
+        <button className="sidebar-btn active" title="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+        </button>
+
+        {/* Apps */}
+        <button className="sidebar-btn" title="Explore Apps">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+          </svg>
+        </button>
+
+        <div className="sidebar-spacer"></div>
+
+        <div className="sidebar-bottom">
+          <button className="settings-btn" title="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
+          </button>
+
+          <div className="avatar-wrapper">
+            <div className="avatar">P</div>
+          </div>
+
+          <button className="sidebar-btn" title="Edu workspace" style={{ border: '1px solid var(--border)', borderRadius: '20px', width: 'auto', padding: '4px 10px', fontSize: '11px', color: 'var(--text-muted)', height: 'auto', gap: '4px' }}>
+            Edu
+          </button>
         </div>
+      </aside>
 
-        {/* Main content */}
-        <div className="flex flex-1 flex-col min-w-0 relative z-10">
-          <div className="flex items-center justify-between">
-            <ChatHeader
-              selectedModel={selectedModel}
-              onModelChange={setSelectedModel}
-              isStreaming={isStreaming}
-              webSearchEnabled={webSearchEnabled}
-              mobileSidebarOpen={mobileSidebarOpen}
-              onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-              onExport={() => setShowExport(true)}
-              onShowShortcuts={() => setShowShortcuts(true)}
-              hasMessages={messages.length > 0}
-              personality={preferences?.personality || "friendly"}
-              onPersonalityChange={(p) => setPersonality(p)}
-              searchModel={preferences?.preferred_search_model || "lexa-search-fast"}
-              onSearchModelChange={(m) => setSearchModel(m)}
-              searchCooldown={remainingSeconds}
-              onUseTemplate={handleUseTemplate}
-              autoRouting={autoRouting}
-              onAutoRoutingChange={setAutoRouting}
-            />
-            <div className="flex items-center gap-2 pr-4">
-              <FocusMode 
-                isActive={focusModeActive} 
-                onToggle={() => setFocusModeActive(!focusModeActive)} 
-              />
+      {/* MAIN */}
+      <main className="main">
+        <div className="bg-glow" id="bgGlow"></div>
+
+        {/* Header */}
+        <header className="header">
+          <button className="model-selector">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M12 2C12 8 18 12 12 12C18 12 12 18 12 22C12 16 6 12 12 12C6 12 12 8 12 2Z"/>
+            </svg>
+            Lexa Pro
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+        </header>
+
+        {/* Chat area */}
+        <div className="chat-area" id="chatArea">
+          {/* Welcome State */}
+          <div className="welcome" id="welcomeState">
+            <h1 className="welcome-title">Ask away, PARAG!</h1>
+            <div className="suggestions">
+              <button className="suggestion-chip">✨ Help me write something</button>
+              <button className="suggestion-chip">🔍 Summarize a document</button>
+              <button className="suggestion-chip">💡 Brainstorm ideas</button>
+              <button className="suggestion-chip">🎯 Plan my week</button>
+              <button className="suggestion-chip">🌐 Explain a concept</button>
+              <button className="suggestion-chip">🖼️ Analyze an image</button>
             </div>
           </div>
 
-          {/* Chat area */}
-          <div className="flex flex-1 overflow-hidden relative">
-            {/* Messages */}
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <AnimatePresence mode="wait">
-              {messages.length === 0 && !isStreaming ? (
-                /* Gemini-style centered layout for welcome screen */
-                <motion.div 
-                  key="welcome"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  className="flex-1 flex flex-col items-center justify-center"
-                >
-                  <WelcomeScreen 
-                    onSuggestionClick={handleSuggestionClick} 
-                    userName={user?.user_metadata?.full_name?.split(" ")[0]} 
-                  />
-                  {/* Input positioned below greeting */}
-                  <ChatInput
-                    onSend={handleSend}
-                    isLoading={isStreaming}
-                    onStop={handleStop}
-                    disabled={conversationsLoading}
-                    isRecording={isRecording}
-                    isTranscribing={isTranscribing}
-                    onStartRecording={startRecording}
-                    onStopRecording={stopRecording}
-                    webSearchEnabled={webSearchEnabled}
-                    onToggleWebSearch={() => setWebSearchEnabled(!webSearchEnabled)}
-                    onOpenRealtimeVoice={() => setRealtimeVoiceActive(true)}
-                    autoRouting={autoRouting}
-                    onComplexityChange={handleComplexityChange}
-                  />
-                </motion.div>
-              ) : (
-                /* Standard chat layout with messages */
-                <motion.div
-                  key="chat"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-1 flex-col overflow-hidden"
-                >
-                  <div
-                    ref={scrollRef}
-                    className="flex-1 overflow-y-auto chat-scrollbar"
-                  >
-                    <div className="pb-4">
-                      {messages.map((message, index) => {
-                        const isLastAssistant = message.role === "assistant" && 
-                          index === messages.length - 1;
-                        return (
-                          <ChatMessage
-                            key={message.id}
-                            message={message}
-                            isStreaming={isStreaming && isLastAssistant}
-                            isSpeaking={isSpeaking}
-                            onSpeak={speak}
-                            onStopSpeaking={stopSpeaking}
-                            onRegenerate={handleRegenerate}
-                            isLastAssistant={isLastAssistant && !isStreaming}
-                            onQuickAction={handleQuickAction}
-                            showQuickActions={true}
-                          />
-                        );
-                      })}
-
-                      {/* Conversation Insights */}
-                      {messages.length >= 4 && !isStreaming && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="px-4 md:px-6 py-4"
-                        >
-                          <div className="max-w-3xl mx-auto">
-                            <ConversationInsights 
-                              messages={messages} 
-                              overallMood={getOverallMood()}
-                            />
-                          </div>
-                        </motion.div>
-                      )}
-                      {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
-                        <TypingIndicator />
-                      )}
-                    </div>
-
-                    {/* Error message with retry */}
-                    {error && !isStreaming && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="px-4 md:px-6 pb-4"
-                      >
-                        <div className="max-w-3xl mx-auto">
-                          <ErrorMessage message={error} onRetry={handleRetry} />
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-
-                  {/* Scroll to bottom button */}
-                  <ScrollToBottom show={showScrollButton} onClick={scrollToBottom} />
-
-                  {/* Input at bottom */}
-                  <div className="border-t border-border/30 bg-background/70 backdrop-blur-xl py-4">
-                    <ChatInput
-                      onSend={handleSend}
-                      isLoading={isStreaming}
-                      onStop={handleStop}
-                      disabled={conversationsLoading}
-                      isRecording={isRecording}
-                      isTranscribing={isTranscribing}
-                      onStartRecording={startRecording}
-                      onStopRecording={stopRecording}
-                      webSearchEnabled={webSearchEnabled}
-                      onToggleWebSearch={() => setWebSearchEnabled(!webSearchEnabled)}
-                      onOpenRealtimeVoice={() => setRealtimeVoiceActive(true)}
-                      autoRouting={autoRouting}
-                      onComplexityChange={handleComplexityChange}
-                    />
-                  </div>
-                </motion.div>
-              )}
-              </AnimatePresence>
-            </div>
-
-            {/* Citations panel */}
-            <AnimatePresence>
-            {showCitations && activeCitations.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 50 }}
-                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <CitationsPanel
-                  citations={activeCitations}
-                  onClose={() => setShowCitations(false)}
-                />
-              </motion.div>
-            )}
-            </AnimatePresence>
-          </div>
+          {/* Messages Container */}
+          <div className="messages-container" id="messagesContainer" style={{ display: 'none' }}></div>
         </div>
 
-        {/* Modals */}
-        <KeyboardShortcuts open={showShortcuts} onOpenChange={setShowShortcuts} />
-        <ExportDialog
-          open={showExport}
-          onOpenChange={setShowExport}
-          messages={messages}
-          title={currentConversation?.title || "Chat Export"}
-        />
-        
-        {/* Realtime Voice Chat */}
-        <RealtimeVoiceChat
-          isActive={realtimeVoiceActive}
-          onClose={() => setRealtimeVoiceActive(false)}
-        />
-        
-        {/* Onboarding Tour for new users */}
-        <OnboardingTour />
-      </div>
-    </TooltipProvider>
+        {/* Input Section */}
+        <div className="input-section">
+          <div className="input-wrapper">
+            <button className="attach-btn" title="Attach file">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+
+            <textarea
+              className="chat-input"
+              id="chatInput"
+              placeholder="Ask Lexa"
+              rows={1}
+            ></textarea>
+
+            <div className="input-right">
+              <button className="model-pill" id="modelPill">
+                Pro
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+
+              <button className="mic-btn" title="Use microphone" id="micBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+                  <path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+                  <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+              </button>
+
+              <button className="send-btn" id="sendBtn" title="Send">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <p className="disclaimer">Lexa can make mistakes, so double-check its responses.</p>
+        </div>
+      </main>
+    </div>
   );
 }

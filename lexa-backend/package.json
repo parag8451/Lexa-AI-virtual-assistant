@@ -4,14 +4,21 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx src/server.ts"
+    "dev": "tsx src/server.ts",
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "start": "node dist/server.js",
+    "seed": "tsx src/seed.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.9",
+    "@supabase/supabase-js": "^2.39.0",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "hono": "^4.11.5",
-    "mongodb": "^7.0.0"
+    "mongoose": "^8.0.0",
+    "redis": "^4.6.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^25.0.10",

@@ -392,7 +392,7 @@ export default function Settings() {
               <Button
                 variant="ghost"
                 className="w-full justify-between h-12 rounded-xl hover:bg-muted/30"
-                onClick={() => window.open("https://docs.lovable.dev", "_blank")}
+                onClick={() => window.open("https://lexa-ai.com/docs", "_blank")}
               >
                 <span className="flex items-center gap-2">
                   <ExternalLink className="h-4 w-4 text-primary" />
@@ -422,7 +422,7 @@ export default function Settings() {
           <div className="space-y-1">
             <p className="gradient-text font-bold text-xl">Lexa AI</p>
             <p className="text-sm text-muted-foreground font-medium">Version 1.0.0</p>
-            <p className="text-xs text-muted-foreground">Built with ❤️ using Lovable</p>
+            <p className="text-xs text-muted-foreground">Built with ❤️ by Parag</p>
           </div>
         </motion.div>
         </motion.div>

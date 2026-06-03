@@ -15,6 +15,10 @@ interface StreamChatOptions {
   signal?: AbortSignal;
 }
 
+/**
+ * Stream chat responses from Claude via Supabase Edge Function
+ * Uses native ReadableStream for efficient token-by-token streaming
+ */
 export async function streamChat({
   messages,
   model,
@@ -25,11 +29,16 @@ export async function streamChat({
   onError,
   signal,
 }: StreamChatOptions) {
+  const abortController = new AbortController();
+  if (signal) {
+    signal.addEventListener("abort", () => abortController.abort());
+  }
+
   try {
     // Get the current user's session token for authenticated requests
     const { data: { session } } = await supabase.auth.getSession();
     
-    // SECURITY: Require authentication - do not fallback to publishable key
+    // SECURITY: Require authentication
     if (!session?.access_token) {
       throw new Error("Please sign in to continue.");
     }
@@ -50,17 +59,23 @@ export async function streamChat({
     
     fullMessages.push(...messages);
 
+    // Fetch with streaming enabled
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ messages: fullMessages, model }),
-      signal,
+      body: JSON.stringify({ 
+        messages: fullMessages.filter(m => m.role !== "system").map(m => ({ role: m.role, content: m.content })),
+        model: model || "lexa-balanced",
+        systemPrompt: systemPrompt || undefined,
+      }),
+      signal: abortController.signal,
     });
 
     if (!resp.ok) {
+      // Handle specific error codes
       if (resp.status === 401) {
         throw new Error("Please sign in to continue.");
       }
@@ -73,6 +88,7 @@ export async function streamChat({
       if (resp.status === 413) {
         throw new Error("Message too long. Please shorten your message.");
       }
+      
       const errorData = await resp.json().catch(() => ({}));
       throw new Error(errorData.error || `Request failed with status ${resp.status}`);
     }
@@ -81,72 +97,99 @@ export async function streamChat({
       throw new Error("No response body");
     }
 
+    // Use native ReadableStream for optimal performance
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
-    let textBuffer = "";
-    let streamDone = false;
+    let buffer = "";
 
-    while (!streamDone) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      textBuffer += decoder.decode(value, { stream: true });
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      let newlineIndex: number;
-      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-        let line = textBuffer.slice(0, newlineIndex);
-        textBuffer = textBuffer.slice(newlineIndex + 1);
+        buffer += decoder.decode(value, { stream: true });
 
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        if (line.startsWith(":") || line.trim() === "") continue;
-        if (!line.startsWith("data: ")) continue;
+        // Process complete SSE messages
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
 
-        const jsonStr = line.slice(6).trim();
-        if (jsonStr === "[DONE]") {
-          streamDone = true;
-          break;
-        }
+          // Remove carriage return if present
+          if (line.endsWith("\r")) line = line.slice(0, -1);
 
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) onDelta(content);
-        } catch {
-          textBuffer = line + "\n" + textBuffer;
-          break;
+          // Skip empty lines and comments
+          if (line.startsWith(":") || line.trim() === "") continue;
+
+          // Process SSE data lines
+          if (line.startsWith("data: ")) {
+            const jsonStr = line.slice(6);
+
+            // Check for stream completion
+            if (jsonStr === "[DONE]") {
+              onDone();
+              return;
+            }
+
+            try {
+              const data = JSON.parse(jsonStr);
+              
+              // Handle Anthropic SSE events
+              if (data.type === "content_block_delta" && data.delta?.type === "text_delta") {
+                onDelta(data.delta.text);
+              } else if (data.type === "message_stop") {
+                onDone();
+                return;
+              } else if (data.type === "error") {
+                throw new Error(data.error || "Unknown streaming error");
+              }
+            } catch (parseError) {
+              if (parseError instanceof SyntaxError) {
+                console.warn("Failed to parse SSE line:", line);
+              } else {
+                throw parseError;
+              }
+            }
+          }
         }
       }
-    }
 
-    // Final flush
-    if (textBuffer.trim()) {
-      for (let raw of textBuffer.split("\n")) {
-        if (!raw) continue;
-        if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-        if (raw.startsWith(":") || raw.trim() === "") continue;
-        if (!raw.startsWith("data: ")) continue;
-        const jsonStr = raw.slice(6).trim();
-        if (jsonStr === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) onDelta(content);
-        } catch {
-          /* ignore partial leftovers */
-        }
+      // Process any remaining buffer content
+      if (buffer.trim()) {
+        console.warn("Incomplete buffer at stream end:", buffer);
       }
-    }
 
-    onDone();
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
       onDone();
-      return;
+    } finally {
+      reader.releaseLock();
     }
-    if (onError && error instanceof Error) {
-      onError(error);
-    } else {
-      console.error("Stream error:", error);
-    }
-    onDone();
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error("Chat streaming error:", err);
+    onError?.(err);
+    throw err;
+  }
+}
+
+/**
+ * Pre-warm the edge function with a dummy OPTIONS request
+ * This reduces cold start latency on first real request
+ */
+export async function prewarmChat() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+
+    // Send a lightweight OPTIONS request to warm up the function
+    await fetch(CHAT_URL, {
+      method: "OPTIONS",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    }).catch(() => {
+      // Ignore errors, this is just for prewarming
+    });
+  } catch {
+    // Silently fail - prewarming is optional
   }
 }

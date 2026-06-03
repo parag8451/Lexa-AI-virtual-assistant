@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://your-heart-ai.lovable.app/sitemap.xml
+Sitemap: https://lexa-ai.com/sitemap.xml

@@ -1,5 +1,5 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "lexa-ai-virtual-assistant",`n  "description": "Lexa AI is your emotionally intelligent AI companion powered by advanced language models.",`n  "author": "Parag",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -46,6 +46,7 @@
     "@react-three/fiber": "^8.18.0",
     "@supabase/supabase-js": "^2.91.0",
     "@tanstack/react-query": "^5.83.0",
+    "@tanstack/react-virtual": "^3.5.1",
     "@types/dompurify": "^3.2.0",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/three": "^0.160.0",

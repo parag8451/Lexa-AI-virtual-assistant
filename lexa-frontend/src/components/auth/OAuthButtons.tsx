@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 
 interface OAuthButtonsProps {
   loading: boolean;
@@ -10,51 +11,75 @@ interface OAuthButtonsProps {
 
 export function OAuthButtons({ loading, setLoading }: OAuthButtonsProps) {
   const { toast } = useToast();
+  const [isConfigured, setIsConfigured] = useState(true);
+
+  useEffect(() => {
+    // Check if Supabase is properly configured
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey || 
+        supabaseUrl.includes('your-project') || 
+        supabaseKey.includes('your-anon')) {
+      setIsConfigured(false);
+    }
+  }, []);
 
   const handleGoogleSignIn = async () => {
+    if (!isConfigured) {
+      toast({
+        variant: "destructive",
+        title: "Configuration Error",
+        description: "Please configure your Supabase credentials in .env file",
+      });
+      return;
+    }
+
     setLoading(true);
-    const redirectTo = `${window.location.origin}/`;
+    try {
+      const redirectTo = `${window.location.origin}/chat`;
 
-    // NOTE: In the Lovable preview, the app runs inside an iframe.
-    // Google blocks rendering its auth pages in iframes, which can show:
-    // "www.google.com refused to connect".
-    // We request the OAuth URL and open it in a new tab instead.
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo,
-        skipBrowserRedirect: true,
-      },
-    });
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          skipBrowserRedirect: false,
+        },
+      });
 
-    if (error) {
+      if (error) {
+        setLoading(false);
+        console.error("Google sign-in error:", error);
+        toast({
+          variant: "destructive",
+          title: "Google sign in failed",
+          description: error.message || "An error occurred during Google sign-in. Please ensure Google OAuth is configured in Supabase.",
+        });
+        return;
+      }
+
+      const url = data?.url;
+      if (!url) {
+        setLoading(false);
+        toast({
+          variant: "destructive",
+          title: "Google sign in failed",
+          description: "Unable to start Google sign-in. Please check your Supabase OAuth configuration.",
+        });
+        return;
+      }
+
+      // Navigate to the OAuth URL
+      window.location.href = url;
+    } catch (err) {
       setLoading(false);
+      console.error("Google sign-in exception:", err);
       toast({
         variant: "destructive",
-        title: "Google sign in failed",
-        description: error.message,
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
       });
-      return;
     }
-
-    const url = data?.url;
-    if (!url) {
-      setLoading(false);
-      toast({
-        variant: "destructive",
-        title: "Google sign in failed",
-        description: "Unable to start Google sign-in. Please try again.",
-      });
-      return;
-    }
-
-    // Try to open in a new tab. If blocked, fall back to same-tab navigation.
-    const opened = window.open(url, "_blank", "noopener,noreferrer");
-    if (!opened) {
-      window.location.assign(url);
-    }
-
-    setLoading(false);
   };
 
   return (
@@ -76,7 +101,7 @@ export function OAuthButtons({ loading, setLoading }: OAuthButtonsProps) {
           variant="outline"
           className="w-full h-12 rounded-xl font-medium border-border/30 bg-card/50 hover:bg-card hover:border-border/50 hover:shadow-lg transition-all group"
           onClick={handleGoogleSignIn}
-          disabled={loading}
+          disabled={loading || !isConfigured}
         >
           <svg className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
           <path

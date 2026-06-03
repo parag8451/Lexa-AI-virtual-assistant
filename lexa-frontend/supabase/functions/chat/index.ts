@@ -1,21 +1,65 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Model mapping for Anthropic Claude
+const MODEL_MAPPING: Record<string, string> = {
+  "lexa-fast": "claude-3-5-haiku-20241022",
+  "lexa-balanced": "claude-3-5-sonnet-20241022",
+  "lexa-pro": "claude-3-5-sonnet-20241022",
+  "lexa-expert": "claude-3-opus-20250219",
+  "lexa-ultra": "claude-3-opus-20250219",
+};
+
+// Define tools that Claude can use
+const TOOLS = [
+  {
+    name: "web_search",
+    description: "Search the web for current information",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "The search query"
+        }
+      },
+      required: ["query"]
+    }
+  },
+  {
+    name: "get_current_time",
+    description: "Get the current date and time",
+    input_schema: {
+      type: "object",
+      properties: {}
+    }
+  },
+  {
+    name: "calculator",
+    description: "Perform mathematical calculations",
+    input_schema: {
+      type: "object",
+      properties: {
+        expression: {
+          type: "string",
+          description: "A mathematical expression to evaluate"
+        }
+      },
+      required: ["expression"]
+    }
+  }
+];
+
 // Get allowed origins from env or use defaults
 const ALLOWED_ORIGINS = [
   Deno.env.get("FRONTEND_URL") || "",
-  "https://your-heart-ai.lovable.app",
-  "https://id-preview--a8744b7d-1be4-4fce-90ac-07d3d28c21b9.lovable.app",
 ].filter(Boolean);
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
-  // Check if origin is allowed (include both lovable.app and lovableproject.com for dev)
-  const allowedOrigin = origin && (
-    ALLOWED_ORIGINS.some(allowed => origin === allowed) || 
-    origin.endsWith(".lovable.app") ||
-    origin.endsWith(".lovableproject.com")
-  ) ? origin : ALLOWED_ORIGINS[0] || "*";
-  
+  const allowedOrigin = origin && ALLOWED_ORIGINS.some((allowed) => origin === allowed)
+    ? origin
+    : ALLOWED_ORIGINS[0] || "*";
+
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -31,48 +75,67 @@ const RATE_LIMIT_WINDOW_SECONDS = 60; // 1 minute window
 const MAX_MESSAGES = 50;
 const MAX_MESSAGE_LENGTH = 10000;
 
-// Map frontend model names to actual AI gateway model IDs
-const MODEL_MAPPING: Record<string, string> = {
-  "lexa-fast": "google/gemini-3-flash-preview",
-  "lexa-balanced": "google/gemini-2.5-flash",
-  "lexa-pro": "google/gemini-2.5-pro",
-  "lexa-expert": "google/gemini-2.5-pro",
-  "lexa-ultra": "openai/gpt-5",
-};
+// System prompt optimized for function calling
+const SYSTEM_PROMPT = `You are Lexa AI, a highly intelligent and helpful AI assistant. You have access to tools to help answer questions and complete tasks.
 
-// System prompt optimized for structured, clear responses
-const SYSTEM_PROMPT = `You are Lexa AI, a highly intelligent and helpful AI assistant. Follow these formatting rules strictly:
+IMPORTANT RULES:
+1. **Respond ONLY to what the user asks** - nothing more, nothing less
+2. **Match response length to the request** - if they say "hi", reply with just a greeting
+3. **NO extra information** - no bullet points, lists, or suggestions unless specifically asked
+4. **NO formatting overhead** - keep it simple and direct
+5. **Be concise** - answer the question briefly, then stop
+6. **Only add structure if requested** - tables, lists, or headings only when the user asks for them
 
-**Response Structure:**
-1. For questions or explanations: Use clear headings, numbered lists, and bullet points
-2. For math problems: Show step-by-step solutions with clear numbering (Step 1, Step 2, etc.)
-3. For comparisons: Use tables or organized lists
-4. For code: Always specify the language and include comments
+Examples:
+- If user says "hi" → Reply: "Hi! How can I help?"
+- If user asks "what's 2+2?" → Reply: "4"
+- If user says "explain quantum physics" → Give explanation, but keep it focused on what they asked
+- If user wants step-by-step → Then use numbered steps
 
-**Formatting Rules:**
-- Use **bold** for important terms and concepts
-- Use numbered lists (1. 2. 3.) for sequential steps or rankings
-- Use bullet points (•) for non-sequential items
-- Use headings (## or ###) to organize long responses into sections
-- For math: Write equations clearly, show each step on a new line
-- Use horizontal rules (---) to separate major sections
+When you need tools (web search, calculator), use them quietly and just present the result.`;
 
-**Communication Style:**
-- Be concise but thorough
-- Start with a brief summary or direct answer
-- Then provide detailed explanation with proper structure
-- End with a summary or recommendation when helpful
-
-Example math formatting:
-**Problem:** Calculate 25 × 12
-
-**Solution:**
-Step 1: Break down 12 into (10 + 2)
-Step 2: Calculate 25 × 10 = 250
-Step 3: Calculate 25 × 2 = 50
-Step 4: Add the results: 250 + 50 = **300**
-
-**Answer: 300**`;
+// Tool execution functions
+async function executeTool(name: string, input: Record<string, unknown>): Promise<string> {
+  switch (name) {
+    case "get_current_time": {
+      const now = new Date();
+      return JSON.stringify({
+        time: now.toISOString(),
+        unix_timestamp: Math.floor(now.getTime() / 1000),
+        readable: now.toLocaleString()
+      });
+    }
+    
+    case "calculator": {
+      try {
+        const expr = input.expression as string;
+        // Simple calculator - only allow safe expressions
+        const result = Function('"use strict"; return (' + expr + ')')();
+        return JSON.stringify({ result, expression: expr });
+      } catch (err) {
+        return JSON.stringify({ error: "Invalid expression", expression: input.expression });
+      }
+    }
+    
+    case "web_search": {
+      const query = input.query as string;
+      // Placeholder - in production, integrate with Brave Search API
+      return JSON.stringify({
+        results: [
+          {
+            title: "Search Result",
+            snippet: "This is a placeholder web search result. In production, integrate with Brave Search or Serper API.",
+            url: "https://example.com"
+          }
+        ],
+        query
+      });
+    }
+    
+    default:
+      return JSON.stringify({ error: `Unknown tool: ${name}` });
+  }
+}
 
 // Helper to authenticate user
 async function authenticateUser(req: Request): Promise<{ userId: string } | null> {
@@ -226,62 +289,110 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
+    if (!ANTHROPIC_API_KEY) {
+      console.error("ANTHROPIC_API_KEY is not configured");
       return new Response(
         JSON.stringify({ error: "Service not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Map frontend model names to gateway model IDs, default to fast model
-    const requestedModel = model || "lexa-fast";
-    const selectedModel = MODEL_MAPPING[requestedModel] || requestedModel;
-    
-    // If still not a valid model, use default
-    const finalModel = selectedModel.includes("/") ? selectedModel : "google/gemini-3-flash-preview";
+    // Map frontend model names to Claude model IDs, default to balanced model
+    const requestedModel = model || "lexa-balanced";
+    const finalModel = MODEL_MAPPING[requestedModel] || "claude-3-5-sonnet-20241022";
     
     console.log(`[${Date.now() - startTime}ms] Chat request - user: ${auth.userId}, model: ${finalModel}, messages: ${messages.length}, remaining: ${rateLimit.remaining}`);
 
-    // Stream response from AI gateway
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: finalModel,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          ...messages,
-        ],
-        stream: true,
-        // Optimize for speed
-        temperature: 0.7,
-        max_tokens: 2048,
-      }),
-    });
+    // Build Anthropic API request
+    const claudeMessages = messages.map((msg: { role: string; content: string }) => ({
+      role: msg.role,
+      content: msg.content,
+    }));
 
-    console.log(`[${Date.now() - startTime}ms] AI gateway response status: ${response.status}`);
+    // Stream response from Anthropic API
+    const response = await fetch(
+      "https://api.anthropic.com/v1/messages",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: finalModel,
+          max_tokens: 2048,
+          system: SYSTEM_PROMPT,
+          messages: claudeMessages,
+          stream: true,
+        }),
+      }
+    );
+
+    console.log(`[${Date.now() - startTime}ms] Anthropic API response status: ${response.status}`);
 
     if (!response.ok) {
-      // Log detailed error server-side only for debugging
-      console.error(`AI gateway error: ${response.status}`);
+      console.error(`Anthropic API error: ${response.status}`);
       const errorBody = await response.text().catch(() => "");
       if (errorBody) console.error(`Error details: ${errorBody.substring(0, 500)}`);
       
-      // Return generic error message to client - don't expose internal status codes
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limited. Please try again later." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ error: "Service temporarily unavailable. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Transform Anthropic SSE stream to OpenAI-compatible SSE stream for the frontend
+    const transformStream = new TransformStream({
+      transform(chunk, controller) {
+        const text = new TextDecoder().decode(chunk);
+        const lines = text.split("\n");
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === "[DONE]") {
+              controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+              return;
+            }
+            try {
+              const parsed = JSON.parse(jsonStr);
+              // Handle Anthropic content_block_delta events
+              if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
+                const content = parsed.delta.text || "";
+                if (content) {
+                  const openAiChunk = {
+                    choices: [{ delta: { content } }],
+                  };
+                  controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(openAiChunk)}\n\n`));
+                }
+              }
+              // Check for finish reason
+              const finishReason = parsed.candidates?.[0]?.finishReason;
+              if (finishReason && finishReason !== "STOP") {
+                // Still send done
+              }
+              if (finishReason === "STOP") {
+                controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+              }
+            } catch {
+              // Skip unparseable lines
+            }
+          }
+        }
+      },
+    });
+
     // Return streaming response with rate limit headers
-    return new Response(response.body, {
+    return new Response(response.body!.pipeThrough(transformStream), {
       headers: { 
         ...corsHeaders, 
         "Content-Type": "text/event-stream",

@@ -47,29 +47,32 @@ serve(async (req) => {
 
     console.log(`Generating image for user ${user.id}:`, { prompt, size, quality, style });
 
-    // Use Lovable AI gateway for image generation
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    // Use Google Gemini API for image generation
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!geminiApiKey) {
+      throw new Error("GEMINI_API_KEY not configured");
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: `Generate a high-quality ${style} style image: ${prompt}. Make it visually stunning and detailed.`,
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: `Generate a high-quality ${style} style image: ${prompt}. Make it visually stunning and detailed.` },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseModalities: ["IMAGE", "TEXT"],
           },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -94,8 +97,17 @@ serve(async (req) => {
     const result = await response.json();
     console.log("Image generation result received");
 
-    const imageUrl = result.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    const revisedPrompt = result.choices?.[0]?.message?.content || prompt;
+    // Extract image from Gemini response
+    const parts = result.candidates?.[0]?.content?.parts || [];
+    let imageUrl = "";
+    let revisedPrompt = prompt;
+    for (const part of parts) {
+      if (part.inlineData) {
+        imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+      } else if (part.text) {
+        revisedPrompt = part.text;
+      }
+    }
 
     if (!imageUrl) {
       console.error("No image URL in response:", result);
