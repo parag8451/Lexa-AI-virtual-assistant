@@ -1,5 +1,7 @@
 {
-  "name": "lexa-ai-virtual-assistant",`n  "description": "Lexa AI is your emotionally intelligent AI companion powered by advanced language models.",`n  "author": "Parag",
+  "name": "lexa-ai-virtual-assistant",
+  "description": "Lexa AI is your emotionally intelligent AI companion powered by advanced language models.",
+  "author": "Parag",
   "private": true,
   "version": "0.0.0",
   "type": "module",
