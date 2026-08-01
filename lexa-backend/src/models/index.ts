@@ -88,7 +88,7 @@ const conversationSchema = new Schema<IConversation>(
 );
 
 // Compound index for efficient user conversation queries
-conversationSchema.index({ userId: 1, createdAt: -1 });
+conversationSchema.index({ userId: 1, updatedAt: -1 });
 
 export const Conversation = mongoose.model<IConversation>('Conversation', conversationSchema);
 

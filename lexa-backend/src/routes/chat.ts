@@ -2,191 +2,181 @@ import { Hono } from 'hono';
 import { Conversation, User } from '../models/index';
 import { z } from 'zod';
 import type { AppEnv } from '../types';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const chatRouter = new Hono<AppEnv>();
+
+// Initialize Gemini API
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // Request validation schema
 const chatRequestSchema = z.object({
   messages: z.array(z.object({
-    role: z.enum(['user', 'assistant']),
-    content: z.string(),
-  })),
-  model: z.string().optional().default('lexa-balanced'),
-});
+    role: z.enum(['user', 'assistant', 'model']),
+    content: z.string().max(10000, "Message too long"),
+  })).max(100, "Too many messages"),
+  model: z.string().optional().default('gemini-1.5-flash'),
+}).strict(); // strict rejects unexpected fields
 
 // POST /api/chat - Stream chat response
 chatRouter.post('/chat', async (c) => {
-  const userId = c.get('userId');
-  if (!userId) return c.json({ error: 'Unauthorized' }, 401);
-
+  const userId = c.get('userId') || 'anonymous';
+  
   try {
     // Validate input
     const body = await c.req.json();
     const { messages, model } = chatRequestSchema.parse(body);
 
-    // Get or create user
-    let user = await User.findOne({ supabaseId: userId });
-    if (!user) {
-      const currentUser = c.get('user') as any;
-      user = new User({
-        supabaseId: userId,
-        email: currentUser?.email || 'unknown@example.com',
-      });
-      await user.save();
+    if (messages.length === 0) {
+      return c.json({ error: 'Messages array cannot be empty' }, 400);
     }
 
-    // Check usage limits for free tier
-    if (user.tier === 'free' && user.usageCount >= 20) {
-      return c.json({
-        error: 'Daily usage limit reached (20 messages/day). Upgrade to Pro for unlimited access.',
-      }, 429);
+    // Get or create user if authenticated
+    let user = null;
+    if (userId !== 'anonymous') {
+      user = await User.findOne({ supabaseId: userId });
+      if (!user) {
+        const currentUser = c.get('user') as any;
+        user = new User({
+          supabaseId: userId,
+          email: currentUser?.email || 'unknown@example.com',
+        });
+        await user.save();
+      }
+
+      // Check usage limits for free tier
+      if (user.tier === 'free' && user.usageCount >= 20) {
+        return c.json({
+          error: 'Daily usage limit reached (20 messages/day). Upgrade to Pro for unlimited access.',
+        }, 429);
+      }
     }
+
+    // Truncate messages to last 20 to prevent token overflow (Sliding Window)
+    const truncatedMessages = messages.slice(-20);
+    
+    // The latest message is the user prompt
+    const latestMessage = truncatedMessages.pop();
+    if (!latestMessage || latestMessage.role !== 'user') {
+      return c.json({ error: 'Last message must be from user' }, 400);
+    }
+
+    // Convert previous messages to Gemini format
+    const history = truncatedMessages.map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
 
     // Create or get conversation from headers
     const conversationId = c.req.header('x-conversation-id');
-    let conversation = conversationId
-      ? await Conversation.findById(conversationId)
+    let conversation = conversationId && userId !== 'anonymous'
+      ? await Conversation.findOne({ _id: conversationId, userId })
       : null;
 
-    if (!conversation) {
+    if (!conversation && userId !== 'anonymous') {
       conversation = new Conversation({
         userId,
-        title: messages[0]?.content?.substring(0, 50) || 'New Chat',
+        title: latestMessage.content.substring(0, 50) || 'New Chat',
         model,
         messages: [],
         totalTokens: 0,
       });
     }
 
-    // Add user message to conversation
-    conversation.messages.push({
-      role: 'user',
-      content: messages[messages.length - 1].content,
-      timestamp: new Date(),
-    });
-
-    // Call Supabase Edge Function to stream chat response
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    if (!supabaseUrl) {
-      return c.json({ error: 'Server configuration error' }, 500);
+    if (conversation) {
+      conversation.messages.push({
+        role: 'user',
+        content: latestMessage.content,
+        timestamp: new Date(),
+      });
     }
 
-    const token = c.req.header('Authorization')?.replace('Bearer ', '');
-    if (!token) return c.json({ error: 'Missing token' }, 401);
+    const generativeModel = genAI.getGenerativeModel({ model });
+    const chat = generativeModel.startChat({ history });
 
-    const response = await fetch(
-      `${supabaseUrl}/functions/v1/chat`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          messages,
-          model,
-          userId,
-        }),
-      }
-    );
+    try {
+      const result = await chat.sendMessageStream([{ text: latestMessage.content }]);
 
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({})) as Record<string, unknown>;
-      return c.json(
-        { error: (errorBody as any).error || 'Failed to get response' },
-        response.status as 400 | 401 | 403 | 404 | 500
-      );
-    }
+      let fullResponse = '';
 
-    // Get the readable stream
-    const stream = response.body;
-    if (!stream) {
-      return c.json({ error: 'No response stream' }, 500);
-    }
-
-    // Stream response back to client
-    let fullResponse = '';
-
-    const streamingResponse = new ReadableStream({
-      async start(controller) {
-        const reader = stream.getReader();
-        const decoder = new TextDecoder();
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const text = decoder.decode(value, { stream: true });
-            const lines = text.split('\n');
-
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const data = JSON.parse(line.slice(6));
-
-                  if (data.type === 'text_delta') {
-                    fullResponse += data.text;
-                    controller.enqueue(new TextEncoder().encode(JSON.stringify({ type: 'token', text: data.text }) + '\n'));
-                  } else if (data.type === 'message_stop') {
-                    controller.enqueue(new TextEncoder().encode(JSON.stringify({ type: 'done', finalText: fullResponse }) + '\n'));
-                  } else if (data.type === 'error') {
-                    controller.enqueue(new TextEncoder().encode(JSON.stringify({ type: 'error', error: data.error }) + '\n'));
-                  }
-                } catch {
-                  // Ignore JSON parse errors
-                }
-              }
+      const streamingResponse = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          try {
+            for await (const chunk of result.stream) {
+              const chunkText = chunk.text();
+              fullResponse += chunkText;
+              
+              // Stream SSE format
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'text_delta', text: chunkText })}\n\n`));
             }
+            
+            // Save conversation after streaming completes
+            if (conversation) {
+              conversation.messages.push({
+                role: 'assistant',
+                content: fullResponse,
+                timestamp: new Date(),
+              });
+
+              const estimatedTokens = Math.ceil((fullResponse.length + latestMessage.content.length) / 4);
+              conversation.totalTokens += estimatedTokens;
+              await conversation.save();
+            }
+
+            // Update user usage
+            if (user) {
+              user.usageCount++;
+              if (user.usageCount >= 20) {
+                user.usageResetAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+              }
+              await user.save();
+            }
+
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'message_stop', finalText: fullResponse })}\n\n`));
+            controller.close();
+          } catch (streamError: any) {
+            console.error('Streaming error:', streamError);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: streamError?.message || 'Stream interrupted' })}\n\n`));
+            controller.close();
           }
-        } finally {
-          reader.releaseLock();
         }
+      });
 
-        // Save conversation after streaming completes
-        conversation.messages.push({
-          role: 'assistant',
-          content: fullResponse,
-          timestamp: new Date(),
-        });
+      return new Response(streamingResponse, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
 
-        // Estimate tokens (rough approximation: 4 chars ≈ 1 token)
-        const estimatedTokens = Math.ceil((fullResponse.length + messages[messages.length - 1].content.length) / 4);
-        conversation.totalTokens += estimatedTokens;
-        await conversation.save();
-
-        // Update user usage
-        user.usageCount++;
-        if (user.usageCount >= 20) {
-          user.usageResetAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        }
-        await user.save();
-
-        controller.enqueue(new TextEncoder().encode(JSON.stringify({ type: 'meta', conversationId: conversation._id }) + '\n'));
-        controller.close();
+    } catch (geminiError: any) {
+      console.error('Gemini API error:', geminiError);
+      const status = geminiError.status || 500;
+      
+      if (geminiError.message?.includes('429')) {
+        return c.json({ error: 'Gemini API Rate Limit Exceeded' }, 429);
       }
-    });
-
-    return new Response(streamingResponse, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-      },
-    });
+      if (geminiError.message?.includes('SAFETY')) {
+        return c.json({ error: 'Response blocked by safety filters' }, 403);
+      }
+      return c.json({ error: 'Error connecting to Gemini API' }, status);
+    }
+    
   } catch (error) {
-    console.error('Chat error:', error);
     if (error instanceof z.ZodError) {
       return c.json({ error: 'Invalid request format', details: error.errors }, 400);
     }
+    console.error('Chat error:', error);
     return c.json({ error: 'Failed to process chat request' }, 500);
   }
 });
 
 // GET /api/conversations - Get user's conversations
 chatRouter.get('/conversations', async (c) => {
-  const userId = c.get('userId') as string | undefined;
-  if (!userId) return c.json({ error: 'Unauthorized' }, 401);
+  const userId = c.get('userId');
+  if (!userId || userId === 'anonymous') return c.json({ error: 'Unauthorized' }, 401);
 
   try {
     const conversations = await Conversation.find({ userId })
@@ -203,10 +193,10 @@ chatRouter.get('/conversations', async (c) => {
 
 // GET /api/conversations/:id - Get specific conversation
 chatRouter.get('/conversations/:id', async (c) => {
-  const userId = c.get('userId') as string | undefined;
+  const userId = c.get('userId');
   const id = c.req.param('id');
 
-  if (!userId) return c.json({ error: 'Unauthorized' }, 401);
+  if (!userId || userId === 'anonymous') return c.json({ error: 'Unauthorized' }, 401);
 
   try {
     const conversation = await Conversation.findOne({ _id: id, userId });
@@ -223,10 +213,10 @@ chatRouter.get('/conversations/:id', async (c) => {
 
 // DELETE /api/conversations/:id - Delete conversation
 chatRouter.delete('/conversations/:id', async (c) => {
-  const userId = c.get('userId') as string | undefined;
+  const userId = c.get('userId');
   const id = c.req.param('id');
 
-  if (!userId) return c.json({ error: 'Unauthorized' }, 401);
+  if (!userId || userId === 'anonymous') return c.json({ error: 'Unauthorized' }, 401);
 
   try {
     const result = await Conversation.deleteOne({ _id: id, userId });
@@ -239,15 +229,6 @@ chatRouter.delete('/conversations/:id', async (c) => {
     console.error('Conversation delete error:', error);
     return c.json({ error: 'Failed to delete conversation' }, 500);
   }
-});
-
-// GET /api/health - Health check
-chatRouter.get('/health', (c) => {
-  return c.json({
-    status: 'ok',
-    uptime: process.uptime(),
-    version: '1.0.0',
-  });
 });
 
 export default chatRouter;

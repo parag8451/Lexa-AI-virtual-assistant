@@ -7,7 +7,8 @@ export async function jwtMiddleware(c: Context<AppEnv>, next: Next): Promise<Res
   const authHeader = c.req.header('Authorization');
   
   if (!authHeader?.startsWith('Bearer ')) {
-    return c.json({ error: 'Missing authorization token' }, 401);
+    c.set('userId', 'anonymous');
+    return await next();
   }
 
   const token = authHeader.replace('Bearer ', '');
@@ -51,11 +52,11 @@ const RATE_LIMITS = {
 };
 
 export async function rateLimitMiddleware(c: Context<AppEnv>, next: Next): Promise<Response | void> {
-  const userId = c.get('userId') as string | undefined;
-  if (!userId) return c.json({ error: 'Unauthorized' }, 401);
-
+  const userId = c.get('userId');
+  const ip = c.req.header('x-forwarded-for') || c.req.header('user-agent') || 'anonymous-ip';
+  
   const now = Date.now();
-  const key = `ratelimit:${userId}`;
+  const key = `ratelimit:${userId || ip}`;
   const limit = RATE_LIMITS.free; // Default to free tier
 
   let record = rateLimitStore.get(key);

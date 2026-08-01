@@ -283,6 +283,7 @@ export default function MagicRings({
       }
       renderer.dispose();
       material.dispose();
+      quad.geometry.dispose();
     };
   }, []);
 

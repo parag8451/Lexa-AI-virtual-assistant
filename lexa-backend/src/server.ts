@@ -42,6 +42,17 @@ app.use('/api/chat', rateLimitMiddleware)
 // Routes
 app.route('/api', chatRouter)
 
+// Global 404 Not Found Handler
+app.notFound((c) => {
+  return c.json({ error: 'Route not found' }, 404)
+})
+
+// Global 500 Error Handler
+app.onError((err, c) => {
+  console.error(`[Server Error] ${err}`)
+  return c.json({ error: 'Internal Server Error' }, 500)
+})
+
 const port = Number(process.env.PORT) || 3000
 
 console.log(`🚀 Backend running on http://localhost:${port}`)
