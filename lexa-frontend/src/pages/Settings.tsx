@@ -25,12 +25,13 @@ export default function Settings() {
   const currentTab = searchParams.get("tab") || "general";
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
+    // TEMPORARY: Disabled auth redirect so you can view the Settings UI without logging in
+    // if (!loading && !user) {
+    //   navigate("/auth");
+    // }
   }, [user, loading, navigate]);
 
-  if (loading || !user) {
+  if (loading) {
     return <SettingsSkeleton />;
   }
 

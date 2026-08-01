@@ -1,10 +1,12 @@
 import React, { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import "@/components/chat/CustomChatUI.css";
 import MagicRings from "@/components/chat/MagicRings";
 import BorderGlow from "@/components/ui/BorderGlow";
 
 export default function Index() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -69,6 +71,14 @@ export default function Index() {
       newChatBtn.addEventListener('click', newChat);
     }
 
+    // Handle settings button
+    const settingsBtn = containerRef.current.querySelector('.settings-btn');
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => {
+        navigate("/settings");
+      });
+    }
+
     function newChat() {
       messagesContainer.innerHTML = '';
       messagesContainer.style.display = 'none';
@@ -88,7 +98,7 @@ export default function Index() {
       chatInput.addEventListener('keydown', onKeydown);
     }
 
-    function sendMessage() {
+    async function sendMessage() {
       const text = chatInput.value.trim();
       if (!text) return;
 
@@ -108,11 +118,32 @@ export default function Index() {
       // Typing indicator
       const typingId = appendTyping();
 
-      setTimeout(() => {
+      try {
+        const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: text }] }]
+          })
+        });
+        
+        const data = await response.json();
         removeTyping(typingId);
-        const response = AI_RESPONSES[Math.floor(Math.random() * AI_RESPONSES.length)];
-        appendMessage('ai', response);
-      }, 1200 + Math.random() * 800);
+        
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+          // Format markdown bold/newlines roughly for the basic innerHTML renderer
+          let responseText = data.candidates[0].content.parts[0].text;
+          responseText = responseText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          appendMessage('ai', responseText);
+        } else {
+          appendMessage('ai', "I'm sorry, I couldn't generate a response. Please try again.");
+        }
+      } catch (error) {
+        console.error("Gemini API Error:", error);
+        removeTyping(typingId);
+        appendMessage('ai', "Error connecting to Gemini API. Please check your network.");
+      }
     }
 
     function appendMessage(role: string, text: string) {
@@ -263,7 +294,7 @@ export default function Index() {
         <div className="sidebar-spacer"></div>
 
         <div className="sidebar-bottom">
-          <button className="settings-btn" title="Settings">
+          <button className="settings-btn" title="Settings" onClick={() => navigate("/settings")}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
