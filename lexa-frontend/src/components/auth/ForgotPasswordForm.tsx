@@ -45,12 +45,12 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         title: "Reset email sent",
         description: "Check your inbox for a password reset link.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error sending reset email:", err);
       toast({
         variant: "destructive",
         title: "Failed to send reset email",
-        description: err.message || "Please try again later.",
+        description: err instanceof Error ? err.message : "Please try again later.",
       });
     } finally {
       setLoading(false);

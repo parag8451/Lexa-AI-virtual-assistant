@@ -32,7 +32,7 @@ export function registerServiceWorker() {
 export function isPWA(): boolean {
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true
+    ('standalone' in window.navigator && (window.navigator as Navigator & { standalone?: boolean }).standalone === true)
   );
 }
 

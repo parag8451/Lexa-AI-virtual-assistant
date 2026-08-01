@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import "@/components/chat/CustomChatUI.css";
+import MagicRings from "@/components/chat/MagicRings";
+import BorderGlow from "@/components/ui/BorderGlow";
 
 export default function Index() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -280,6 +282,32 @@ export default function Index() {
 
       {/* MAIN */}
       <main className="main">
+        {/* MagicRings WebGL Background */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 0.6, pointerEvents: 'none' }}>
+          <MagicRings
+            color="#A855F7"
+            colorTwo="#6366F1"
+            ringCount={6}
+            speed={1}
+            attenuation={10}
+            lineThickness={2}
+            baseRadius={0.35}
+            radiusStep={0.1}
+            scaleRate={0.1}
+            opacity={1}
+            blur={0}
+            noiseAmount={0.1}
+            rotation={0}
+            ringGap={1.5}
+            fadeIn={0.7}
+            fadeOut={0.5}
+            followMouse={false}
+            mouseInfluence={0.2}
+            hoverScale={1.2}
+            parallax={0.05}
+            clickBurst={false}
+          />
+        </div>
         <div className="bg-glow" id="bgGlow"></div>
 
         {/* Header */}
@@ -316,8 +344,19 @@ export default function Index() {
 
         {/* Input Section */}
         <div className="input-section">
-          <div className="input-wrapper">
-            <button className="attach-btn" title="Attach file">
+          <BorderGlow
+            edgeSensitivity={30}
+            glowColor="40 80 80"
+            backgroundColor="#120F17"
+            borderRadius={28}
+            glowRadius={40}
+            glowIntensity={1}
+            coneSpread={25}
+            animated
+            colors={['#c084fc', '#f472b6', '#38bdf8']}
+          >
+            <div className="input-wrapper" style={{ border: 'none', background: 'transparent', boxShadow: 'none' }}>
+              <button className="attach-btn" title="Attach file">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
@@ -353,6 +392,7 @@ export default function Index() {
               </button>
             </div>
           </div>
+          </BorderGlow>
           <p className="disclaimer">Lexa can make mistakes, so double-check its responses.</p>
         </div>
       </main>

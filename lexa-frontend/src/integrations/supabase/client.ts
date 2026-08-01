@@ -2,24 +2,33 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+const isConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 if (!SUPABASE_URL) {
-  console.error('Missing VITE_SUPABASE_URL in environment variables');
+  console.warn('[Lexa] Missing VITE_SUPABASE_URL — auth features will not work. See .env.example');
 }
 
 if (!SUPABASE_ANON_KEY) {
-  console.error('Missing VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY in environment variables');
+  console.warn('[Lexa] Missing VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY — auth features will not work. See .env.example');
 }
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+// Use a placeholder URL when not configured to prevent createClient from throwing.
+// Auth operations will gracefully fail via the isConfigured check or empty credentials.
+const safeUrl = SUPABASE_URL || 'https://placeholder.supabase.co';
+const safeKey = SUPABASE_ANON_KEY || 'placeholder-key';
+
+export const supabase = createClient<Database>(safeUrl, safeKey, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
   }
 });
+
+export { isConfigured };

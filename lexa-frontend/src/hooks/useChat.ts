@@ -34,7 +34,14 @@ export function useChat(options: UseChatOptions = {}) {
   
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Memoized callbacks to prevent unnecessary re-renders
+  // Use refs for values that shouldn't trigger callback recreation
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+
+  // Stable addMessage callback — no dependency on options object
   const addMessage = useCallback(
     (message: Omit<ChatMessage, "id">) => {
       const newMessage: ChatMessage = {
@@ -43,10 +50,10 @@ export function useChat(options: UseChatOptions = {}) {
       };
 
       setMessages((prev) => [...prev, newMessage]);
-      options.onMessageAdded?.(newMessage);
+      optionsRef.current.onMessageAdded?.(newMessage);
       return newMessage;
     },
-    [options]
+    []
   );
 
   const updateMessage = useCallback(
@@ -75,7 +82,7 @@ export function useChat(options: UseChatOptions = {}) {
     }
   }, []);
 
-  // Memoized send function with streaming support
+  // Stable send function — uses refs for messages and options to avoid recreation
   const send = useCallback(
     async (content: string, model?: string) => {
       if (!user) {
@@ -95,7 +102,7 @@ export function useChat(options: UseChatOptions = {}) {
       stopStreaming();
 
       // Add user message
-      const userMessage = addMessage({
+      addMessage({
         role: "user",
         content,
         timestamp: new Date(),
@@ -115,7 +122,9 @@ export function useChat(options: UseChatOptions = {}) {
       try {
         abortControllerRef.current = new AbortController();
 
-        const messageHistory: ChatMessage[] = messages
+        // Read current messages from ref (avoids stale closure)
+        const currentMessages = messagesRef.current;
+        const messageHistory: ChatMessage[] = currentMessages
           .filter((m) => m.role !== "system")
           .map((m) => ({
             role: m.role,
@@ -129,11 +138,13 @@ export function useChat(options: UseChatOptions = {}) {
 
         let accumulatedContent = "";
 
+        const currentOptions = optionsRef.current;
+
         await streamChat({
           messages: messageHistory,
           model: model || "lexa-balanced",
-          systemPrompt: options.systemPrompt,
-          memoryContext: options.memoryContext,
+          systemPrompt: currentOptions.systemPrompt,
+          memoryContext: currentOptions.memoryContext,
           signal: abortControllerRef.current.signal,
           onDelta: (delta) => {
             accumulatedContent += delta;
@@ -181,7 +192,7 @@ export function useChat(options: UseChatOptions = {}) {
         });
       }
     },
-    [user, addMessage, updateMessage, deleteMessage, stopStreaming, toast, options, messages]
+    [user, addMessage, updateMessage, deleteMessage, stopStreaming, toast]
   );
 
   // Cleanup on unmount

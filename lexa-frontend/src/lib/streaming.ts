@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+const SUPABASE_BASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const CHAT_URL = SUPABASE_BASE_URL ? `${SUPABASE_BASE_URL}/functions/v1/chat` : '';
 
 export type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -29,6 +30,12 @@ export async function streamChat({
   onError,
   signal,
 }: StreamChatOptions) {
+  if (!CHAT_URL) {
+    const err = new Error("Supabase URL is not configured. Please set VITE_SUPABASE_URL in your .env file.");
+    onError?.(err);
+    throw err;
+  }
+
   const abortController = new AbortController();
   if (signal) {
     signal.addEventListener("abort", () => abortController.abort());
@@ -176,6 +183,8 @@ export async function streamChat({
  * This reduces cold start latency on first real request
  */
 export async function prewarmChat() {
+  if (!CHAT_URL) return; // Skip if not configured
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) return;

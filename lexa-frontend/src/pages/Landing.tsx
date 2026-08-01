@@ -10,6 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import Aurora from "@/components/ui/Aurora";
+import SplitText from "@/components/ui/SplitText";
 
 /* ─── Data ─── */
 
@@ -183,6 +185,14 @@ export default function Landing() {
       {/* ──────── Hero ──────── */}
       <section className="relative pt-36 pb-24 px-4 overflow-hidden">
         {/* Subtle ambient background */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0, opacity: 0.7 }}>
+          <Aurora 
+            colorStops={["#7cff67","#B497CF","#5227FF"]}
+            blend={0.5}
+            amplitude={1.0}
+            speed={1}
+          />
+        </div>
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full bg-primary/[0.04] blur-[120px]" />
           <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-violet-500/[0.03] blur-[100px]" />
@@ -205,17 +215,20 @@ export default function Landing() {
           </motion.div>
 
           {/* Heading */}
-          <motion.h1
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2, ease }}
+          <SplitText
+            text="Your AI assistant for everything"
+            tag="h1"
             className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.05] mb-6"
-          >
-            Your AI assistant{" "}
-            <br className="hidden sm:block" />
-            for{" "}
-            <span className="gradient-text">everything</span>
-          </motion.h1>
+            delay={50}
+            duration={1.25}
+            ease="power3.out"
+            splitType="chars"
+            from={{ opacity: 0, y: 40 }}
+            to={{ opacity: 1, y: 0 }}
+            threshold={0.1}
+            rootMargin="-100px"
+            textAlign="center"
+          />
 
           {/* Subtitle */}
           <motion.p
