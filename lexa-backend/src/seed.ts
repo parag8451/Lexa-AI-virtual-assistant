@@ -1,10 +1,10 @@
-import { MongoClient } from "mongodb";
+import mongoose from "mongoose";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const uri = process.env.MONGO_URI!;
-const client = new MongoClient(uri);
+const uri = process.env.MONGO_URI || "mongodb://localhost:27017/lexa_ai";
+const client = new mongoose.mongo.MongoClient(uri);
 
 async function seedDatabase() {
   try {

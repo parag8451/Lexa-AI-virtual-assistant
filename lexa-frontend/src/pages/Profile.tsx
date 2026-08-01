@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Camera, Loader2, Save, Sparkles, User } from "lucide-react";
 import { z } from "zod";
 import { motion } from "framer-motion";
+import confetti from "canvas-confetti";
 
 const displayNameSchema = z.string().max(100, "Display name must be less than 100 characters").optional();
 
@@ -173,6 +174,12 @@ export default function Profile() {
       if (error) throw error;
 
       setOriginalDisplayName(displayName);
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.6 },
+        colors: ["#6366f1", "#a855f7", "#ec4899", "#3b82f6"],
+      });
       toast({
         title: "Profile updated",
         description: "Your display name has been updated successfully.",
@@ -288,7 +295,10 @@ export default function Profile() {
                 whileHover={{ scale: 1.05 }}
                 className="relative group cursor-pointer"
               >
-                <Avatar className="h-28 w-28 ring-4 ring-primary/20 shadow-2xl" onClick={handleAvatarClick}>
+                {/* Animated gradient border */}
+                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm" />
+                <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ animation: "gradient-shift 3s ease infinite", backgroundSize: "200% 200%" }} />
+                <Avatar className="relative h-28 w-28 ring-4 ring-primary/20 group-hover:ring-0 shadow-2xl transition-all duration-500" onClick={handleAvatarClick}>
                   <AvatarImage src={avatarUrl || undefined} alt="Profile picture" />
                   <AvatarFallback className="text-2xl font-bold gradient-aurora text-white">
                     {initials}

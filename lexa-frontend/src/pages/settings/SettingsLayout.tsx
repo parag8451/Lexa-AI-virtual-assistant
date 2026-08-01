@@ -15,21 +15,41 @@ interface SettingsLayoutProps {
   currentTab: string;
 }
 
-const SETTINGS_SECTIONS = [
-  { id: "general", label: "General", icon: User },
-  { id: "account", label: "Account", icon: User },
-  { id: "security", label: "Security & Login", icon: Shield },
-  { id: "privacy", label: "Privacy & Data", icon: Lock },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "personalization", label: "Personalization", icon: Sparkles },
-  { id: "integrations", label: "Connected Apps", icon: Link2 },
-  { id: "billing", label: "Billing & Subscription", icon: CreditCard },
-  { id: "export", label: "Data Export / Import", icon: Download },
-  { id: "appearance", label: "Appearance", icon: Palette },
-  { id: "language", label: "Language & Region", icon: Globe },
-  { id: "accessibility", label: "Accessibility", icon: Accessibility },
-  { id: "about", label: "About & Help", icon: HelpCircle },
-  { id: "danger", label: "Danger Zone", icon: AlertOctagon, isDanger: true },
+const SETTINGS_GROUPS = [
+  {
+    label: "Account",
+    items: [
+      { id: "general", label: "General", icon: User },
+      { id: "account", label: "Account", icon: User },
+      { id: "security", label: "Security & Login", icon: Shield },
+      { id: "privacy", label: "Privacy & Data", icon: Lock },
+    ],
+  },
+  {
+    label: "Preferences",
+    items: [
+      { id: "notifications", label: "Notifications", icon: Bell },
+      { id: "personalization", label: "Personalization", icon: Sparkles },
+      { id: "appearance", label: "Appearance", icon: Palette },
+      { id: "language", label: "Language & Region", icon: Globe },
+      { id: "accessibility", label: "Accessibility", icon: Accessibility },
+    ],
+  },
+  {
+    label: "Integrations & Billing",
+    items: [
+      { id: "integrations", label: "Connected Apps", icon: Link2 },
+      { id: "billing", label: "Billing & Subscription", icon: CreditCard },
+      { id: "export", label: "Data Export / Import", icon: Download },
+    ],
+  },
+  {
+    label: "Support",
+    items: [
+      { id: "about", label: "About & Help", icon: HelpCircle },
+      { id: "danger", label: "Danger Zone", icon: AlertOctagon, isDanger: true },
+    ],
+  },
 ];
 
 export function SettingsLayout({ children, currentTab }: SettingsLayoutProps) {
@@ -39,25 +59,52 @@ export function SettingsLayout({ children, currentTab }: SettingsLayoutProps) {
     navigate(`/settings?tab=${tabId}`, { replace: true });
   };
 
+  // Find current tab label for breadcrumb
+  const currentTabLabel = SETTINGS_GROUPS
+    .flatMap(g => g.items)
+    .find(i => i.id === currentTab)?.label || "General";
+
   const SidebarContent = () => (
-    <div className="flex flex-col gap-1 w-full">
-      {SETTINGS_SECTIONS.map((section) => (
-        <button
-          key={section.id}
-          onClick={() => handleTabChange(section.id)}
-          className={cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all w-full text-left",
-            currentTab === section.id
-              ? section.isDanger
-                ? "bg-destructive/10 text-destructive dark:text-red-400"
-                : "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-            section.isDanger && currentTab !== section.id && "hover:text-destructive hover:bg-destructive/5"
-          )}
-        >
-          <section.icon className="h-4 w-4" />
-          {section.label}
-        </button>
+    <div className="flex flex-col gap-6 w-full">
+      {SETTINGS_GROUPS.map((group) => (
+        <div key={group.label}>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-semibold px-3 mb-2">
+            {group.label}
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {group.items.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => handleTabChange(section.id)}
+                className={cn(
+                  "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all w-full text-left",
+                  currentTab === section.id
+                    ? section.isDanger
+                      ? "text-destructive dark:text-red-400"
+                      : "text-foreground"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                  section.isDanger && currentTab !== section.id && "hover:text-destructive hover:bg-destructive/5"
+                )}
+              >
+                {/* Animated active indicator */}
+                {currentTab === section.id && (
+                  <motion.div
+                    layoutId="settings-active-pill"
+                    className={cn(
+                      "absolute inset-0 rounded-lg",
+                      section.isDanger
+                        ? "bg-destructive/10"
+                        : "bg-primary/10"
+                    )}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <section.icon className="h-4 w-4 relative z-10" />
+                <span className="relative z-10">{section.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -76,7 +123,10 @@ export function SettingsLayout({ children, currentTab }: SettingsLayoutProps) {
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <span className="font-semibold text-lg">Settings</span>
+          <div className="flex flex-col">
+            <span className="font-semibold text-lg leading-tight">Settings</span>
+            <span className="text-[10px] text-muted-foreground">{currentTabLabel}</span>
+          </div>
         </div>
         <Sheet>
           <SheetTrigger asChild>
@@ -96,9 +146,11 @@ export function SettingsLayout({ children, currentTab }: SettingsLayoutProps) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-[280px] lg:w-[320px] border-r border-border/40 h-screen sticky top-0 glass-card">
         <div className="p-6 pb-2 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="shrink-0 h-8 w-8">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="shrink-0 h-8 w-8">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </motion.div>
           <h1 className="text-xl font-bold gradient-text">Settings</h1>
         </div>
         <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
@@ -109,6 +161,21 @@ export function SettingsLayout({ children, currentTab }: SettingsLayoutProps) {
       {/* Main Content Area */}
       <main className="flex-1 w-full relative z-10 overflow-y-auto h-[calc(100vh-64px)] md:h-screen">
         <div className="max-w-3xl mx-auto p-4 md:p-8 lg:p-12 pb-24">
+          {/* Breadcrumb */}
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="hidden md:flex items-center gap-2 text-sm text-muted-foreground mb-6"
+          >
+            <button onClick={() => navigate("/")} className="hover:text-foreground transition-colors">
+              Home
+            </button>
+            <span className="text-muted-foreground/30">/</span>
+            <span className="text-muted-foreground/60">Settings</span>
+            <span className="text-muted-foreground/30">/</span>
+            <span className="text-foreground font-medium">{currentTabLabel}</span>
+          </motion.div>
+
           <AnimatePresence mode="wait">
             <motion.div
               key={currentTab}

@@ -1,6 +1,7 @@
 import { ReactNode, Suspense } from "react";
 import { motion } from "framer-motion";
 import { AuthScene3D } from "./AuthScene3D";
+import Aurora from "@/components/ui/Aurora";
 
 interface AuthLayoutProps {
   leftPanel: ReactNode;
@@ -14,6 +15,16 @@ export function AuthLayout({ leftPanel, rightPanel }: AuthLayoutProps) {
       <Suspense fallback={null}>
         <AuthScene3D />
       </Suspense>
+      
+      {/* Aurora animated background */}
+      <div className="absolute inset-0 z-[0] opacity-40 pointer-events-none">
+        <Aurora 
+          colorStops={["#6366f1", "#a855f7", "#ec4899"]}
+          blend={0.5}
+          amplitude={0.8}
+          speed={0.8}
+        />
+      </div>
       
       {/* Multi-layer gradient overlays for depth */}
       <div className="absolute inset-0 bg-gradient-to-br from-background/90 via-background/70 to-background/90 z-[1]" />

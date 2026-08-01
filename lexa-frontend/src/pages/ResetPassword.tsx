@@ -147,6 +147,31 @@ export default function ResetPassword() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {/* Password strength indicator */}
+              {password.length > 0 && (() => {
+                let strength = 0;
+                if (password.length >= 6) strength++;
+                if (password.length >= 10) strength++;
+                if (/[A-Z]/.test(password) && /[a-z]/.test(password)) strength++;
+                if (/[0-9]/.test(password)) strength++;
+                if (/[^A-Za-z0-9]/.test(password)) strength++;
+                const level = strength <= 1 ? "Weak" : strength <= 2 ? "Fair" : strength <= 3 ? "Good" : "Strong";
+                const color = strength <= 1 ? "bg-red-500" : strength <= 2 ? "bg-yellow-500" : strength <= 3 ? "bg-blue-500" : "bg-green-500";
+                const width = `${Math.min((strength / 5) * 100, 100)}%`;
+                return (
+                  <div className="space-y-1">
+                    <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ease-out ${color}`}
+                        style={{ width }}
+                      />
+                    </div>
+                    <p className={`text-[10px] font-medium ${strength <= 1 ? "text-red-400" : strength <= 2 ? "text-yellow-400" : strength <= 3 ? "text-blue-400" : "text-green-400"}`}>
+                      {level}
+                    </p>
+                  </div>
+                );
+              })()}
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
             </div>
 

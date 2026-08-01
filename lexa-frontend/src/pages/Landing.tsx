@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import { motion, useScroll, useTransform, useInView, useMotionValueEvent } from "framer-motion";
 import { 
   ArrowRight, MessageSquare, Globe, Mic, Brain, 
   Image, Zap, ChevronDown, Bot,
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import Aurora from "@/components/ui/Aurora";
+import { ConstellationCanvas } from "@/components/ui/ConstellationCanvas";
 import SplitText from "@/components/ui/SplitText";
 
 /* ─── Data ─── */
@@ -112,6 +113,40 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
   );
 }
 
+/* ─── Typing Effect for Chat Preview ─── */
+function TypingText({ text, delay = 0 }: { text: string; delay?: number }) {
+  const [displayText, setDisplayText] = useState("");
+  const [started, setStarted] = useState(false);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setStarted(true), delay * 1000);
+    return () => clearTimeout(timer);
+  }, [delay]);
+  
+  useEffect(() => {
+    if (!started) return;
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < text.length) {
+        setDisplayText(text.slice(0, i + 1));
+        i++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 30);
+    return () => clearInterval(interval);
+  }, [started, text]);
+  
+  return (
+    <span>
+      {displayText}
+      {started && displayText.length < text.length && (
+        <span className="inline-block w-[2px] h-[14px] bg-primary/60 ml-[1px] animate-pulse" />
+      )}
+    </span>
+  );
+}
+
 /* ─── Landing Page ─── */
 
 export default function Landing() {
@@ -119,6 +154,11 @@ export default function Landing() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { scrollYProgress } = useScroll();
   const heroOpacity = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    setScrollProgress(latest);
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -139,7 +179,12 @@ export default function Landing() {
         className="fixed top-0 left-0 right-0 z-50"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-3">
-          <div className="glass-strong rounded-2xl px-5 h-14 flex items-center justify-between shadow-sm">
+          <div className="glass-strong rounded-2xl px-5 h-14 flex items-center justify-between shadow-sm relative overflow-hidden">
+            {/* Scroll progress bar */}
+            <motion.div
+              className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-primary via-violet-500 to-pink-500"
+              style={{ width: `${scrollProgress * 100}%` }}
+            />
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-background" />
@@ -193,6 +238,12 @@ export default function Landing() {
             speed={1}
           />
         </div>
+        <ConstellationCanvas 
+          particleColor="rgba(168, 85, 247, 0.45)"
+          lineColor="rgba(139, 92, 246, 0.15)"
+          particleCount={55}
+          maxDistance={130}
+        />
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full bg-primary/[0.04] blur-[120px]" />
           <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-violet-500/[0.03] blur-[100px]" />
@@ -301,7 +352,7 @@ export default function Landing() {
                   className="flex justify-end"
                 >
                   <div className="max-w-[72%] px-4 py-2.5 rounded-2xl rounded-br-md bg-primary text-primary-foreground text-sm">
-                    Explain quantum computing simply and suggest practical applications
+                    <TypingText text="Explain quantum computing simply and suggest practical applications" delay={1.2} />
                   </div>
                 </motion.div>
 
@@ -449,12 +500,16 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {PRICING.map((plan, i) => (
               <FadeIn key={i} delay={i * 0.08}>
-                <div className={cn(
-                  "relative p-6 rounded-xl border h-full flex flex-col",
-                  plan.highlighted 
-                    ? "border-primary bg-primary/[0.03] shadow-lg shadow-primary/5" 
-                    : "border-border bg-card"
-                )}>
+                <motion.div 
+                  whileHover={{ y: -4, rotateX: 2, rotateY: -1 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ perspective: 1000 }}
+                  className={cn(
+                    "relative p-6 rounded-xl border h-full flex flex-col transition-shadow duration-300",
+                    plan.highlighted 
+                      ? "border-primary bg-primary/[0.03] shadow-lg shadow-primary/5 hover:shadow-xl hover:shadow-primary/10" 
+                      : "border-border bg-card hover:shadow-lg hover:border-border/60"
+                  )}>
                   {plan.highlighted && (
                     <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[11px] font-medium uppercase tracking-wider px-3 py-0.5 rounded-full bg-primary text-primary-foreground">
                       Popular
@@ -483,7 +538,7 @@ export default function Landing() {
                   >
                     {plan.cta}
                   </Button>
-                </div>
+                </motion.div>
               </FadeIn>
             ))}
           </div>
@@ -536,7 +591,10 @@ export default function Landing() {
                 <ul className="space-y-2">
                   {group.links.map((link) => (
                     <li key={link}>
-                      <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{link}</a>
+                      <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors relative group">
+                        {link}
+                        <span className="absolute left-0 -bottom-0.5 w-0 h-px bg-foreground transition-all duration-300 group-hover:w-full" />
+                      </a>
                     </li>
                   ))}
                 </ul>

@@ -25,7 +25,7 @@ export function AccessibilityTab() {
       <div className="space-y-6">
         <section className="space-y-4">
           <div className="p-5 rounded-xl border border-border/40 bg-muted/10 space-y-6">
-            
+
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-1 max-w-[80%]">
                 <Label className="flex items-center gap-2 font-medium">

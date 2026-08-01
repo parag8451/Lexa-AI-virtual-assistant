@@ -485,20 +485,82 @@
   flex-shrink: 0;
 }
 
-.custom-chat-wrapper .input-wrapper {
-  background: var(--bg-input);
-  border: 1px solid var(--border);
+/* Outer edge glow wrapper: provides the crisp perimeter edge beam */
+.custom-chat-wrapper .input-glow-wrapper {
+  position: relative;
   border-radius: var(--radius-pill);
+  padding: 1.5px;
+  background: var(--border);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+  display: flex;
+}
+
+/* Rotating edge beam: only active on hover when NOT clicked/focused */
+.custom-chat-wrapper .input-glow-wrapper::before {
+  content: "";
+  position: absolute;
+  top: -150%;
+  left: -75%;
+  width: 250%;
+  height: 400%;
+  background: conic-gradient(
+    transparent 0deg,
+    transparent 260deg,
+    rgba(56, 189, 248, 0.3) 290deg,
+    #38bdf8 330deg,
+    #4285f4 350deg,
+    #38bdf8 360deg
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: rotate-border 3s linear infinite;
+  animation-play-state: paused;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes rotate-border {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* HOVER: edge animation runs smoothly along the outer border */
+.custom-chat-wrapper .input-glow-wrapper:hover::before {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+/* CLICKED / FOCUSED: animation immediately stops and turns into a solid clean accent border */
+.custom-chat-wrapper .input-glow-wrapper:focus-within::before,
+.custom-chat-wrapper .input-glow-wrapper.focused::before {
+  opacity: 0 !important;
+  animation-play-state: paused !important;
+}
+
+.custom-chat-wrapper .input-glow-wrapper:focus-within,
+.custom-chat-wrapper .input-glow-wrapper.focused {
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.9), rgba(56, 189, 248, 0.9));
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2), 0 0 20px rgba(66, 133, 244, 0.12);
+}
+
+/* Inner input container (pure solid dark background, NO color inside) */
+.custom-chat-wrapper .input-wrapper {
+  background: #18181b;
+  border: none;
+  border-radius: calc(var(--radius-pill) - 1.5px);
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.custom-chat-wrapper .input-wrapper:focus-within {
-  border-color: rgba(66, 133, 244, 0.5);
-  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.08);
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
 }
 
 .custom-chat-wrapper .attach-btn {
@@ -661,4 +723,123 @@
 
 .custom-chat-wrapper ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+/* ── SHIMMER LOADING SKELETON ── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.custom-chat-wrapper .shimmer-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.custom-chat-wrapper .shimmer-line {
+  height: 14px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--border) 25%,
+    var(--bg-hover) 50%,
+    var(--border) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.custom-chat-wrapper .shimmer-line-1 { width: 85%; }
+.custom-chat-wrapper .shimmer-line-2 { width: 65%; animation-delay: 0.15s; }
+.custom-chat-wrapper .shimmer-line-3 { width: 45%; animation-delay: 0.3s; }
+
+/* ── SCROLL TO BOTTOM BUTTON ── */
+.custom-chat-wrapper .scroll-to-bottom-btn {
+  position: fixed;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.custom-chat-wrapper .scroll-to-bottom-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+/* ── ACTIVE REACTION STATE ── */
+.custom-chat-wrapper .msg-action-btn.active-reaction {
+  background: var(--bg-hover);
+}
+
+/* ── INLINE CODE ── */
+.custom-chat-wrapper .inline-code {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+  color: #d19aff;
+}
+
+/* ── MIC BUTTON ── */
+.custom-chat-wrapper .mic-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.custom-chat-wrapper .mic-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+/* ── ALWAYS SHOW ACTIONS ON AI MESSAGES ── */
+.custom-chat-wrapper .message.ai:hover .msg-actions {
+  opacity: 1;
+}
+
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width: 768px) {
+  .custom-chat-wrapper .sidebar {
+    display: none;
+  }
+  .custom-chat-wrapper .messages-container {
+    max-width: 100%;
+  }
+  .custom-chat-wrapper .input-section {
+    padding: 12px 12px 16px;
+  }
+  .custom-chat-wrapper .welcome-title {
+    font-size: clamp(24px, 5vw, 32px);
+  }
+  .custom-chat-wrapper .suggestions {
+    flex-direction: column;
+    align-items: center;
+  }
 }
