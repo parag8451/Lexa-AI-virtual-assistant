@@ -2,14 +2,14 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Send, ArrowDown, Copy, Check, ThumbsUp, ThumbsDown,
+  Send, ArrowDown, ArrowUp, Copy, Check, ThumbsUp, ThumbsDown,
   Plus, Settings, Sparkles, ChevronDown, Mic, MicOff,
   Volume2, VolumeX, Download, Trash2, Globe, CheckCircle2,
-  Cpu, Zap, Shield, Wand2
+  Cpu, Zap, Shield, Wand2, Smartphone
 } from "lucide-react";
 import { ErrorBoundary } from "react-error-boundary";
 import "@/components/chat/CustomChatUI.css";
-import SoftAurora from "@/components/chat/SoftAurora";
+import StitchWaveBackground from "@/components/chat/StitchWaveBackground";
 import { SafeMarkdown } from "@/components/chat/SafeMarkdown";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { CustomCursor } from "@/components/ui/CustomCursor";
 
 /* ─── Types ─── */
 interface ChatMessage {
@@ -211,11 +212,12 @@ function SuggestionChip({ emoji, text, onClick, disabled }: { emoji: string; tex
     <motion.button
       whileHover={{ scale: 1.03, y: -2 }}
       whileTap={{ scale: 0.97 }}
-      className="suggestion-chip"
+      className="bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-sm rounded-full px-5 py-2.5 text-xs font-semibold text-foreground hover:bg-white/70 dark:hover:bg-zinc-800/80 transition-all flex items-center gap-2 group cursor-pointer"
       onClick={onClick}
       disabled={disabled}
     >
-      {emoji} {text}
+      <span className="text-sm">{emoji}</span>
+      <span>{text}</span>
     </motion.button>
   );
 }
@@ -236,6 +238,7 @@ function IndexContent() {
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [designMode, setDesignMode] = useState<"app" | "web">("app");
 
   const recognitionRef = useRef<any>(null);
 
@@ -528,17 +531,22 @@ function IndexContent() {
   };
 
   /* Suggestions */
-  const suggestions = [
-    { emoji: "✨", text: "Explain quantum computing in simple terms" },
-    { emoji: "⚡", text: "Write a high-performance React TypeScript hook" },
-    { emoji: "🔍", text: "Analyze the pros and cons of microservices" },
-    { emoji: "🎨", text: "Brainstorm 5 innovative startup ideas for 2026" },
+  const appSuggestions = [
+    { emoji: "✨", text: "Browse page for a mobile app that sells plants" },
+    { emoji: "✨", text: "A mobile scavenger hunt app for city exploration" },
+    { emoji: "✨", text: "Mobile friendly home for a marketplace" },
+  ];
+  const webSuggestions = [
+    { emoji: "✨", text: "AI-driven analytics dashboard for real-time metrics" },
+    { emoji: "✨", text: "Developer documentation portal with interactive preview" },
+    { emoji: "✨", text: "E-commerce checkout flow with micro-interactions" },
   ];
 
   return (
-    <div className="custom-chat-wrapper">
+    <div className="custom-chat-wrapper bg-[#0c0d12]">
+      <CustomCursor />
       {/* ─── Sidebar ─── */}
-      <aside className="sidebar" aria-label="Sidebar">
+      <aside className="sidebar border-white/5 bg-[#0c0d12]/90 backdrop-blur-md" aria-label="Sidebar">
         <div className="sidebar-logo">
           <svg className="lexa-star" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -556,53 +564,27 @@ function IndexContent() {
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="sidebar-btn"
-              title="New chat"
-              aria-label="New chat"
+            <button
+              className="sidebar-btn active"
               onClick={handleNewChat}
+              aria-label="New design thread"
             >
-              <Plus className="w-5 h-5" />
-            </motion.button>
+              <Plus className="w-5 h-5 text-white" />
+            </button>
           </TooltipTrigger>
-          <TooltipContent side="right">New Chat</TooltipContent>
+          <TooltipContent side="right">New Project</TooltipContent>
         </Tooltip>
 
-        {hasMessages && (
+        <div className="sidebar-bottom mt-auto">
           <Tooltip>
             <TooltipTrigger asChild>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="sidebar-btn"
-                title="Export conversation"
-                aria-label="Export conversation"
-                onClick={handleExportChat}
-              >
-                <Download className="w-4 h-4" />
-              </motion.button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Export Chat</TooltipContent>
-          </Tooltip>
-        )}
-
-        <div className="sidebar-spacer" />
-
-        <div className="sidebar-bottom">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+              <button
                 className="settings-btn"
-                title="Settings"
                 onClick={() => navigate("/settings")}
                 aria-label="Settings"
               >
-                <Settings className="w-5 h-5" />
-              </motion.button>
+                <Settings className="w-5 h-5 text-zinc-400 hover:text-white" />
+              </button>
             </TooltipTrigger>
             <TooltipContent side="right">Settings</TooltipContent>
           </Tooltip>
@@ -610,40 +592,23 @@ function IndexContent() {
       </aside>
 
       {/* ─── Main ─── */}
-      <main className="main" role="main">
-        {/* Background Aurora */}
-        <div style={{ position: "absolute", inset: 0, zIndex: 0, opacity: 0.85, pointerEvents: "none" }}>
-          <SoftAurora
-            speed={0.1}
-            scale={0.5}
-            brightness={3}
-            color1="#0f5ae6"
-            color2="#15245b"
-            noiseFrequency={2}
-            noiseAmplitude={3}
-            bandHeight={0.65}
-            bandSpread={0.3}
-            octaveDecay={0.17}
-            layerOffset={0.4}
-            colorSpeed={3.8}
-            enableMouseInteraction
-            mouseInfluence={0.1}
-          />
-        </div>
+      <main className="main relative overflow-hidden bg-transparent" role="main">
+        {/* Stitch Moving Curved Wave + Dot Grid Background */}
+        <StitchWaveBackground speed={0.85} intensity={1.15} />
 
-        <AnimatePresence>
-          {!hasMessages && (
-            <motion.div
-              key="bg-glow"
-              initial={{ opacity: 0.6 }}
-              exit={{ opacity: 0, transition: { duration: 0.5 } }}
-              className="bg-glow"
-            />
-          )}
-        </AnimatePresence>
+        {/* ── Stitch Header ── */}
+        <header className="header flex items-center justify-between px-6 py-4 relative z-20">
+          {/* Brand Logo & Beta Pill */}
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl font-bold tracking-tight text-white font-sans">
+              Stitch
+            </span>
+            <span className="text-[10px] font-bold tracking-wider text-zinc-300 border border-white/20 bg-white/5 px-2 py-0.5 rounded-full uppercase">
+              BETA
+            </span>
+          </div>
 
-        {/* Header */}
-        <header className="header flex items-center justify-between px-4">
+          {/* Header Controls */}
           <div className="flex items-center gap-3">
             {/* Model selector dropdown */}
             <DropdownMenu>
@@ -651,21 +616,18 @@ function IndexContent() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="model-selector flex items-center gap-2"
+                  className="flex items-center gap-2 bg-[#1c1d25]/80 hover:bg-[#252733] border border-white/10 text-white px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md transition-all shadow-sm"
                 >
-                  <currentModelInfo.icon className="w-4 h-4 text-primary" />
+                  <currentModelInfo.icon className="w-3.5 h-3.5 text-[#4D90FE]" />
                   <span>{currentModelInfo.name}</span>
-                  <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">
-                    {currentModelInfo.badge}
-                  </span>
-                  <ChevronDown className="w-3.5 h-3.5 opacity-60 ml-0.5" />
+                  <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
                 </motion.button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64 glass-strong border-border/40 p-2 shadow-2xl z-50">
-                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider px-2 py-1">
+              <DropdownMenuContent align="end" className="w-64 bg-[#181920]/95 backdrop-blur-xl border border-white/10 text-white p-2 shadow-2xl z-50 rounded-2xl">
+                <DropdownMenuLabel className="text-xs text-zinc-400 uppercase tracking-wider px-2 py-1">
                   Select AI Model
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-border/30" />
+                <DropdownMenuSeparator className="bg-white/10" />
                 {AVAILABLE_MODELS.map((model) => {
                   const Icon = model.icon;
                   const isSelected = selectedModel === model.id;
@@ -674,20 +636,20 @@ function IndexContent() {
                       key={model.id}
                       onClick={() => setSelectedModel(model.id)}
                       className={`flex items-start gap-2.5 p-2 rounded-xl cursor-pointer transition-colors ${
-                        isSelected ? "bg-primary/15 text-foreground" : "hover:bg-muted/50"
+                        isSelected ? "bg-[#4D90FE]/15 text-white" : "hover:bg-white/10"
                       }`}
                     >
-                      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? "text-[#4D90FE]" : "text-zinc-400"}`} />
                       <div className="flex flex-col flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-semibold">{model.name}</span>
-                          <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-muted/60 text-muted-foreground font-medium">
+                          <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-white/10 text-zinc-300 font-medium">
                             {model.badge}
                           </span>
                         </div>
-                        <span className="text-[11px] text-muted-foreground/80 truncate">{model.desc}</span>
+                        <span className="text-[11px] text-zinc-400 truncate">{model.desc}</span>
                       </div>
-                      {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />}
+                      {isSelected && <CheckCircle2 className="w-4 h-4 text-[#4D90FE] shrink-0 mt-0.5" />}
                     </DropdownMenuItem>
                   );
                 })}
@@ -701,76 +663,212 @@ function IndexContent() {
               onClick={() => setWebSearchEnabled(!webSearchEnabled)}
               className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                 webSearchEnabled
-                  ? "bg-primary/15 text-primary border-primary/30 shadow-sm"
-                  : "bg-muted/30 text-muted-foreground border-border/30 hover:text-foreground"
+                  ? "bg-[#4D90FE]/15 text-[#4D90FE] border-[#4D90FE]/30 shadow-sm"
+                  : "bg-white/5 text-zinc-400 border-white/10 hover:text-white"
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
               <span>Web Search</span>
-              <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
-                webSearchEnabled ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              }`}>
-                {webSearchEnabled ? "ON" : "OFF"}
-              </span>
             </motion.button>
-          </div>
 
-          {/* Quick Header Actions */}
-          <div className="flex items-center gap-2">
-            {hasMessages && (
-              <Button
-                variant="ghost"
-                size="sm"
+            {/* Top Action Pill Button */}
+            {hasMessages ? (
+              <button
                 onClick={handleNewChat}
-                className="text-xs text-muted-foreground hover:text-foreground h-8 px-2.5 rounded-lg"
+                className="flex items-center gap-1.5 bg-white text-black hover:bg-zinc-200 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shadow-md"
               >
-                <Trash2 className="w-3.5 h-3.5 mr-1" />
-                Clear
-              </Button>
+                <Plus className="w-3.5 h-3.5" />
+                <span>New</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate("/auth")}
+                className="bg-white text-black hover:bg-zinc-200 px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-md cursor-pointer"
+              >
+                Try now
+              </button>
             )}
           </div>
         </header>
 
         {/* Chat Area */}
         <div
-          className={`chat-area ${hasMessages ? "has-messages" : ""}`}
+          className={`chat-area relative z-10 ${hasMessages ? "has-messages" : "flex flex-col items-center justify-center"}`}
           id="chatArea"
           ref={chatAreaRef}
           onScroll={handleScroll}
           aria-live="polite"
         >
-          {/* Welcome State */}
+          {/* Stitch Hero & Centered Input Card */}
           <AnimatePresence mode="wait">
             {!hasMessages && (
               <motion.div
-                key="welcome"
-                initial={{ opacity: 0, y: 20 }}
+                key="stitch-hero"
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20, transition: { duration: 0.3 } }}
-                className="welcome"
+                exit={{ opacity: 0, y: -20, transition: { duration: 0.25 } }}
+                className="max-w-3xl mx-auto w-full px-4 py-6 flex flex-col items-center justify-center text-center my-auto"
               >
-                <h1 className="welcome-title">Ask away, PARAG!</h1>
+                {/* Hero Title */}
+                <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white mb-3 leading-[1.1]">
+                  Design at the <br className="hidden sm:inline" />
+                  speed of AI
+                </h1>
+
+                {/* Hero Subtitle */}
+                <p className="text-sm sm:text-base text-zinc-400 max-w-xl mb-8 font-normal leading-relaxed">
+                  Transform ideas into UI designs for mobile and web applications
+                </p>
+
+                {/* ── Stitch Floating Input Card ── */}
+                <div className="w-full max-w-2xl bg-[#1c1d25]/85 backdrop-blur-2xl border border-white/10 rounded-3xl p-4 sm:p-5 shadow-2xl text-left transition-all">
+                  <textarea
+                    ref={inputRef}
+                    rows={2}
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeydown}
+                    placeholder={
+                      designMode === "app"
+                        ? "What native mobile app shall we design?"
+                        : "What web application shall we build?"
+                    }
+                    className="w-full bg-transparent text-white placeholder-zinc-500 text-base sm:text-lg resize-none outline-none focus:outline-none font-normal"
+                    disabled={isStreaming}
+                  />
+
+                  {/* Card Bottom Toolbar */}
+                  <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-2">
+                    {/* Left side: Context + App/Web toggle */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                        title="Add Context"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+
+                      {/* Segmented App / Web Switcher */}
+                      <div className="flex items-center p-0.5 rounded-full bg-[#14151b] border border-white/5 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setDesignMode("app")}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all ${
+                            designMode === "app"
+                              ? "bg-[#282a36] text-white shadow-sm"
+                              : "text-zinc-400 hover:text-zinc-200"
+                          }`}
+                        >
+                          <Smartphone className="w-3.5 h-3.5" />
+                          <span>App</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDesignMode("web")}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all ${
+                            designMode === "web"
+                              ? "bg-[#282a36] text-white shadow-sm"
+                              : "text-zinc-400 hover:text-zinc-200"
+                          }`}
+                        >
+                          <Globe className="w-3.5 h-3.5" />
+                          <span>Web</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Right side: Tools & Send */}
+                    <div className="flex items-center gap-2">
+                      {/* Web search toggle */}
+                      <button
+                        type="button"
+                        onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                          webSearchEnabled ? "text-[#4D90FE] bg-[#4D90FE]/15" : "text-zinc-400 hover:text-white bg-white/5"
+                        }`}
+                        title="Toggle Web Search"
+                      >
+                        <Globe className="w-4 h-4" />
+                      </button>
+
+                      {/* Model pill selector inside card */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-zinc-300 font-medium transition-all">
+                            <Sparkles className="w-3.5 h-3.5 text-[#4D90FE]" />
+                            <span>3 Flash</span>
+                            <ChevronDown className="w-3 h-3 opacity-60" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56 bg-[#181920] border-white/10 text-white p-1 shadow-2xl rounded-2xl">
+                          {AVAILABLE_MODELS.map((model) => (
+                            <DropdownMenuItem
+                              key={model.id}
+                              onClick={() => setSelectedModel(model.id)}
+                              className="flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer hover:bg-white/10"
+                            >
+                              <span>{model.name}</span>
+                              {selectedModel === model.id && <Check className="w-3.5 h-3.5 text-[#4D90FE]" />}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      {/* Voice / Mic */}
+                      <button
+                        type="button"
+                        onClick={toggleSpeechRecognition}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                          isListening ? "bg-red-500/20 text-red-400 animate-pulse" : "bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white"
+                        }`}
+                        title="Voice prompt"
+                      >
+                        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                      </button>
+
+                      {/* Send / Generate Arrow Button */}
+                      <button
+                        type="button"
+                        disabled={!inputValue.trim() || isStreaming}
+                        onClick={() => sendMessage()}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                          inputValue.trim()
+                            ? "bg-white text-black hover:bg-zinc-200 shadow-md cursor-pointer"
+                            : "bg-white/10 text-zinc-600 cursor-not-allowed"
+                        }`}
+                        title="Generate Design"
+                      >
+                        <ArrowUp className="w-4 h-4 font-bold" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Suggestion Chips Row ── */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="suggestions"
+                  className="flex flex-wrap items-center justify-center gap-2.5 max-w-3xl mt-4"
                 >
-                  {suggestions.map((s, i) => (
-                    <SuggestionChip
-                      key={i}
-                      emoji={s.emoji}
-                      text={s.text}
-                      disabled={isStreaming}
+                  {(designMode === "app" ? appSuggestions : webSuggestions).map((s, idx) => (
+                    <button
+                      key={idx}
                       onClick={() => sendMessage(s.text)}
-                    />
+                      disabled={isStreaming}
+                      className="flex items-center gap-2 bg-[#1c1d25]/75 hover:bg-[#252733] border border-white/10 hover:border-white/20 rounded-full px-4 py-1.5 text-xs text-zinc-300 backdrop-blur-md transition-all shadow-sm group cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-[#C084FC] group-hover:scale-110 transition-transform" />
+                      <span className="truncate max-w-[260px] sm:max-w-none">{s.text}</span>
+                    </button>
                   ))}
                 </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Messages */}
+          {/* Messages Flow */}
           {hasMessages && (
             <div className="messages-container">
               <AnimatePresence initial={false}>
@@ -787,77 +885,74 @@ function IndexContent() {
             </div>
           )}
 
-          {/* Scroll to bottom */}
+          {/* Scroll to bottom button */}
           <ScrollToBottomButton
             visible={showScrollBtn}
             onClick={() => scrollToBottom()}
           />
         </div>
 
-        {/* Input Section */}
-        <div className="input-section">
-          <div className={`input-glow-wrapper ${inputFocused ? "focused" : ""}`}>
-            <div className="input-wrapper">
-              <textarea
-                ref={inputRef}
-                className="chat-input"
-                placeholder={isListening ? "Listening... speak now..." : isStreaming ? "Lexa is thinking..." : "Ask Lexa anything..."}
-                rows={1}
-                value={inputValue}
-                onChange={handleInputChange}
-                onKeyDown={handleKeydown}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setInputFocused(false)}
-                disabled={isStreaming}
-                aria-label="Chat input message"
-              />
-              <div className="input-right">
-                <AnimatePresence mode="wait">
-                  {inputValue.trim() ? (
-                    <motion.button
-                      key="send"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="send-btn visible"
-                      onClick={() => sendMessage()}
-                      disabled={isStreaming}
-                      title="Send message"
-                      aria-label="Send message"
-                    >
-                      <Send className="w-4 h-4" />
-                    </motion.button>
-                  ) : (
-                    <motion.button
-                      key="mic"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={toggleSpeechRecognition}
-                      className={`mic-btn ${isListening ? "text-red-400 animate-pulse bg-red-500/20" : ""}`}
-                      title={isListening ? "Stop listening" : "Voice input"}
-                      aria-label="Voice input"
-                    >
-                      {isListening ? <MicOff className="w-[18px] h-[18px]" /> : <Mic className="w-[18px] h-[18px]" />}
-                    </motion.button>
-                  )}
-                </AnimatePresence>
+        {/* Bottom Input Section (Active when conversation has messages) */}
+        {hasMessages && (
+          <div className="input-section relative z-20">
+            <div className={`input-glow-wrapper ${inputFocused ? "focused" : ""}`}>
+              <div className="input-wrapper bg-[#1c1d25]/90 border border-white/10">
+                <textarea
+                  ref={inputRef}
+                  className="chat-input"
+                  placeholder={isListening ? "Listening... speak now..." : isStreaming ? "Lexa is thinking..." : "Ask Lexa anything..."}
+                  rows={1}
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeydown}
+                  onFocus={() => setInputFocused(true)}
+                  onBlur={() => setInputFocused(false)}
+                  disabled={isStreaming}
+                  aria-label="Chat input message"
+                />
+                <div className="input-right">
+                  <AnimatePresence mode="wait">
+                    {inputValue.trim() ? (
+                      <motion.button
+                        key="send"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="send-btn visible bg-white text-black hover:bg-zinc-200"
+                        onClick={() => sendMessage()}
+                        disabled={isStreaming}
+                        title="Send message"
+                        aria-label="Send message"
+                      >
+                        <ArrowUp className="w-4 h-4 text-black" />
+                      </motion.button>
+                    ) : (
+                      <motion.button
+                        key="mic"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={toggleSpeechRecognition}
+                        className={`mic-btn ${isListening ? "text-red-400 animate-pulse bg-red-500/20" : ""}`}
+                        title={isListening ? "Stop listening" : "Voice input"}
+                        aria-label="Voice input"
+                      >
+                        {isListening ? <MicOff className="w-[18px] h-[18px]" /> : <Mic className="w-[18px] h-[18px]" />}
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
+            <p className="disclaimer text-zinc-500 text-[11px] text-center mt-2">
+              Stitch AI can make mistakes. Verify critical code and designs.
+            </p>
           </div>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="disclaimer"
-          >
-            Lexa can make mistakes. Consider checking important information.
-          </motion.p>
-        </div>
+        )}
       </main>
     </div>
   );

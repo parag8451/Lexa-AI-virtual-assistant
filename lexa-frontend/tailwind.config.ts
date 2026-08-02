@@ -126,6 +126,7 @@ export default {
   		},
   		fontFamily: {
   			sans: [
+  				'Plus Jakarta Sans',
   				'Inter',
   				'ui-sans-serif',
   				'system-ui',
@@ -133,9 +134,6 @@ export default {
   				'BlinkMacSystemFont',
   				'Segoe UI',
   				'Roboto',
-  				'Helvetica Neue',
-  				'Arial',
-  				'Noto Sans',
   				'sans-serif'
   			],
   			serif: [

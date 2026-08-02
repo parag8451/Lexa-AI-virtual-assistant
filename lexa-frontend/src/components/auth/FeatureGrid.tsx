@@ -1,143 +1,209 @@
-import { Sparkles, MessageSquare, Globe, Mic, Brain, Check } from "lucide-react";
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
-
-const FEATURES = [
-  { 
-    icon: MessageSquare, 
-    title: "Smart Memory", 
-    description: "Contextual AI that remembers preferences",
-    gradient: "from-blue-500 to-cyan-500",
-    glowColor: "group-hover:shadow-blue-500/20"
-  },
-  { 
-    icon: Globe, 
-    title: "Web Search", 
-    description: "Real-time insights with citations",
-    gradient: "from-emerald-500 to-teal-500",
-    glowColor: "group-hover:shadow-emerald-500/20"
-  },
-  { 
-    icon: Mic, 
-    title: "Voice AI", 
-    description: "Natural speech processing",
-    gradient: "from-violet-500 to-purple-500",
-    glowColor: "group-hover:shadow-violet-500/20"
-  },
-  { 
-    icon: Brain, 
-    title: "Multi-Model", 
-    description: "GPT-4o, Claude 3.5, Gemini Pro",
-    gradient: "from-amber-500 to-orange-500",
-    glowColor: "group-hover:shadow-amber-500/20"
-  },
-];
-
-const STATS = [
-  { value: "5+", label: "AI Models" },
-  { value: "<1s", label: "Response" },
-  { value: "99.9%", label: "Uptime" },
-];
-
-const easeOut = [0.22, 1, 0.36, 1] as const;
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easeOut } }
-};
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Sparkles, Bot, User, CheckCircle2, ShieldCheck, 
+  Cpu, ArrowUp, Activity, Zap, MessageSquare, Terminal, Mic
+} from "lucide-react";
 
 export function FeatureGrid() {
+  const [activeTab, setActiveTab] = useState<"chat" | "code" | "voice">("chat");
+
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="max-w-lg w-full"
-    >
-      {/* Logo & Title */}
-      <motion.div variants={itemVariants} className="flex items-center gap-3 mb-6">
-        <div className="relative">
-          <motion.div
-            whileHover={{ rotate: 180, scale: 1.1 }}
-            transition={{ duration: 0.5 }}
-            className="w-12 h-12 rounded-xl gradient-aurora flex items-center justify-center shadow-lg"
-          >
-            <Sparkles className="w-6 h-6 text-white" />
-          </motion.div>
-          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-background shadow-sm">
-            <Check className="w-2.5 h-2.5 text-white" />
-          </div>
+    <div className="w-full space-y-6">
+      {/* ─── Top Pill Badge & Headline ─── */}
+      <div className="space-y-3">
+        <div className="inline-flex items-center gap-2 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl border border-white/80 dark:border-white/10 rounded-full px-3.5 py-1.5 shadow-sm">
+          <span className="bg-[#FF5E3A] text-white text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wider uppercase">
+            LEXA 2.0
+          </span>
+          <span className="text-xs font-medium text-muted-foreground">
+            Next-generation autonomous AI companion
+          </span>
         </div>
-        <div>
-          <span className="text-xl font-bold text-foreground block">Lexa AI</span>
-          <span className="text-xs text-muted-foreground">The Intelligent Assistant</span>
-        </div>
-      </motion.div>
 
-      <motion.h1 variants={itemVariants} className="text-3xl xl:text-4xl font-extrabold text-foreground mb-4 leading-tight tracking-tight">
-        Next-Generation <br />
-        <span className="gradient-text">Conversations</span>
-      </motion.h1>
-      
-      <motion.p variants={itemVariants} className="text-sm text-muted-foreground mb-8 max-w-sm">
-        Experience a faster, smarter, and infinitely capable AI workspace designed for professionals.
-      </motion.p>
+        <h1 className="text-3xl sm:text-4xl xl:text-5xl font-extrabold tracking-tighter text-foreground leading-[1.1]">
+          Conversations that <br />
+          <span className="bg-gradient-to-r from-[#FF5E3A] via-[#C084FC] to-[#38BDF8] bg-clip-text text-transparent">
+            evolve as you think.
+          </span>
+        </h1>
 
-      {/* Stats row */}
-      <motion.div variants={itemVariants} className="flex gap-8 mb-8 pb-8 border-b border-border/20">
-        {STATS.map((stat, index) => (
-          <div key={index}>
-            <div className="text-2xl font-extrabold gradient-text">{stat.value}</div>
-            <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mt-1 font-medium">{stat.label}</div>
-          </div>
-        ))}
-      </motion.div>
-
-      {/* Feature cards */}
-      <div className="grid grid-cols-2 gap-3">
-        {FEATURES.map((feature, index) => (
-          <motion.div
-            key={index}
-            variants={itemVariants}
-            whileHover={{ y: -2, scale: 1.02 }}
-            className={cn(
-              "group relative p-4 rounded-2xl glass-card cursor-default overflow-hidden",
-              "hover:shadow-lg transition-all duration-300 border border-border/40",
-              feature.glowColor
-            )}
-          >
-            {/* Subtle Gradient accent */}
-            <div className={cn(
-              "absolute top-0 left-0 w-full h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r",
-              feature.gradient
-            )} />
-            
-            <div className="flex items-start gap-3">
-              <div className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm",
-                "bg-gradient-to-br",
-                feature.gradient
-              )}>
-                <feature.icon className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground text-[13px] mb-0.5 group-hover:text-primary transition-colors">
-                  {feature.title}
-                </h3>
-                <p className="text-[11px] text-muted-foreground leading-snug">{feature.description}</p>
-              </div>
-            </div>
-          </motion.div>
-        ))}
+        <p className="text-sm text-muted-foreground max-w-lg leading-relaxed">
+          Lexa turns complex reasoning into lightning-fast answers, code synthesis, live web search, and voice interactions.
+        </p>
       </div>
-    </motion.div>
+
+      {/* ─── Horizon Frosted Interactive Mockup Card ─── */}
+      <div className="w-full bg-white/40 dark:bg-zinc-900/40 backdrop-blur-2xl rounded-3xl border border-white/70 dark:border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.06)] p-5 sm:p-6 overflow-hidden relative group">
+        {/* Soft internal gradient backdrop */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#38BDF8]/10 via-transparent to-[#FF5E3A]/5 pointer-events-none" />
+
+        {/* Card Header with Pill Switcher */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-black/5 dark:border-white/5 relative z-10">
+          <div className="flex items-center gap-1.5 p-1 rounded-full border border-white/80 dark:border-white/10 bg-white/60 dark:bg-zinc-800/60 backdrop-blur-md shadow-sm">
+            <button
+              onClick={() => setActiveTab("chat")}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                activeTab === "chat"
+                  ? "bg-white dark:bg-zinc-700 text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className="flex items-center gap-1">
+                <MessageSquare className="w-3 h-3 text-[#FF5E3A]" />
+                Chat
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("code")}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                activeTab === "code"
+                  ? "bg-white dark:bg-zinc-700 text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className="flex items-center gap-1">
+                <Terminal className="w-3 h-3 text-[#38BDF8]" />
+                Code
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("voice")}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                activeTab === "voice"
+                  ? "bg-white dark:bg-zinc-700 text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className="flex items-center gap-1">
+                <Mic className="w-3 h-3 text-[#C084FC]" />
+                Voice
+              </span>
+            </button>
+          </div>
+
+          {/* Model Status Badge */}
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span className="text-[11px] font-bold font-mono text-muted-foreground uppercase tracking-wider">
+              Gemini 2.5 Flash • 0.3s
+            </span>
+          </div>
+        </div>
+
+        {/* Dynamic Simulated Content Based on Selected Tab */}
+        <div className="pt-4 space-y-3.5 relative z-10">
+          <AnimatePresence mode="wait">
+            {activeTab === "chat" && (
+              <motion.div
+                key="chat"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-3"
+              >
+                {/* User Message */}
+                <div className="flex gap-2.5 flex-row-reverse">
+                  <div className="w-7 h-7 rounded-full bg-[#FF5E3A]/20 border border-[#FF5E3A]/30 flex items-center justify-center shrink-0">
+                    <User className="w-3.5 h-3.5 text-[#FF5E3A]" />
+                  </div>
+                  <div className="bg-[#FF5E3A]/10 border border-[#FF5E3A]/20 rounded-2xl rounded-tr-none px-3.5 py-2 text-xs max-w-[80%] text-foreground">
+                    Build a real-time full-stack dashboard with Supabase auth and AI streaming.
+                  </div>
+                </div>
+
+                {/* AI Assistant Message */}
+                <div className="flex gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#38BDF8] to-[#C084FC] flex items-center justify-center shrink-0 shadow-sm">
+                    <Sparkles className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <div className="bg-white/70 dark:bg-zinc-800/70 backdrop-blur-md rounded-2xl rounded-tl-none border border-white/80 dark:border-white/10 px-3.5 py-2 text-xs space-y-1.5 max-w-[85%] text-foreground shadow-sm">
+                    <p className="font-semibold text-[11px] text-[#C084FC] flex items-center gap-1">
+                      <Zap className="w-3 h-3" /> Lexa Intelligence Engine
+                    </p>
+                    <p className="text-muted-foreground leading-relaxed">
+                      Configured React 18, Vite, Supabase JWT tokens, and token-by-token SSE streaming.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "code" && (
+              <motion.div
+                key="code"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="bg-zinc-950/90 text-zinc-200 rounded-2xl p-3 font-mono text-[11px] space-y-1 border border-zinc-800 shadow-inner"
+              >
+                <div className="flex items-center justify-between text-[10px] text-zinc-500 pb-1 border-b border-zinc-800/80">
+                  <span>auth-stream.ts</span>
+                  <span className="text-emerald-400">● Compiled</span>
+                </div>
+                <p className="text-purple-400">const <span className="text-blue-300">lexa</span> = <span className="text-yellow-300">createClient</span>();</p>
+                <p className="text-zinc-400">await lexa.stream({"{"} model: <span className="text-emerald-300">'gpt-5-turbo'</span> {"}"});</p>
+              </motion.div>
+            )}
+
+            {activeTab === "voice" && (
+              <motion.div
+                key="voice"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="bg-white/60 dark:bg-zinc-800/60 rounded-2xl p-4 flex items-center justify-between border border-white/80 dark:border-white/10"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#C084FC]/20 text-[#C084FC] flex items-center justify-center animate-pulse">
+                    <Mic className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Natural Neural Voice</p>
+                    <p className="text-[10px] text-muted-foreground">ElevenLabs Ultra-HD Synthesis</p>
+                  </div>
+                </div>
+                {/* Waveform bars */}
+                <div className="flex items-center gap-1">
+                  {[40, 75, 50, 90, 60, 85, 30].map((h, idx) => (
+                    <div
+                      key={idx}
+                      className="w-1 bg-[#C084FC] rounded-full animate-pulse"
+                      style={{ height: `${h * 0.25}px`, animationDelay: `${idx * 120}ms` }}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ─── Horizon Metrics & Edge Runtime Bar ─── */}
+          <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-3 text-[11px]">
+            <div className="flex items-center gap-2 text-foreground font-semibold">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Multi-Model Router Ready</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-full bg-[#38BDF8]/10 text-[#0284c7] font-mono font-bold text-[10px]">
+                GPT-5
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-[#C084FC]/10 text-[#7c3aed] font-mono font-bold text-[10px]">
+                Gemini 2.5
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-[#FF5E3A]/10 text-[#c2410c] font-mono font-bold text-[10px]">
+                Claude 3.5
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
