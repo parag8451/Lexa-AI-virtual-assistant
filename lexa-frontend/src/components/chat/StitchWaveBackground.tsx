@@ -67,25 +67,35 @@ void main() {
   vec2 uv = gl_FragCoord.xy / uResolution.xy;
   float aspect = uResolution.x / max(uResolution.y, 1.0);
   
-  float t = uTime * uSpeed * 0.35;
+  float t = uTime * uSpeed * 0.32;
   
   // Base deep background canvas
-  vec3 bgColor = vec3(0.035, 0.039, 0.055);
+  vec3 bgColor = vec3(0.032, 0.036, 0.052);
   
   // Vibrant Harmonic Palette
-  vec3 electricCyan   = vec3(0.12, 0.78, 0.98);
-  vec3 deepBlue       = vec3(0.15, 0.42, 0.95);
-  vec3 neonViolet     = vec3(0.62, 0.30, 0.98);
-  vec3 magentaPink    = vec3(0.88, 0.25, 0.72);
-  vec3 coreWhiteGlow  = vec3(0.85, 0.95, 1.00);
+  vec3 electricCyan   = vec3(0.12, 0.80, 0.98);
+  vec3 deepBlue       = vec3(0.15, 0.45, 0.96);
+  vec3 neonViolet     = vec3(0.64, 0.32, 0.98);
+  vec3 magentaPink    = vec3(0.88, 0.28, 0.74);
+  vec3 coreWhiteGlow  = vec3(0.90, 0.96, 1.00);
   
+  // ── Realistic Slow "On and Off" Breathing Luminance & Black Fade ──
+  // Slow gentle breathing cycle (approx 12 second cycle)
+  float slowBreath = 0.5 + 0.5 * sin(t * 0.55);
+  float breathingPulse = 0.65 + 0.40 * smoothstep(0.1, 0.9, slowBreath);
+  
+  // Subtle deep black fade wave
+  float blackFadeWave = 0.78 + 0.22 * sin(t * 0.28 + uv.x * 1.5);
+  
+  // Startup soft power-on ramp
+  float powerOn = smoothstep(0.0, 2.5, uTime);
+
   // Mouse interaction
   vec2 mouseNorm = uMouse / uResolution.xy;
   float mouseDist = distance(uv, mouseNorm);
-  float mouseWave = exp(-mouseDist * 4.0) * 0.06;
+  float mouseWave = exp(-mouseDist * 3.8) * 0.07;
 
   // ── Full-Screen Smooth Parabolic Ribbon ──
-  // The arch spans the ENTIRE width with generous glow spread
   float xNormalized = (uv.x - 0.5) * 2.0;
   float baseArch = 0.30 + 0.32 * (xNormalized * xNormalized); 
 
@@ -94,59 +104,58 @@ void main() {
   float waveNoise2 = snoise(vec2(uv.x * 4.0 - t * 0.35, uv.y * 1.5)) * 0.05;
   float primaryWaveY = baseArch + waveNoise1 + waveNoise2 + mouseWave;
 
-  // Layer 1: Primary Ribbon — wider glow spread for full-screen coverage
+  // Layer 1: Primary Ribbon — with breathing on/off intensity
   float dist1 = abs(uv.y - primaryWaveY);
-  float glow1 = exp(-dist1 * 5.0) * 1.2;       // wider spread (was 7.0)
-  float softCore1 = exp(-dist1 * 16.0) * 0.9;   // softer core (was 20.0)
+  float glow1 = exp(-dist1 * 4.8) * 1.25 * breathingPulse;
+  float softCore1 = exp(-dist1 * 15.0) * 0.95 * breathingPulse;
 
   // Layer 2: Secondary Echo Wave
   float waveNoise3 = snoise(vec2(uv.x * 2.6 - t * 0.2, t * 0.3 + 1.5)) * 0.14;
   float secondaryWaveY = baseArch - 0.08 + waveNoise3;
   float dist2 = abs(uv.y - secondaryWaveY);
-  float glow2 = exp(-dist2 * 4.5) * 1.0;        // wider (was 6.0)
-  float softCore2 = exp(-dist2 * 14.0) * 0.7;   // softer (was 18.0)
+  float glow2 = exp(-dist2 * 4.2) * 1.0 * (1.35 - breathingPulse * 0.4);
+  float softCore2 = exp(-dist2 * 13.5) * 0.75 * (1.35 - breathingPulse * 0.4);
 
-  // Layer 3: Deep Atmospheric Ambient — fills corners
+  // Layer 3: Deep Atmospheric Ambient — soft corner fill
   float waveNoise4 = snoise(vec2(uv.x * 1.4 + t * 0.15, uv.y * 1.2 - t * 0.1)) * 0.20;
   float ambientWaveY = baseArch + 0.06 + waveNoise4;
   float dist3 = abs(uv.y - ambientWaveY);
-  float ambientGlow = exp(-dist3 * 2.5) * 0.8;  // very wide (was 3.8)
+  float ambientGlow = exp(-dist3 * 2.4) * 0.85 * blackFadeWave;
 
   // Dynamic Horizontal Color Blending
-  float colorGradient = smoothstep(0.0, 1.0, uv.x + 0.15 * sin(t + uv.y * 2.0));
+  float colorGradient = smoothstep(0.0, 1.0, uv.x + 0.18 * sin(t * 0.8 + uv.y * 2.0));
   vec3 ribbonColorA = mix(electricCyan, deepBlue, colorGradient);
   vec3 ribbonColorB = mix(neonViolet, magentaPink, 1.0 - colorGradient);
-  vec3 mainRibbonColor = mix(ribbonColorA, ribbonColorB, smoothstep(primaryWaveY - 0.15, primaryWaveY + 0.15, uv.y));
+  vec3 mainRibbonColor = mix(ribbonColorA, ribbonColorB, smoothstep(primaryWaveY - 0.16, primaryWaveY + 0.16, uv.y));
 
-  // Volumetric Lighting Composition
+  // Volumetric Lighting Composition with dynamic power and intensity
   vec3 finalColor = bgColor;
-  float intensityFactor = uIntensity;
+  float totalIntensity = uIntensity * powerOn * blackFadeWave;
 
-  finalColor += mainRibbonColor * glow1 * intensityFactor;
-  finalColor += coreWhiteGlow * softCore1 * 0.4 * intensityFactor;
+  finalColor += mainRibbonColor * glow1 * totalIntensity;
+  finalColor += coreWhiteGlow * softCore1 * 0.45 * totalIntensity;
 
-  finalColor += mix(deepBlue, neonViolet, colorGradient) * glow2 * 0.8 * intensityFactor;
-  finalColor += coreWhiteGlow * softCore2 * 0.3 * intensityFactor;
+  finalColor += mix(deepBlue, neonViolet, colorGradient) * glow2 * 0.85 * totalIntensity;
+  finalColor += coreWhiteGlow * softCore2 * 0.32 * totalIntensity;
 
-  finalColor += mix(neonViolet, deepBlue, 0.5) * ambientGlow * 0.5 * intensityFactor;
+  finalColor += mix(neonViolet, deepBlue, 0.5) * ambientGlow * 0.55 * totalIntensity;
 
   // ── Corner & Edge Ambient Fill ──
-  // Subtle blue/violet ambient in ALL corners so nothing is pure black
-  float cornerBL = smoothstep(0.6, 0.0, length(uv - vec2(0.0, 0.0)));
-  float cornerBR = smoothstep(0.6, 0.0, length(uv - vec2(1.0, 0.0)));
-  float cornerTL = smoothstep(0.5, 0.0, length(uv - vec2(0.0, 1.0)));
-  float cornerTR = smoothstep(0.5, 0.0, length(uv - vec2(1.0, 1.0)));
+  float cornerBL = smoothstep(0.65, 0.0, length(uv - vec2(0.0, 0.0)));
+  float cornerBR = smoothstep(0.65, 0.0, length(uv - vec2(1.0, 0.0)));
+  float cornerTL = smoothstep(0.55, 0.0, length(uv - vec2(0.0, 1.0)));
+  float cornerTR = smoothstep(0.55, 0.0, length(uv - vec2(1.0, 1.0)));
   
-  finalColor += deepBlue * cornerBL * 0.12 * intensityFactor;
-  finalColor += neonViolet * cornerBR * 0.10 * intensityFactor;
-  finalColor += deepBlue * cornerTL * 0.08 * intensityFactor;
-  finalColor += neonViolet * cornerTR * 0.08 * intensityFactor;
+  finalColor += deepBlue * cornerBL * 0.14 * totalIntensity;
+  finalColor += neonViolet * cornerBR * 0.12 * totalIntensity;
+  finalColor += deepBlue * cornerTL * 0.09 * totalIntensity;
+  finalColor += neonViolet * cornerTR * 0.09 * totalIntensity;
 
   // Bottom ambient reflection — spans full width
-  float bottomAmbient = smoothstep(0.5, 0.0, uv.y) * 0.20;
-  finalColor += deepBlue * bottomAmbient * intensityFactor;
+  float bottomAmbient = smoothstep(0.5, 0.0, uv.y) * 0.22;
+  finalColor += deepBlue * bottomAmbient * totalIntensity;
 
-  // ── Dot Grid (subtle, spans full screen) ──
+  // ── Dot Grid (subtle, pulsing with the wave) ──
   float gridSize = 28.0;
   vec2 gridCoord = gl_FragCoord.xy;
   vec2 gridOffset = mod(gridCoord, gridSize) - vec2(gridSize * 0.5);
@@ -155,8 +164,8 @@ void main() {
   
   float dotShape = smoothstep(dotRadius + 0.4, dotRadius - 0.4, dotDistance);
   float totalIllumination = clamp((glow1 + glow2 * 0.7 + ambientGlow * 0.5), 0.0, 1.5);
-  float dotBrightness = mix(0.06, 0.45, clamp(totalIllumination, 0.0, 1.0));
-  vec3 dotTint = mix(vec3(0.3, 0.35, 0.50), vec3(0.9, 0.95, 1.0), clamp(totalIllumination, 0.0, 1.0));
+  float dotBrightness = mix(0.05, 0.48, clamp(totalIllumination, 0.0, 1.0)) * powerOn;
+  vec3 dotTint = mix(vec3(0.3, 0.35, 0.50), vec3(0.9, 0.96, 1.0), clamp(totalIllumination, 0.0, 1.0));
   
   finalColor += dotTint * dotShape * dotBrightness;
 
@@ -171,7 +180,7 @@ void main() {
 /**
  * Full-viewport WebGL background rendered via a React Portal
  * into document.body — immune to ancestor transform/opacity
- * breaking position:fixed (caused by framer-motion wrappers).
+ * with realistic slow on/off breathing & black fade dynamics.
  */
 export function StitchWaveBackground({
   className = "",
@@ -288,7 +297,7 @@ export function StitchWaveBackground({
   }, [speed, intensity, enableMouse]);
 
   // Render via Portal into document.body so no ancestor transform
-  // (framer-motion, etc.) can break position:fixed
+  // can break position:fixed
   const bgElement = (
     <div
       ref={containerRef}

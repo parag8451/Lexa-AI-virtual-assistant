@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
+import {
   Send, ArrowDown, ArrowUp, Copy, Check, ThumbsUp, ThumbsDown,
   Plus, Settings, Sparkles, ChevronDown, Mic, MicOff,
   Volume2, VolumeX, Download, Trash2, Globe, CheckCircle2,
@@ -72,13 +72,13 @@ function ChatFallback({ error, resetErrorBoundary }: { error: Error; resetErrorB
 }
 
 /* ─── Message Bubble Component ─── */
-function MessageBubble({ 
-  message, 
+function MessageBubble({
+  message,
   onCopy,
   onSpeak,
   isSpeaking
-}: { 
-  message: ChatMessage; 
+}: {
+  message: ChatMessage;
   onCopy: (text: string) => void;
   onSpeak?: (text: string, id: string) => void;
   isSpeaking?: boolean;
@@ -219,6 +219,9 @@ function IndexContent() {
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [designMode, setDesignMode] = useState<"assistant" | "code" | "web" | "mobile">("assistant");
+  const [pageReady, setPageReady] = useState(false);
+  const [typedText, setTypedText] = useState("");
+  const [showCursor, setShowCursor] = useState(true);
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -229,6 +232,40 @@ function IndexContent() {
 
   const hasMessages = messages.length > 0;
   const currentModelInfo = AVAILABLE_MODELS.find((m) => m.id === selectedModel) || AVAILABLE_MODELS[0];
+
+  /* Cinematic page fade-in + Typewriter effect */
+  const heroTitle = "Where Intelligence Meets Conversation";
+
+  useEffect(() => {
+    // Slow cinematic black-fade reveal
+    const fadeTimer = setTimeout(() => setPageReady(true), 300);
+    return () => clearTimeout(fadeTimer);
+  }, []);
+
+  useEffect(() => {
+    if (!pageReady || hasMessages) return;
+    setTypedText("");
+    let i = 0;
+    const typeInterval = setInterval(() => {
+      i++;
+      setTypedText(heroTitle.slice(0, i));
+      if (i >= heroTitle.length) {
+        clearInterval(typeInterval);
+        // Keep cursor blinking for a bit, then hide
+        setTimeout(() => setShowCursor(false), 2000);
+      }
+    }, 55);
+    return () => clearInterval(typeInterval);
+  }, [pageReady, hasMessages]);
+
+  // Blinking cursor effect
+  useEffect(() => {
+    if (!showCursor) return;
+    const blinkInterval = setInterval(() => {
+      setShowCursor(prev => !prev);
+    }, 530);
+    return () => clearInterval(blinkInterval);
+  }, []);
 
   /* Auto-scroll to bottom */
   const scrollToBottom = useCallback((smooth = true) => {
@@ -546,10 +583,6 @@ function IndexContent() {
 
   return (
     <div className="custom-chat-wrapper bg-[#090a0e]">
-      {/* Full-viewport background layer — sits OUTSIDE the flex layout so it
-          spans 100vw × 100vh without being clipped by the sidebar or main overflow */}
-      <StitchWaveBackground speed={0.8} intensity={0.85} />
-
       <CustomCursor />
 
       {/* Hidden File Input for Attachment */}
@@ -622,6 +655,20 @@ function IndexContent() {
 
       {/* ─── Main ─── */}
       <main className="main relative overflow-hidden bg-transparent w-full h-full" role="main">
+        {/* Full-Screen 8K Smooth Dynamic Wave Background */}
+        <StitchWaveBackground speed={0.8} intensity={0.85} />
+
+        {/* Cinematic power-on black fade overlay */}
+        <AnimatePresence>
+          {!pageReady && (
+            <motion.div
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.9, ease: "easeInOut" }}
+              className="fixed inset-0 bg-[#090a0e] z-50 pointer-events-none"
+            />
+          )}
+        </AnimatePresence>
 
         {/* ── Top Header ── */}
         <header className="header flex items-center justify-between px-6 py-4 relative z-20">
@@ -662,9 +709,8 @@ function IndexContent() {
                     <DropdownMenuItem
                       key={model.id}
                       onClick={() => setSelectedModel(model.id)}
-                      className={`flex items-start gap-2.5 p-2 rounded-xl cursor-pointer transition-colors ${
-                        isSelected ? "bg-[#38BDF8]/15 text-white" : "hover:bg-white/10"
-                      }`}
+                      className={`flex items-start gap-2.5 p-2 rounded-xl cursor-pointer transition-colors ${isSelected ? "bg-[#38BDF8]/15 text-white" : "hover:bg-white/10"
+                        }`}
                     >
                       <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? "text-[#38BDF8]" : "text-zinc-400"}`} />
                       <div className="flex flex-col flex-1 min-w-0">
@@ -688,11 +734,10 @@ function IndexContent() {
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
-                webSearchEnabled
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${webSearchEnabled
                   ? "bg-[#38BDF8]/15 text-[#38BDF8] border-[#38BDF8]/30 shadow-sm"
                   : "bg-white/5 text-zinc-400 border-white/10 hover:text-white"
-              }`}
+                }`}
             >
               <Globe className="w-3.5 h-3.5" />
               <span>Web Search</span>
@@ -736,16 +781,27 @@ function IndexContent() {
                 exit={{ opacity: 0, y: -20, transition: { duration: 0.25 } }}
                 className="max-w-3xl mx-auto w-full px-4 py-6 flex flex-col items-center justify-center text-center my-auto"
               >
-                {/* Hero Title */}
-                <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white mb-3 leading-[1.12]">
-                  Build at the <br className="hidden sm:inline" />
-                  speed of thought
+                {/* Hero Title — Typewriter Animation */}
+                <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white mb-3 leading-[1.12] min-h-[2.4em]">
+                  <span className="bg-gradient-to-b from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
+                    {typedText}
+                  </span>
+                  <span
+                    className={`inline-block w-[3px] h-[0.85em] bg-[#38BDF8] ml-1.5 align-middle rounded-full shadow-[0_0_10px_#38BDF8] transition-opacity duration-150 ${
+                      showCursor ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
                 </h1>
 
                 {/* Hero Subtitle */}
-                <p className="text-sm sm:text-base text-zinc-400 max-w-xl mb-8 font-normal leading-relaxed">
-                  Transform ideas into code, workflows, and multi-model intelligence
-                </p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: typedText.length > 20 ? 1 : 0 }}
+                  transition={{ duration: 0.8 }}
+                  className="text-sm sm:text-base text-zinc-400 max-w-xl mb-8 font-normal leading-relaxed"
+                >
+                  Your AI-powered assistant for code, creativity, and conversation
+                </motion.p>
 
                 {/* ── Central Floating Card ── */}
                 <div className="w-full max-w-2xl bg-[#14161f]/85 backdrop-blur-2xl border border-white/10 rounded-3xl p-4 sm:p-5 shadow-2xl text-left transition-all">
@@ -783,11 +839,10 @@ function IndexContent() {
                         <button
                           type="button"
                           onClick={() => setDesignMode("assistant")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
-                            designMode === "assistant"
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${designMode === "assistant"
                               ? "bg-[#222533] text-white shadow-sm"
                               : "text-zinc-400 hover:text-zinc-200"
-                          }`}
+                            }`}
                         >
                           <Sparkles className="w-3 h-3 text-[#38BDF8]" />
                           <span className="hidden sm:inline">Assistant</span>
@@ -795,11 +850,10 @@ function IndexContent() {
                         <button
                           type="button"
                           onClick={() => setDesignMode("code")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
-                            designMode === "code"
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${designMode === "code"
                               ? "bg-[#222533] text-white shadow-sm"
                               : "text-zinc-400 hover:text-zinc-200"
-                          }`}
+                            }`}
                         >
                           <Code2 className="w-3 h-3 text-[#818CF8]" />
                           <span>Code</span>
@@ -807,11 +861,10 @@ function IndexContent() {
                         <button
                           type="button"
                           onClick={() => setDesignMode("web")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
-                            designMode === "web"
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${designMode === "web"
                               ? "bg-[#222533] text-white shadow-sm"
                               : "text-zinc-400 hover:text-zinc-200"
-                          }`}
+                            }`}
                         >
                           <Globe className="w-3 h-3 text-[#34D399]" />
                           <span>Web</span>
@@ -819,11 +872,10 @@ function IndexContent() {
                         <button
                           type="button"
                           onClick={() => setDesignMode("mobile")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
-                            designMode === "mobile"
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${designMode === "mobile"
                               ? "bg-[#222533] text-white shadow-sm"
                               : "text-zinc-400 hover:text-zinc-200"
-                          }`}
+                            }`}
                         >
                           <Smartphone className="w-3 h-3 text-[#F472B6]" />
                           <span>App</span>
@@ -839,9 +891,8 @@ function IndexContent() {
                           <button
                             type="button"
                             onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
-                              webSearchEnabled ? "text-[#38BDF8] bg-[#38BDF8]/15" : "text-zinc-400 hover:text-white bg-white/5"
-                            }`}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${webSearchEnabled ? "text-[#38BDF8] bg-[#38BDF8]/15" : "text-zinc-400 hover:text-white bg-white/5"
+                              }`}
                             aria-label="Toggle Web Search"
                           >
                             <Globe className="w-4 h-4" />
@@ -881,9 +932,8 @@ function IndexContent() {
                           <button
                             type="button"
                             onClick={toggleSpeechRecognition}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
-                              isListening ? "bg-red-500/20 text-red-400 animate-pulse" : "bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white"
-                            }`}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${isListening ? "bg-red-500/20 text-red-400 animate-pulse" : "bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white"
+                              }`}
                             aria-label="Voice input"
                           >
                             {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -899,11 +949,10 @@ function IndexContent() {
                         type="button"
                         disabled={!inputValue.trim() || isStreaming}
                         onClick={() => sendMessage()}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                          inputValue.trim()
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${inputValue.trim()
                             ? "bg-white text-black hover:bg-zinc-200 shadow-md cursor-pointer"
                             : "bg-white/10 text-zinc-600 cursor-not-allowed"
-                        }`}
+                          }`}
                         title="Send to Lexa"
                         aria-label="Send to Lexa"
                       >
@@ -941,9 +990,9 @@ function IndexContent() {
             <div className="messages-container">
               <AnimatePresence initial={false}>
                 {messages.map((msg) => (
-                  <MessageBubble 
-                    key={msg.id} 
-                    message={msg} 
+                  <MessageBubble
+                    key={msg.id}
+                    message={msg}
                     onCopy={handleCopy}
                     onSpeak={handleSpeak}
                     isSpeaking={speakingMessageId === msg.id}
