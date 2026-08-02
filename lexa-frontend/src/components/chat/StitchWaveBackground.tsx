@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Renderer, Program, Mesh, Triangle } from "ogl";
 
 interface StitchWaveBackgroundProps {
@@ -32,7 +33,7 @@ varying vec2 vUv;
 
 #define PI 3.14159265358979323846
 
-// Simplex / Perlin noise helpers
+// Simplex noise
 vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
 
 float snoise(vec2 v){
@@ -69,72 +70,83 @@ void main() {
   float t = uTime * uSpeed * 0.35;
   
   // Base deep background canvas
-  vec3 bgColor = vec3(0.035, 0.039, 0.055); // #090a0e
+  vec3 bgColor = vec3(0.035, 0.039, 0.055);
   
-  // Stitch & Horizon Vibrant Harmonic Palette
-  vec3 electricCyan   = vec3(0.12, 0.78, 0.98); // #1ec7fa
-  vec3 deepBlue       = vec3(0.15, 0.42, 0.95); // #266bf2
-  vec3 neonViolet     = vec3(0.62, 0.30, 0.98); // #9e4cfa
-  vec3 magentaPink    = vec3(0.88, 0.25, 0.72); // #e040b8
-  vec3 coreWhiteGlow  = vec3(0.85, 0.95, 1.00); // Soft core
+  // Vibrant Harmonic Palette
+  vec3 electricCyan   = vec3(0.12, 0.78, 0.98);
+  vec3 deepBlue       = vec3(0.15, 0.42, 0.95);
+  vec3 neonViolet     = vec3(0.62, 0.30, 0.98);
+  vec3 magentaPink    = vec3(0.88, 0.25, 0.72);
+  vec3 coreWhiteGlow  = vec3(0.85, 0.95, 1.00);
   
-  // Normalized mouse coordinate for fluid interactive warping
+  // Mouse interaction
   vec2 mouseNorm = uMouse / uResolution.xy;
   float mouseDist = distance(uv, mouseNorm);
   float mouseWave = exp(-mouseDist * 4.0) * 0.06;
 
-  // ── Full-Screen Dynamic Parabolic Ribbon Architecture ──
-  // Smooth U-shaped curvature across the entire screen width (0.0 to 1.0)
-  float xNormalized = (uv.x - 0.5) * 2.0; // -1.0 to 1.0
-  float baseArch = 0.28 + 0.38 * (xNormalized * xNormalized); 
+  // ── Full-Screen Smooth Parabolic Ribbon ──
+  // The arch spans the ENTIRE width with generous glow spread
+  float xNormalized = (uv.x - 0.5) * 2.0;
+  float baseArch = 0.30 + 0.32 * (xNormalized * xNormalized); 
 
-  // Multi-frequency organic motion waves
+  // Organic motion waves
   float waveNoise1 = snoise(vec2(uv.x * 2.0 + t * 0.3, t * 0.25)) * 0.12;
   float waveNoise2 = snoise(vec2(uv.x * 4.0 - t * 0.35, uv.y * 1.5)) * 0.05;
   float primaryWaveY = baseArch + waveNoise1 + waveNoise2 + mouseWave;
 
-  // Layer 1: Primary Vibrant Ribbon (Cyan to Violet)
+  // Layer 1: Primary Ribbon — wider glow spread for full-screen coverage
   float dist1 = abs(uv.y - primaryWaveY);
-  float glow1 = exp(-dist1 * 7.0) * 1.1;
-  float softCore1 = exp(-dist1 * 20.0) * 0.9;
+  float glow1 = exp(-dist1 * 5.0) * 1.2;       // wider spread (was 7.0)
+  float softCore1 = exp(-dist1 * 16.0) * 0.9;   // softer core (was 20.0)
 
-  // Layer 2: Secondary Fluid Echo Wave (Blue to Magenta)
+  // Layer 2: Secondary Echo Wave
   float waveNoise3 = snoise(vec2(uv.x * 2.6 - t * 0.2, t * 0.3 + 1.5)) * 0.14;
   float secondaryWaveY = baseArch - 0.08 + waveNoise3;
   float dist2 = abs(uv.y - secondaryWaveY);
-  float glow2 = exp(-dist2 * 6.0) * 0.9;
-  float softCore2 = exp(-dist2 * 18.0) * 0.7;
+  float glow2 = exp(-dist2 * 4.5) * 1.0;        // wider (was 6.0)
+  float softCore2 = exp(-dist2 * 14.0) * 0.7;   // softer (was 18.0)
 
-  // Layer 3: Deep Atmospheric Ambient Flow
+  // Layer 3: Deep Atmospheric Ambient — fills corners
   float waveNoise4 = snoise(vec2(uv.x * 1.4 + t * 0.15, uv.y * 1.2 - t * 0.1)) * 0.20;
   float ambientWaveY = baseArch + 0.06 + waveNoise4;
   float dist3 = abs(uv.y - ambientWaveY);
-  float ambientGlow = exp(-dist3 * 3.8) * 0.6;
+  float ambientGlow = exp(-dist3 * 2.5) * 0.8;  // very wide (was 3.8)
 
-  // Dynamic Horizontal Color Blending across viewport width
+  // Dynamic Horizontal Color Blending
   float colorGradient = smoothstep(0.0, 1.0, uv.x + 0.15 * sin(t + uv.y * 2.0));
   vec3 ribbonColorA = mix(electricCyan, deepBlue, colorGradient);
   vec3 ribbonColorB = mix(neonViolet, magentaPink, 1.0 - colorGradient);
   vec3 mainRibbonColor = mix(ribbonColorA, ribbonColorB, smoothstep(primaryWaveY - 0.15, primaryWaveY + 0.15, uv.y));
 
-  // Volumetric Lighting Composition (Faded, clean, balanced)
+  // Volumetric Lighting Composition
   vec3 finalColor = bgColor;
-  float intensityFactor = uIntensity * 0.85;
+  float intensityFactor = uIntensity;
 
   finalColor += mainRibbonColor * glow1 * intensityFactor;
-  finalColor += coreWhiteGlow * softCore1 * 0.45 * intensityFactor;
+  finalColor += coreWhiteGlow * softCore1 * 0.4 * intensityFactor;
 
   finalColor += mix(deepBlue, neonViolet, colorGradient) * glow2 * 0.8 * intensityFactor;
   finalColor += coreWhiteGlow * softCore2 * 0.3 * intensityFactor;
 
-  finalColor += mix(neonViolet, deepBlue, 0.5) * ambientGlow * 0.45 * intensityFactor;
+  finalColor += mix(neonViolet, deepBlue, 0.5) * ambientGlow * 0.5 * intensityFactor;
 
-  // Subtle bottom ambient reflection
-  float bottomAmbient = smoothstep(0.6, 0.0, uv.y) * 0.18;
+  // ── Corner & Edge Ambient Fill ──
+  // Subtle blue/violet ambient in ALL corners so nothing is pure black
+  float cornerBL = smoothstep(0.6, 0.0, length(uv - vec2(0.0, 0.0)));
+  float cornerBR = smoothstep(0.6, 0.0, length(uv - vec2(1.0, 0.0)));
+  float cornerTL = smoothstep(0.5, 0.0, length(uv - vec2(0.0, 1.0)));
+  float cornerTR = smoothstep(0.5, 0.0, length(uv - vec2(1.0, 1.0)));
+  
+  finalColor += deepBlue * cornerBL * 0.12 * intensityFactor;
+  finalColor += neonViolet * cornerBR * 0.10 * intensityFactor;
+  finalColor += deepBlue * cornerTL * 0.08 * intensityFactor;
+  finalColor += neonViolet * cornerTR * 0.08 * intensityFactor;
+
+  // Bottom ambient reflection — spans full width
+  float bottomAmbient = smoothstep(0.5, 0.0, uv.y) * 0.20;
   finalColor += deepBlue * bottomAmbient * intensityFactor;
 
-  // ── 8K Ultra-Sharp Dot Matrix Grid ──
-  // Grid size in logical pixels
+  // ── Dot Grid (subtle, spans full screen) ──
   float gridSize = 28.0;
   vec2 gridCoord = gl_FragCoord.xy;
   vec2 gridOffset = mod(gridCoord, gridSize) - vec2(gridSize * 0.5);
@@ -143,23 +155,24 @@ void main() {
   
   float dotShape = smoothstep(dotRadius + 0.4, dotRadius - 0.4, dotDistance);
   float totalIllumination = clamp((glow1 + glow2 * 0.7 + ambientGlow * 0.5), 0.0, 1.5);
-  float dotBrightness = mix(0.08, 0.50, clamp(totalIllumination, 0.0, 1.0));
-  vec3 dotTint = mix(vec3(0.4, 0.5, 0.65), vec3(0.9, 0.95, 1.0), clamp(totalIllumination, 0.0, 1.0));
+  float dotBrightness = mix(0.06, 0.45, clamp(totalIllumination, 0.0, 1.0));
+  vec3 dotTint = mix(vec3(0.3, 0.35, 0.50), vec3(0.9, 0.95, 1.0), clamp(totalIllumination, 0.0, 1.0));
   
   finalColor += dotTint * dotShape * dotBrightness;
 
-  // Clean soft top fade to keep header text perfectly legible
+  // Soft top fade for legible text
   float topReadability = smoothstep(1.0, 0.75, uv.y);
-  finalColor = mix(finalColor, finalColor * 0.85, topReadability * 0.4);
-
-  // Subtle overall edge softening
-  float edgeSoft = smoothstep(0.0, 0.04, uv.x) * smoothstep(1.0, 0.96, uv.x);
-  finalColor = mix(bgColor, finalColor, edgeSoft);
+  finalColor = mix(finalColor, finalColor * 0.85, topReadability * 0.3);
 
   gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), 1.0);
 }
 `;
 
+/**
+ * Full-viewport WebGL background rendered via a React Portal
+ * into document.body — immune to ancestor transform/opacity
+ * breaking position:fixed (caused by framer-motion wrappers).
+ */
 export function StitchWaveBackground({
   className = "",
   speed = 0.85,
@@ -177,8 +190,7 @@ export function StitchWaveBackground({
     let animationFrameId: number;
 
     try {
-      // Use device pixel ratio for 4K / 8K ultra-sharp rendering
-      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
       renderer = new Renderer({
         dpr,
@@ -215,11 +227,11 @@ export function StitchWaveBackground({
       const mesh = new Mesh(gl, { geometry, program });
 
       const handleResize = () => {
-        if (!container || !renderer || !gl) return;
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        renderer.setSize(width, height);
-        program.uniforms.uResolution.value = [width, height];
+        if (!renderer || !gl) return;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        renderer.setSize(w, h);
+        program.uniforms.uResolution.value = [w, h];
       };
 
       handleResize();
@@ -240,7 +252,7 @@ export function StitchWaveBackground({
         window.addEventListener("mousemove", handleMouseMove, { passive: true });
       }
 
-      let startTime = performance.now();
+      const startTime = performance.now();
 
       const render = () => {
         if (!renderer || !gl) return;
@@ -271,18 +283,31 @@ export function StitchWaveBackground({
         }
       };
     } catch (err) {
-      console.warn("WebGL Stitch Wave background initialization failed:", err);
+      console.warn("WebGL wave background initialization failed:", err);
     }
   }, [speed, intensity, enableMouse]);
 
-  return (
+  // Render via Portal into document.body so no ancestor transform
+  // (framer-motion, etc.) can break position:fixed
+  const bgElement = (
     <div
       ref={containerRef}
-      className={`fixed inset-0 w-full h-full pointer-events-none ${className}`}
-      style={{ zIndex: 0, backgroundColor: "#090a0e" }}
+      className={className}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        zIndex: 0,
+        pointerEvents: "none",
+        backgroundColor: "#090a0e",
+      }}
       aria-hidden="true"
     />
   );
+
+  return createPortal(bgElement, document.body);
 }
 
 export default StitchWaveBackground;
