@@ -1271,21 +1271,36 @@ function IndexContent() {
                   Your AI-powered assistant for code, creativity, and conversation
                 </motion.p>
 
-                {/* ── Central Floating Card ── */}
-                <div className="w-full max-w-2xl bg-[#14161f]/85 backdrop-blur-2xl border border-white/10 rounded-3xl p-4 sm:p-5 shadow-2xl text-left transition-all">
+                {/* ── Central Floating Glassmorphic Card ── */}
+                <div
+                  className={`w-full max-w-2xl rounded-3xl p-4 sm:p-5 text-left transition-all duration-300 ${
+                    inputFocused
+                      ? "border-cyan-400/40 shadow-[0_24px_60px_rgba(0,0,0,0.55),0_0_25px_rgba(56,189,248,0.2),inset_0_1px_1px_rgba(255,255,255,0.3)]"
+                      : "border-white/15 hover:border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.18)]"
+                  }`}
+                  style={{
+                    background: "rgba(18, 22, 36, 0.45)",
+                    backdropFilter: "blur(28px) saturate(190%)",
+                    WebkitBackdropFilter: "blur(28px) saturate(190%)",
+                    borderWidth: "1px",
+                    borderStyle: "solid",
+                  }}
+                >
                   <textarea
                     ref={inputRef}
                     rows={2}
                     value={inputValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeydown}
+                    onFocus={() => setInputFocused(true)}
+                    onBlur={() => setInputFocused(false)}
                     placeholder={getPlaceholder()}
-                    className="w-full bg-transparent text-white placeholder-zinc-500 text-base sm:text-lg resize-none outline-none focus:outline-none font-normal"
+                    className="w-full bg-transparent text-white placeholder-zinc-400 text-base sm:text-lg resize-none outline-none focus:outline-none font-normal"
                     disabled={isStreaming}
                   />
 
                   {/* Card Bottom Toolbar */}
-                  <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-2">
+                  <div className="flex items-center justify-between pt-3 border-t border-white/10 mt-2">
                     {/* Left side: Context + Mode Switcher */}
                     <div className="flex items-center gap-2">
                       <Tooltip>
@@ -1293,7 +1308,7 @@ function IndexContent() {
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                            className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.14] border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer shadow-sm"
                             aria-label="Add Context"
                           >
                             <Paperclip className="w-3.5 h-3.5" />
@@ -1303,14 +1318,15 @@ function IndexContent() {
                       </Tooltip>
 
                       {/* Segmented Mode Switcher */}
-                      <div className="flex items-center p-0.5 rounded-full bg-[#0c0d14] border border-white/5 text-xs">
+                      <div className="flex items-center p-0.5 rounded-full bg-black/40 border border-white/10 backdrop-blur-md text-xs shadow-inner">
                         <button
                           type="button"
                           onClick={() => setDesignMode("assistant")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${designMode === "assistant"
-                              ? "bg-[#222533] text-white shadow-sm"
-                              : "text-zinc-400 hover:text-zinc-200"
-                            }`}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
+                            designMode === "assistant"
+                              ? "bg-white/15 text-white shadow-sm border border-white/15 backdrop-blur-md"
+                              : "text-zinc-400 hover:text-white"
+                          }`}
                         >
                           <Sparkles className="w-3 h-3 text-[#38BDF8]" />
                           <span className="hidden sm:inline">Assistant</span>
@@ -1318,10 +1334,11 @@ function IndexContent() {
                         <button
                           type="button"
                           onClick={() => setDesignMode("code")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${designMode === "code"
-                              ? "bg-[#222533] text-white shadow-sm"
-                              : "text-zinc-400 hover:text-zinc-200"
-                            }`}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
+                            designMode === "code"
+                              ? "bg-white/15 text-white shadow-sm border border-white/15 backdrop-blur-md"
+                              : "text-zinc-400 hover:text-white"
+                          }`}
                         >
                           <Code2 className="w-3 h-3 text-[#818CF8]" />
                           <span>Code</span>
@@ -1329,10 +1346,11 @@ function IndexContent() {
                         <button
                           type="button"
                           onClick={() => setDesignMode("web")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${designMode === "web"
-                              ? "bg-[#222533] text-white shadow-sm"
-                              : "text-zinc-400 hover:text-zinc-200"
-                            }`}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
+                            designMode === "web"
+                              ? "bg-white/15 text-white shadow-sm border border-white/15 backdrop-blur-md"
+                              : "text-zinc-400 hover:text-white"
+                          }`}
                         >
                           <Globe className="w-3 h-3 text-[#34D399]" />
                           <span>Web</span>
@@ -1340,10 +1358,11 @@ function IndexContent() {
                         <button
                           type="button"
                           onClick={() => setDesignMode("mobile")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${designMode === "mobile"
-                              ? "bg-[#222533] text-white shadow-sm"
-                              : "text-zinc-400 hover:text-zinc-200"
-                            }`}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
+                            designMode === "mobile"
+                              ? "bg-white/15 text-white shadow-sm border border-white/15 backdrop-blur-md"
+                              : "text-zinc-400 hover:text-white"
+                          }`}
                         >
                           <Smartphone className="w-3 h-3 text-[#F472B6]" />
                           <span>App</span>
@@ -1359,8 +1378,11 @@ function IndexContent() {
                           <button
                             type="button"
                             onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${webSearchEnabled ? "text-[#38BDF8] bg-[#38BDF8]/15" : "text-zinc-400 hover:text-white bg-white/5"
-                              }`}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-all cursor-pointer border ${
+                              webSearchEnabled
+                                ? "text-[#38BDF8] bg-[#38BDF8]/20 border-[#38BDF8]/40 shadow-sm"
+                                : "text-zinc-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.14] border-white/10"
+                            }`}
                             aria-label="Toggle Web Search"
                           >
                             <Globe className="w-4 h-4" />
@@ -1374,13 +1396,13 @@ function IndexContent() {
                       {/* Model pill selector inside card */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-zinc-300 font-medium transition-all cursor-pointer">
+                          <button className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.14] border border-white/10 hover:border-white/20 text-xs text-zinc-200 font-medium backdrop-blur-md transition-all cursor-pointer shadow-sm">
                             <currentModelInfo.icon className="w-3.5 h-3.5 text-[#38BDF8]" />
                             <span>{currentModelInfo.name.replace("Gemini ", "").replace("Claude ", "")}</span>
                             <ChevronDown className="w-3 h-3 opacity-60" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56 bg-[#14151e] border-white/10 text-white p-1 shadow-2xl rounded-2xl z-50">
+                        <DropdownMenuContent align="end" className="w-56 bg-[#14151e]/95 backdrop-blur-xl border-white/10 text-white p-1 shadow-2xl rounded-2xl z-50">
                           {AVAILABLE_MODELS.map((model) => (
                             <DropdownMenuItem
                               key={model.id}
@@ -1400,8 +1422,11 @@ function IndexContent() {
                           <button
                             type="button"
                             onClick={toggleSpeechRecognition}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${isListening ? "bg-red-500/20 text-red-400 animate-pulse" : "bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white"
-                              }`}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-all cursor-pointer border ${
+                              isListening
+                                ? "bg-red-500/25 text-red-400 border-red-500/40 animate-pulse shadow-sm"
+                                : "bg-white/[0.06] hover:bg-white/[0.14] border-white/10 text-zinc-300 hover:text-white"
+                            }`}
                             aria-label="Voice input"
                           >
                             {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -1417,10 +1442,11 @@ function IndexContent() {
                         type="button"
                         disabled={!inputValue.trim() || isStreaming}
                         onClick={() => sendMessage()}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${inputValue.trim()
-                            ? "bg-white text-black hover:bg-zinc-200 shadow-md cursor-pointer"
-                            : "bg-white/10 text-zinc-600 cursor-not-allowed"
-                          }`}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                          inputValue.trim()
+                            ? "bg-white text-black hover:bg-zinc-200 shadow-lg shadow-white/20 cursor-pointer"
+                            : "bg-white/10 text-zinc-600 border border-white/5 cursor-not-allowed"
+                        }`}
                         title="Send to Lexa"
                         aria-label="Send to Lexa"
                       >
@@ -1442,7 +1468,7 @@ function IndexContent() {
                       key={idx}
                       onClick={() => sendMessage(s.text)}
                       disabled={isStreaming}
-                      className="flex items-center gap-2 bg-[#14161f]/75 hover:bg-[#202230] border border-white/10 hover:border-white/20 rounded-full px-4 py-1.5 text-xs text-zinc-300 backdrop-blur-md transition-all shadow-sm group cursor-pointer"
+                      className="flex items-center gap-2 bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 hover:border-white/25 rounded-full px-4 py-1.5 text-xs text-zinc-200 backdrop-blur-xl transition-all shadow-[0_4px_15px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.12)] group cursor-pointer"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-[#38BDF8] group-hover:scale-110 transition-transform" />
                       <span className="truncate max-w-[280px] sm:max-w-none">{s.text}</span>
@@ -1481,10 +1507,19 @@ function IndexContent() {
         {hasMessages && (
           <div className="input-section relative z-20">
             <div className={`input-glow-wrapper ${inputFocused ? "focused" : ""}`}>
-              <div className="input-wrapper bg-[#14161f]/90 border border-white/10 backdrop-blur-xl">
+              <div
+                className="input-wrapper"
+                style={{
+                  background: "rgba(16, 19, 34, 0.50)",
+                  backdropFilter: "blur(28px) saturate(190%)",
+                  WebkitBackdropFilter: "blur(28px) saturate(190%)",
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                  boxShadow: "0 12px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.02)",
+                }}
+              >
                 <textarea
                   ref={inputRef}
-                  className="chat-input"
+                  className="chat-input placeholder-zinc-400 text-white"
                   placeholder={isListening ? "Listening... speak now..." : isStreaming ? "Lexa is thinking..." : "Ask Lexa anything..."}
                   rows={1}
                   value={inputValue}
@@ -1503,15 +1538,15 @@ function IndexContent() {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="send-btn visible bg-white text-black hover:bg-zinc-200"
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.92 }}
+                        className="send-btn visible bg-white text-black hover:bg-zinc-200 shadow-lg shadow-white/20"
                         onClick={() => sendMessage()}
                         disabled={isStreaming}
                         title="Send message"
                         aria-label="Send message"
                       >
-                        <ArrowUp className="w-4 h-4 text-black" />
+                        <ArrowUp className="w-4 h-4 text-black font-bold" />
                       </motion.button>
                     ) : (
                       <motion.button
@@ -1519,10 +1554,10 @@ function IndexContent() {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.92 }}
                         onClick={toggleSpeechRecognition}
-                        className={`mic-btn ${isListening ? "text-red-400 animate-pulse bg-red-500/20" : ""}`}
+                        className={`mic-btn ${isListening ? "text-red-400 animate-pulse bg-red-500/25 border border-red-500/40" : "text-zinc-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.14] border border-white/10"}`}
                         title={isListening ? "Stop listening" : "Voice input"}
                         aria-label="Voice input"
                       >
