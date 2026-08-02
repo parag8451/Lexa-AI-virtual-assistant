@@ -1124,7 +1124,7 @@ function IndexContent() {
       {/* ─── Main ─── */}
       <main className="main relative overflow-hidden bg-transparent w-full h-full" role="main">
         {/* Full-Screen 8K Smooth Dynamic Wave Background */}
-        <StitchWaveBackground speed={0.8} intensity={0.85} />
+        <StitchWaveBackground speed={0.7} intensity={0.55} />
 
         {/* Cinematic power-on black fade overlay */}
         <AnimatePresence>

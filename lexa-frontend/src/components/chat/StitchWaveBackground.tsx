@@ -65,113 +65,116 @@ float snoise(vec2 v){
 
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution.xy;
-  float aspect = uResolution.x / max(uResolution.y, 1.0);
   
-  float t = uTime * uSpeed * 0.32;
+  float t = uTime * uSpeed * 0.28;
   
   // Base deep background canvas
-  vec3 bgColor = vec3(0.032, 0.036, 0.052);
+  vec3 bgColor = vec3(0.030, 0.034, 0.046);
   
-  // Vibrant Harmonic Palette
-  vec3 electricCyan   = vec3(0.12, 0.80, 0.98);
-  vec3 deepBlue       = vec3(0.15, 0.45, 0.96);
-  vec3 neonViolet     = vec3(0.64, 0.32, 0.98);
-  vec3 magentaPink    = vec3(0.88, 0.28, 0.74);
-  vec3 coreWhiteGlow  = vec3(0.90, 0.96, 1.00);
+  // Harmonious Soft Palette (Restrained, elegant, non-blinding)
+  vec3 electricCyan   = vec3(0.12, 0.70, 0.92);
+  vec3 deepBlue       = vec3(0.16, 0.38, 0.88);
+  vec3 neonViolet     = vec3(0.55, 0.28, 0.90);
+  vec3 magentaPink    = vec3(0.78, 0.24, 0.65);
+  vec3 coreWhiteGlow  = vec3(0.85, 0.92, 0.98);
   
-  // ── Realistic Slow "On and Off" Breathing Luminance & Black Fade ──
-  // Slow gentle breathing cycle (approx 12 second cycle)
-  float slowBreath = 0.5 + 0.5 * sin(t * 0.55);
-  float breathingPulse = 0.65 + 0.40 * smoothstep(0.1, 0.9, slowBreath);
+  // ── Realistic Slow "On and Off" Breathing Cycle (~14-16s period) ──
+  float slowCycle = 0.5 + 0.5 * sin(t * 0.38);
+  // Smoothly pulses between a dim, calm black rest state (0.28) and a glowing state (0.92)
+  float onOffBreathing = 0.28 + 0.64 * smoothstep(0.12, 0.88, slowCycle);
   
-  // Subtle deep black fade wave
-  float blackFadeWave = 0.78 + 0.22 * sin(t * 0.28 + uv.x * 1.5);
+  // Dynamic black fade wave
+  float blackFadeWave = 0.82 + 0.18 * sin(t * 0.22 + uv.x * 1.2);
   
   // Startup soft power-on ramp
-  float powerOn = smoothstep(0.0, 2.5, uTime);
+  float powerOn = smoothstep(0.0, 2.0, uTime);
 
-  // Mouse interaction
+  // Mouse subtle interaction
   vec2 mouseNorm = uMouse / uResolution.xy;
   float mouseDist = distance(uv, mouseNorm);
-  float mouseWave = exp(-mouseDist * 3.8) * 0.07;
+  float mouseWave = exp(-mouseDist * 3.5) * 0.05;
 
-  // ── Full-Screen Smooth Parabolic Ribbon ──
+  // ── Full-Screen Smooth Wave Geometry ──
   float xNormalized = (uv.x - 0.5) * 2.0;
-  float baseArch = 0.30 + 0.32 * (xNormalized * xNormalized); 
+  float baseArch = 0.28 + 0.30 * (xNormalized * xNormalized); 
 
   // Organic motion waves
-  float waveNoise1 = snoise(vec2(uv.x * 2.0 + t * 0.3, t * 0.25)) * 0.12;
-  float waveNoise2 = snoise(vec2(uv.x * 4.0 - t * 0.35, uv.y * 1.5)) * 0.05;
+  float waveNoise1 = snoise(vec2(uv.x * 1.8 + t * 0.25, t * 0.2)) * 0.10;
+  float waveNoise2 = snoise(vec2(uv.x * 3.6 - t * 0.28, uv.y * 1.4)) * 0.04;
   float primaryWaveY = baseArch + waveNoise1 + waveNoise2 + mouseWave;
 
-  // Layer 1: Primary Ribbon — with breathing on/off intensity
+  // Layer 1: Primary Ribbon — softened glow
   float dist1 = abs(uv.y - primaryWaveY);
-  float glow1 = exp(-dist1 * 4.8) * 1.25 * breathingPulse;
-  float softCore1 = exp(-dist1 * 15.0) * 0.95 * breathingPulse;
+  float glow1 = exp(-dist1 * 5.2) * 0.85 * onOffBreathing;
+  float softCore1 = exp(-dist1 * 16.0) * 0.45 * onOffBreathing;
 
   // Layer 2: Secondary Echo Wave
-  float waveNoise3 = snoise(vec2(uv.x * 2.6 - t * 0.2, t * 0.3 + 1.5)) * 0.14;
-  float secondaryWaveY = baseArch - 0.08 + waveNoise3;
+  float waveNoise3 = snoise(vec2(uv.x * 2.4 - t * 0.18, t * 0.25 + 1.2)) * 0.11;
+  float secondaryWaveY = baseArch - 0.07 + waveNoise3;
   float dist2 = abs(uv.y - secondaryWaveY);
-  float glow2 = exp(-dist2 * 4.2) * 1.0 * (1.35 - breathingPulse * 0.4);
-  float softCore2 = exp(-dist2 * 13.5) * 0.75 * (1.35 - breathingPulse * 0.4);
+  float glow2 = exp(-dist2 * 4.6) * 0.65 * (1.2 - onOffBreathing * 0.3);
+  float softCore2 = exp(-dist2 * 14.0) * 0.30 * (1.2 - onOffBreathing * 0.3);
 
-  // Layer 3: Deep Atmospheric Ambient — soft corner fill
-  float waveNoise4 = snoise(vec2(uv.x * 1.4 + t * 0.15, uv.y * 1.2 - t * 0.1)) * 0.20;
-  float ambientWaveY = baseArch + 0.06 + waveNoise4;
+  // Layer 3: Deep Atmospheric Ambient Fill
+  float waveNoise4 = snoise(vec2(uv.x * 1.2 + t * 0.12, uv.y * 1.0 - t * 0.08)) * 0.16;
+  float ambientWaveY = baseArch + 0.05 + waveNoise4;
   float dist3 = abs(uv.y - ambientWaveY);
-  float ambientGlow = exp(-dist3 * 2.4) * 0.85 * blackFadeWave;
+  float ambientGlow = exp(-dist3 * 2.6) * 0.55 * blackFadeWave;
 
-  // Dynamic Horizontal Color Blending
-  float colorGradient = smoothstep(0.0, 1.0, uv.x + 0.18 * sin(t * 0.8 + uv.y * 2.0));
+  // Horizontal Color Gradient
+  float colorGradient = smoothstep(0.0, 1.0, uv.x + 0.15 * sin(t * 0.6 + uv.y * 1.8));
   vec3 ribbonColorA = mix(electricCyan, deepBlue, colorGradient);
   vec3 ribbonColorB = mix(neonViolet, magentaPink, 1.0 - colorGradient);
-  vec3 mainRibbonColor = mix(ribbonColorA, ribbonColorB, smoothstep(primaryWaveY - 0.16, primaryWaveY + 0.16, uv.y));
+  vec3 mainRibbonColor = mix(ribbonColorA, ribbonColorB, smoothstep(primaryWaveY - 0.18, primaryWaveY + 0.18, uv.y));
 
-  // Volumetric Lighting Composition with dynamic power and intensity
+  // Center column readability attenuation (makes center chat area softer while edges remain vibrant)
+  float centerDist = abs(uv.x - 0.5);
+  float centerSoftening = mix(0.70, 1.0, smoothstep(0.05, 0.48, centerDist));
+
+  // Volumetric Lighting Composition
   vec3 finalColor = bgColor;
-  float totalIntensity = uIntensity * powerOn * blackFadeWave;
+  float totalIntensity = uIntensity * powerOn * blackFadeWave * centerSoftening;
 
   finalColor += mainRibbonColor * glow1 * totalIntensity;
-  finalColor += coreWhiteGlow * softCore1 * 0.45 * totalIntensity;
+  finalColor += coreWhiteGlow * softCore1 * 0.22 * totalIntensity;
 
-  finalColor += mix(deepBlue, neonViolet, colorGradient) * glow2 * 0.85 * totalIntensity;
-  finalColor += coreWhiteGlow * softCore2 * 0.32 * totalIntensity;
+  finalColor += mix(deepBlue, neonViolet, colorGradient) * glow2 * 0.55 * totalIntensity;
+  finalColor += coreWhiteGlow * softCore2 * 0.18 * totalIntensity;
 
-  finalColor += mix(neonViolet, deepBlue, 0.5) * ambientGlow * 0.55 * totalIntensity;
+  finalColor += mix(neonViolet, deepBlue, 0.5) * ambientGlow * 0.35 * totalIntensity;
 
   // ── Corner & Edge Ambient Fill ──
-  float cornerBL = smoothstep(0.65, 0.0, length(uv - vec2(0.0, 0.0)));
-  float cornerBR = smoothstep(0.65, 0.0, length(uv - vec2(1.0, 0.0)));
-  float cornerTL = smoothstep(0.55, 0.0, length(uv - vec2(0.0, 1.0)));
-  float cornerTR = smoothstep(0.55, 0.0, length(uv - vec2(1.0, 1.0)));
+  float cornerBL = smoothstep(0.7, 0.0, length(uv - vec2(0.0, 0.0)));
+  float cornerBR = smoothstep(0.7, 0.0, length(uv - vec2(1.0, 0.0)));
+  float cornerTL = smoothstep(0.6, 0.0, length(uv - vec2(0.0, 1.0)));
+  float cornerTR = smoothstep(0.6, 0.0, length(uv - vec2(1.0, 1.0)));
   
-  finalColor += deepBlue * cornerBL * 0.14 * totalIntensity;
-  finalColor += neonViolet * cornerBR * 0.12 * totalIntensity;
-  finalColor += deepBlue * cornerTL * 0.09 * totalIntensity;
-  finalColor += neonViolet * cornerTR * 0.09 * totalIntensity;
+  finalColor += deepBlue * cornerBL * 0.10 * totalIntensity;
+  finalColor += neonViolet * cornerBR * 0.09 * totalIntensity;
+  finalColor += deepBlue * cornerTL * 0.06 * totalIntensity;
+  finalColor += neonViolet * cornerTR * 0.06 * totalIntensity;
 
-  // Bottom ambient reflection — spans full width
-  float bottomAmbient = smoothstep(0.5, 0.0, uv.y) * 0.22;
+  // Bottom subtle ambient reflection
+  float bottomAmbient = smoothstep(0.45, 0.0, uv.y) * 0.14;
   finalColor += deepBlue * bottomAmbient * totalIntensity;
 
-  // ── Dot Grid (subtle, pulsing with the wave) ──
-  float gridSize = 28.0;
+  // ── Subtle Dot Matrix (Dim, delicate, non-interfering) ──
+  float gridSize = 32.0;
   vec2 gridCoord = gl_FragCoord.xy;
   vec2 gridOffset = mod(gridCoord, gridSize) - vec2(gridSize * 0.5);
   float dotDistance = length(gridOffset);
-  float dotRadius = 1.0;
+  float dotRadius = 0.85;
   
-  float dotShape = smoothstep(dotRadius + 0.4, dotRadius - 0.4, dotDistance);
-  float totalIllumination = clamp((glow1 + glow2 * 0.7 + ambientGlow * 0.5), 0.0, 1.5);
-  float dotBrightness = mix(0.05, 0.48, clamp(totalIllumination, 0.0, 1.0)) * powerOn;
-  vec3 dotTint = mix(vec3(0.3, 0.35, 0.50), vec3(0.9, 0.96, 1.0), clamp(totalIllumination, 0.0, 1.0));
+  float dotShape = smoothstep(dotRadius + 0.3, dotRadius - 0.3, dotDistance);
+  float totalIllumination = clamp((glow1 + glow2 * 0.6 + ambientGlow * 0.4), 0.0, 1.0);
+  float dotBrightness = mix(0.02, 0.16, totalIllumination) * powerOn * onOffBreathing;
+  vec3 dotTint = mix(vec3(0.25, 0.30, 0.45), vec3(0.75, 0.85, 0.95), totalIllumination);
   
   finalColor += dotTint * dotShape * dotBrightness;
 
-  // Soft top fade for legible text
-  float topReadability = smoothstep(1.0, 0.75, uv.y);
-  finalColor = mix(finalColor, finalColor * 0.85, topReadability * 0.3);
+  // Top header readability fade
+  float topReadability = smoothstep(1.0, 0.70, uv.y);
+  finalColor = mix(finalColor, finalColor * 0.82, topReadability * 0.35);
 
   gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), 1.0);
 }
@@ -184,8 +187,8 @@ void main() {
  */
 export function StitchWaveBackground({
   className = "",
-  speed = 0.85,
-  intensity = 0.85,
+  speed = 0.75,
+  intensity = 0.55,
   enableMouse = true,
 }: StitchWaveBackgroundProps) {
   const containerRef = useRef<HTMLDivElement>(null);
