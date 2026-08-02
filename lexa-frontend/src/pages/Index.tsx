@@ -11,6 +11,7 @@ import {
 import { ErrorBoundary } from "react-error-boundary";
 import "@/components/chat/CustomChatUI.css";
 import StitchWaveBackground from "@/components/chat/StitchWaveBackground";
+import { HeroRotatingTitle } from "@/components/chat/HeroRotatingTitle";
 import { SafeMarkdown } from "@/components/chat/SafeMarkdown";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -264,8 +265,6 @@ function IndexContent() {
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [designMode, setDesignMode] = useState<"assistant" | "code" | "web" | "mobile">("assistant");
   const [pageReady, setPageReady] = useState(false);
-  const [typedText, setTypedText] = useState("");
-  const [showCursor, setShowCursor] = useState(true);
 
   // Conversation history states
   const [conversations, setConversations] = useState<StoredConversation[]>(() => {
@@ -339,35 +338,10 @@ function IndexContent() {
     syncSupabaseConversations();
   }, []);
 
-  /* Cinematic page fade-in + Typewriter effect */
-  const heroTitle = "Where Intelligence Meets Conversation";
-
+  /* Cinematic page fade-in */
   useEffect(() => {
     const fadeTimer = setTimeout(() => setPageReady(true), 300);
     return () => clearTimeout(fadeTimer);
-  }, []);
-
-  useEffect(() => {
-    if (!pageReady || hasMessages) return;
-    setTypedText("");
-    let i = 0;
-    const typeInterval = setInterval(() => {
-      i++;
-      setTypedText(heroTitle.slice(0, i));
-      if (i >= heroTitle.length) {
-        clearInterval(typeInterval);
-        setTimeout(() => setShowCursor(false), 2000);
-      }
-    }, 55);
-    return () => clearInterval(typeInterval);
-  }, [pageReady, hasMessages]);
-
-  useEffect(() => {
-    if (!showCursor) return;
-    const blinkInterval = setInterval(() => {
-      setShowCursor((prev) => !prev);
-    }, 530);
-    return () => clearInterval(blinkInterval);
   }, []);
 
   /* Auto-scroll to bottom */
@@ -1258,23 +1232,14 @@ function IndexContent() {
                 exit={{ opacity: 0, y: -20, transition: { duration: 0.25 } }}
                 className="max-w-3xl mx-auto w-full px-4 py-6 flex flex-col items-center justify-center text-center my-auto"
               >
-                {/* Hero Title — Typewriter Animation */}
-                <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white mb-3 leading-[1.12] min-h-[2.4em]">
-                  <span className="bg-gradient-to-b from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
-                    {typedText}
-                  </span>
-                  <span
-                    className={`inline-block w-[3px] h-[0.85em] bg-[#38BDF8] ml-1.5 align-middle rounded-full shadow-[0_0_10px_#38BDF8] transition-opacity duration-150 ${
-                      showCursor ? "opacity-100" : "opacity-0"
-                    }`}
-                  />
-                </h1>
+                {/* Hero Rotating Tagline Carousel */}
+                <HeroRotatingTitle intervalMs={7800} />
 
                 {/* Hero Subtitle */}
                 <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: typedText.length > 20 ? 1 : 0 }}
-                  transition={{ duration: 0.8 }}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.2 }}
                   className="text-sm sm:text-base text-zinc-400 max-w-xl mb-8 font-normal leading-relaxed"
                 >
                   Your AI-powered assistant for code, creativity, and conversation
