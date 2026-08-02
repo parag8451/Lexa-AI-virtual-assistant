@@ -267,7 +267,7 @@ export function StitchWaveBackground({
           window.removeEventListener("mousemove", handleMouseMove);
         }
         if (gl && gl.canvas && gl.canvas.parentElement) {
-          gl.canvas.parentElement.removeChild(gl.canvas.parentElement);
+          gl.canvas.parentElement.removeChild(gl.canvas);
         }
       };
     } catch (err) {

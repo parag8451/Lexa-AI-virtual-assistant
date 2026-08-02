@@ -546,6 +546,10 @@ function IndexContent() {
 
   return (
     <div className="custom-chat-wrapper bg-[#090a0e]">
+      {/* Full-viewport background layer — sits OUTSIDE the flex layout so it
+          spans 100vw × 100vh without being clipped by the sidebar or main overflow */}
+      <StitchWaveBackground speed={0.8} intensity={0.85} />
+
       <CustomCursor />
 
       {/* Hidden File Input for Attachment */}
@@ -618,8 +622,6 @@ function IndexContent() {
 
       {/* ─── Main ─── */}
       <main className="main relative overflow-hidden bg-transparent w-full h-full" role="main">
-        {/* Full-Screen 8K Smooth Dynamic Wave Background */}
-        <StitchWaveBackground speed={0.8} intensity={0.85} />
 
         {/* ── Top Header ── */}
         <header className="header flex items-center justify-between px-6 py-4 relative z-20">

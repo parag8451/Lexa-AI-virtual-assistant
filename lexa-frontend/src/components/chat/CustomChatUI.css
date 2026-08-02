@@ -41,8 +41,10 @@
 .custom-chat-wrapper .sidebar {
   width: var(--sidebar-width);
   height: 100vh;
-  background: var(--bg-primary);
-  border-right: 1px solid var(--border);
+  background: rgba(13, 13, 13, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -50,6 +52,7 @@
   gap: 4px;
   flex-shrink: 0;
   z-index: 10;
+  position: relative;
 }
 
 .custom-chat-wrapper .sidebar-logo {
@@ -195,7 +198,8 @@
   position: relative;
   overflow: hidden;
   background: transparent;
-  /* allow global bg or override */
+  z-index: 1;
+  min-width: 0; /* prevent flex child from overflowing */
 }
 
 /* Background radial glow */
