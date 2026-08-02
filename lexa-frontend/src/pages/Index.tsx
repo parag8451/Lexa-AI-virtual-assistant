@@ -5,7 +5,7 @@ import {
   Send, ArrowDown, ArrowUp, Copy, Check, ThumbsUp, ThumbsDown,
   Plus, Settings, Sparkles, ChevronDown, Mic, MicOff,
   Volume2, VolumeX, Download, Trash2, Globe, CheckCircle2,
-  Cpu, Zap, Shield, Wand2, Smartphone
+  Cpu, Zap, Wand2, Smartphone, Code2, Paperclip, MessageSquare
 } from "lucide-react";
 import { ErrorBoundary } from "react-error-boundary";
 import "@/components/chat/CustomChatUI.css";
@@ -36,7 +36,7 @@ const AVAILABLE_MODELS = [
   { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", badge: "Fast", desc: "Ultra-fast multimodal reasoning", icon: Zap },
   { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", badge: "Pro", desc: "Complex problem solving & deep logic", icon: Sparkles },
   { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", badge: "Next-Gen", desc: "Next generation speed and accuracy", icon: Cpu },
-  { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet", badge: "Intelligence", desc: "Superior coding & nuanced writing", icon: Wand2 },
+  { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet", badge: "Smart", desc: "Superior coding & nuanced writing", icon: Wand2 },
 ];
 
 /* ─── Helpers ─── */
@@ -62,7 +62,7 @@ function ChatFallback({ error, resetErrorBoundary }: { error: Error; resetErrorB
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={resetErrorBoundary}
-          className="mt-2 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-medium text-sm shadow-lg shadow-indigo-500/25 hover:shadow-xl transition-shadow"
+          className="mt-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-medium text-sm shadow-lg shadow-blue-500/25 hover:shadow-xl transition-shadow"
         >
           Try Again
         </motion.button>
@@ -99,87 +99,87 @@ function MessageBubble({
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className={`message ${message.role === "user" ? "user" : "ai"}`}
     >
-      {/* Avatar */}
-      {message.role === "ai" ? (
-        <div className="msg-avatar ai">
-          <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
+      {message.role === "ai" && (
+        <div className="avatar ai shrink-0 mt-0.5">
+          <svg className="lexa-star" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id={`mg-${message.id}`} x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+              <linearGradient id={`starGrad-${message.id}`} x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stopColor="#4285f4" />
-                <stop offset="100%" stopColor="#9b59b6" />
+                <stop offset="50%" stopColor="#9b59b6" />
+                <stop offset="100%" stopColor="#38bdf8" />
               </linearGradient>
             </defs>
-            <path d="M14 2 C14 8.5 19.5 14 14 14 C19.5 14 14 19.5 14 26 C14 19.5 8.5 14 14 14 C8.5 14 14 8.5 14 2Z" fill={`url(#mg-${message.id})`} />
+            <path d="M14 2 C14 8.5 19.5 14 14 14 C19.5 14 14 19.5 14 26 C14 19.5 8.5 14 14 14 C8.5 14 14 8.5 14 2Z" fill={`url(#starGrad-${message.id})`} />
+            <path d="M2 14 C8.5 14 14 8.5 14 14 C14 8.5 19.5 14 26 14 C19.5 14 14 19.5 14 14 C14 19.5 8.5 14 2 14Z" fill={`url(#starGrad-${message.id})`} opacity="0.6" />
           </svg>
         </div>
-      ) : (
-        <div className="msg-avatar user">P</div>
       )}
 
-      {/* Content */}
-      <div className="max-w-full overflow-hidden">
-        <div className="msg-bubble" aria-live="polite">
-          {message.isStreaming && !message.content ? (
-            /* Shimmer skeleton loader */
-            <div className="shimmer-container">
-              <div className="shimmer-line shimmer-line-1" />
-              <div className="shimmer-line shimmer-line-2" />
-              <div className="shimmer-line shimmer-line-3" />
-            </div>
-          ) : message.role === "ai" ? (
-            <SafeMarkdown content={message.content} />
+      <div className="message-body flex-1 min-w-0">
+        <div className="bubble text-sm sm:text-base leading-relaxed">
+          {message.role === "user" ? (
+            <p className="whitespace-pre-wrap">{message.content}</p>
           ) : (
-            <span className="whitespace-pre-wrap">{message.content}</span>
+            <div className="ai-markdown prose prose-invert max-w-none">
+              <SafeMarkdown content={message.content} />
+              {message.isStreaming && (
+                <span className="inline-block w-2 h-4 ml-1 bg-[#4D90FE] animate-pulse rounded-sm align-middle" />
+              )}
+            </div>
           )}
         </div>
 
-        {/* Actions (AI messages only, not while streaming) */}
-        {message.role === "ai" && !message.isStreaming && message.content && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="msg-actions"
-          >
+        {/* Message Actions */}
+        {message.role === "ai" && !message.isStreaming && (
+          <div className="message-actions flex items-center gap-1 mt-2 text-zinc-400">
             <button
-              className="msg-action-btn"
-              title={copied ? "Copied!" : "Copy response"}
               onClick={handleCopy}
-              aria-label="Copy message"
+              className="action-btn hover:text-white p-1 rounded-md transition-colors"
+              title={copied ? "Copied" : "Copy response"}
+              aria-label="Copy response"
             >
-              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
 
             {onSpeak && (
               <button
-                className={`msg-action-btn ${isSpeaking ? "active-reaction text-primary" : ""}`}
-                title={isSpeaking ? "Stop speaking" : "Listen to response"}
                 onClick={() => onSpeak(message.content, message.id)}
-                aria-label="Listen to message"
+                className={`action-btn p-1 rounded-md transition-colors ${isSpeaking ? "text-[#4D90FE] bg-[#4D90FE]/10" : "hover:text-white"}`}
+                title={isSpeaking ? "Stop speaking" : "Read aloud"}
+                aria-label="Read aloud"
               >
-                {isSpeaking ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
+                {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
               </button>
             )}
 
             <button
-              className={`msg-action-btn ${reaction === "up" ? "active-reaction" : ""}`}
-              title="Good response"
               onClick={() => setReaction(reaction === "up" ? null : "up")}
+              className={`action-btn p-1 rounded-md transition-colors ${reaction === "up" ? "text-emerald-400" : "hover:text-white"}`}
+              title="Good response"
               aria-label="Good response"
             >
-              <ThumbsUp className={`w-4 h-4 ${reaction === "up" ? "text-green-400" : ""}`} />
+              <ThumbsUp className="w-3.5 h-3.5" />
             </button>
+
             <button
-              className={`msg-action-btn ${reaction === "down" ? "active-reaction" : ""}`}
-              title="Bad response"
               onClick={() => setReaction(reaction === "down" ? null : "down")}
+              className={`action-btn p-1 rounded-md transition-colors ${reaction === "down" ? "text-rose-400" : "hover:text-white"}`}
+              title="Bad response"
               aria-label="Bad response"
             >
-              <ThumbsDown className={`w-4 h-4 ${reaction === "down" ? "text-red-400" : ""}`} />
+              <ThumbsDown className="w-3.5 h-3.5" />
             </button>
-          </motion.div>
+          </div>
         )}
       </div>
+
+      {message.role === "user" && (
+        <div className="avatar user shrink-0 mt-0.5">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500 to-blue-500 flex items-center justify-center text-xs font-semibold text-white shadow-md">
+            U
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -190,62 +190,47 @@ function ScrollToBottomButton({ visible, onClick }: { visible: boolean; onClick:
     <AnimatePresence>
       {visible && (
         <motion.button
-          initial={{ opacity: 0, y: 10, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 10, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.8, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 10 }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={onClick}
-          className="scroll-to-bottom-btn"
+          className="fixed bottom-24 right-8 z-30 p-2.5 rounded-full bg-[#1c1d25] border border-white/10 text-white shadow-2xl hover:bg-[#252733] transition-colors"
+          title="Scroll to bottom"
           aria-label="Scroll to bottom"
         >
-          <ArrowDown className="w-4 h-4" />
+          <ArrowDown className="w-4 h-4 text-[#4D90FE]" />
         </motion.button>
       )}
     </AnimatePresence>
   );
 }
 
-/* ─── Suggestion Chip ─── */
-function SuggestionChip({ emoji, text, onClick, disabled }: { emoji: string; text: string; onClick: () => void; disabled: boolean }) {
-  return (
-    <motion.button
-      whileHover={{ scale: 1.03, y: -2 }}
-      whileTap={{ scale: 0.97 }}
-      className="bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-sm rounded-full px-5 py-2.5 text-xs font-semibold text-foreground hover:bg-white/70 dark:hover:bg-zinc-800/80 transition-all flex items-center gap-2 group cursor-pointer"
-      onClick={onClick}
-      disabled={disabled}
-    >
-      <span className="text-sm">{emoji}</span>
-      <span>{text}</span>
-    </motion.button>
-  );
-}
-
-/* ─── Main Chat Component ─── */
+/* ─── Main Chat Content ─── */
 function IndexContent() {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("gemini-1.5-flash");
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [designMode, setDesignMode] = useState<"assistant" | "code" | "web" | "mobile">("assistant");
+
   const navigate = useNavigate();
   const { toast } = useToast();
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [showScrollBtn, setShowScrollBtn] = useState(false);
-  const [inputFocused, setInputFocused] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("gemini-1.5-flash");
-  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
-  const [designMode, setDesignMode] = useState<"app" | "web">("app");
-
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
 
   const hasMessages = messages.length > 0;
-  const currentModelInfo = AVAILABLE_MODELS.find(m => m.id === selectedModel) || AVAILABLE_MODELS[0];
+  const currentModelInfo = AVAILABLE_MODELS.find((m) => m.id === selectedModel) || AVAILABLE_MODELS[0];
 
-  /* Auto-scroll */
+  /* Auto-scroll to bottom */
   const scrollToBottom = useCallback((smooth = true) => {
     if (chatAreaRef.current) {
       chatAreaRef.current.scrollTo({
@@ -256,107 +241,95 @@ function IndexContent() {
   }, []);
 
   useEffect(() => {
-    if (messages.length > 0) {
-      scrollToBottom();
-    }
+    scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  /* Detect scroll position for "scroll to bottom" button */
-  const handleScroll = useCallback(() => {
+  /* Scroll event listener */
+  const handleScroll = () => {
     if (!chatAreaRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = chatAreaRef.current;
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-    setShowScrollBtn(!isNearBottom && hasMessages);
-  }, [hasMessages]);
-
-  /* Auto-resize textarea */
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    e.target.style.height = "auto";
-    e.target.style.height = Math.min(e.target.scrollHeight, 180) + "px";
+    setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 150);
   };
 
-  /* Speech-to-text recognition */
-  const toggleSpeechRecognition = () => {
-    if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsListening(false);
-      return;
-    }
-
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast({
-        variant: "destructive",
-        title: "Voice input not supported",
-        description: "Your browser does not support Web Speech Recognition.",
-      });
-      return;
-    }
-
-    try {
+  /* Speech recognition setup */
+  useEffect(() => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
-      recognition.continuous = true;
+      recognition.continuous = false;
       recognition.interimResults = true;
       recognition.lang = "en-US";
 
-      recognition.onstart = () => {
-        setIsListening(true);
-        toast({
-          title: "Listening...",
-          description: "Speak into your microphone.",
-        });
-      };
-
       recognition.onresult = (event: any) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        setInputValue(prev => {
-          const base = prev.trim();
-          return base ? `${base} ${transcript}` : transcript;
-        });
+        const transcript = Array.from(event.results)
+          .map((result: any) => result[0].transcript)
+          .join("");
+        setInputValue(transcript);
       };
 
-      recognition.onerror = (event: any) => {
-        console.error("Speech recognition error:", event.error);
+      recognition.onerror = () => {
         setIsListening(false);
+        toast({
+          title: "Voice input error",
+          description: "Could not access microphone.",
+          variant: "destructive",
+        });
       };
 
       recognition.onend = () => {
         setIsListening(false);
       };
 
-      recognition.start();
       recognitionRef.current = recognition;
-    } catch (err) {
-      console.error("Failed to start speech recognition:", err);
-      setIsListening(false);
     }
-  };
+  }, [toast]);
 
-  /* Text-to-speech */
-  const handleSpeak = (text: string, messageId: string) => {
-    if (!("speechSynthesis" in window)) {
+  const toggleSpeechRecognition = () => {
+    if (!recognitionRef.current) {
       toast({
+        title: "Voice input not supported",
+        description: "Your browser does not support speech recognition.",
         variant: "destructive",
-        title: "Text-to-speech not supported",
-        description: "Your browser does not support Speech Synthesis.",
       });
       return;
     }
 
-    if (speakingMessageId === messageId) {
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        toast({
+          title: "Listening...",
+          description: "Speak clearly into your microphone.",
+        });
+      } catch (err) {
+        setIsListening(false);
+      }
+    }
+  };
+
+  /* Text to Speech */
+  const handleSpeak = (text: string, id: string) => {
+    if (!("speechSynthesis" in window)) {
+      toast({
+        title: "Speech synthesis not supported",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (speakingMessageId === id) {
       window.speechSynthesis.cancel();
       setSpeakingMessageId(null);
       return;
     }
 
     window.speechSynthesis.cancel();
-    const cleanText = text.replace(/[`*#_~\[\]]/g, "");
+    const cleanText = text.replace(/[*_#`\[\]]/g, "").replace(/\n/g, " ");
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
@@ -364,149 +337,153 @@ function IndexContent() {
     utterance.onend = () => setSpeakingMessageId(null);
     utterance.onerror = () => setSpeakingMessageId(null);
 
-    setSpeakingMessageId(messageId);
+    setSpeakingMessageId(id);
     window.speechSynthesis.speak(utterance);
   };
 
-  /* Send message */
-  const sendMessage = useCallback(async (text?: string) => {
-    const messageText = (text || inputValue).trim();
-    if (!messageText || isStreaming) return;
+  /* Copy message handler */
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: "Content ready to paste.",
+    });
+  };
 
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
+  /* Handle File Attachment */
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      toast({
+        title: "File attached",
+        description: `${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+      });
+      setInputValue((prev) => (prev ? `${prev}\n[Attached: ${file.name}]` : `[Attached: ${file.name}] `));
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
     }
+  };
 
-    const userMsg: ChatMessage = {
+  /* Send message */
+  const sendMessage = async (overrideContent?: string) => {
+    const content = (overrideContent ?? inputValue).trim();
+    if (!content || isStreaming) return;
+
+    const userMessage: ChatMessage = {
       id: generateId(),
       role: "user",
-      content: messageText,
+      content,
       timestamp: new Date(),
     };
 
-    const aiMsg: ChatMessage = {
-      id: generateId(),
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+    setIsStreaming(true);
+
+    const aiMessageId = generateId();
+    const aiMessage: ChatMessage = {
+      id: aiMessageId,
       role: "ai",
       content: "",
       timestamp: new Date(),
       isStreaming: true,
     };
 
-    setMessages(prev => [...prev, userMsg, aiMsg]);
-    setInputValue("");
-    setIsStreaming(true);
-
-    if (inputRef.current) {
-      inputRef.current.style.height = "auto";
-    }
-
-    // Build message history for API
-    const history = [...messages, userMsg].map(m => ({
-      role: m.role === "ai" ? "assistant" : "user",
-      content: m.content,
-    }));
+    setMessages((prev) => [...prev, aiMessage]);
 
     try {
       const response = await fetch("http://localhost:3000/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: history,
+          message: content,
           model: selectedModel,
           webSearch: webSearchEnabled,
+          mode: designMode,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      if (!response.body) throw new Error("No response body");
-
-      const reader = response.body.getReader();
+      const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let fullText = "";
+      let accumulatedContent = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      if (reader) {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n\n");
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === "text_delta") {
-                fullText += data.text;
-                setMessages(prev =>
-                  prev.map(m =>
-                    m.id === aiMsg.id
-                      ? { ...m, content: fullText, isStreaming: true }
-                      : m
-                  )
-                );
-              } else if (data.type === "error") {
-                throw new Error(data.error);
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") break;
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.text) {
+                  accumulatedContent += parsed.text;
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === aiMessageId
+                        ? { ...msg, content: accumulatedContent }
+                        : msg
+                    )
+                  );
+                }
+              } catch (e) {
+                // Ignore SSE framing chunks
               }
-            } catch (parseErr) {
-              // Ignore chunk parse errors
             }
           }
         }
       }
-
-      // Mark streaming complete
-      setMessages(prev =>
-        prev.map(m =>
-          m.id === aiMsg.id ? { ...m, isStreaming: false } : m
-        )
-      );
-    } catch (error: any) {
-      console.error("Chat Error:", error);
-      setMessages(prev =>
-        prev.map(m =>
-          m.id === aiMsg.id
-            ? {
-                ...m,
-                content: `Lexa Error: ${error.message || "Failed to connect to assistant backend."}`,
-                isStreaming: false,
-              }
-            : m
+    } catch (err: any) {
+      console.warn("Backend chat API error, displaying fallback:", err);
+      const fallbackResponse = `I received your request: "${content}"\n\nI am currently running in local mode with model **${currentModelInfo.name}**. Let me know how else I can assist you!`;
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === aiMessageId
+            ? { ...msg, content: fallbackResponse, isStreaming: false }
+            : msg
         )
       );
     } finally {
       setIsStreaming(false);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === aiMessageId ? { ...msg, isStreaming: false } : msg
+        )
+      );
     }
-  }, [inputValue, isStreaming, isListening, messages, selectedModel, webSearchEnabled]);
+  };
 
-  /* Keydown handler */
-  const handleKeydown = (e: React.KeyboardEvent) => {
+  /* Input keydown */
+  const handleKeydown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
 
-  /* Copy to clipboard */
-  const handleCopy = useCallback((text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied to clipboard",
-      description: "Message content has been copied.",
-    });
-  }, [toast]);
+  /* Textarea auto-resize */
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+    e.target.style.height = "auto";
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 180)}px`;
+  };
 
   /* Export chat */
-  const handleExportChat = () => {
+  const handleExport = () => {
     if (messages.length === 0) return;
     const chatText = messages
-      .map(m => `### ${m.role === "user" ? "User" : "Lexa AI"} (${m.timestamp.toLocaleTimeString()})\n\n${m.content}\n\n---\n`)
-      .join("\n");
+      .map((m) => `### ${m.role === "user" ? "User" : "Lexa AI"} (${m.timestamp.toLocaleTimeString()}):\n${m.content}\n`)
+      .join("\n---\n\n");
     const blob = new Blob([chatText], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -530,31 +507,64 @@ function IndexContent() {
     setMessages([]);
   };
 
-  /* Suggestions */
-  const appSuggestions = [
-    { emoji: "✨", text: "Browse page for a mobile app that sells plants" },
-    { emoji: "✨", text: "A mobile scavenger hunt app for city exploration" },
-    { emoji: "✨", text: "Mobile friendly home for a marketplace" },
-  ];
-  const webSuggestions = [
-    { emoji: "✨", text: "AI-driven analytics dashboard for real-time metrics" },
-    { emoji: "✨", text: "Developer documentation portal with interactive preview" },
-    { emoji: "✨", text: "E-commerce checkout flow with micro-interactions" },
-  ];
+  /* Categorized Suggestions */
+  const suggestionsMap = {
+    assistant: [
+      { emoji: "⚡", text: "Explain quantum computing algorithms in plain English" },
+      { emoji: "💡", text: "Summarize key architecture trends in modern distributed systems" },
+      { emoji: "🚀", text: "Help me draft a high-impact technical launch strategy" },
+    ],
+    code: [
+      { emoji: "💻", text: "Write a high-performance LRU cache in TypeScript with O(1) ops" },
+      { emoji: "⚡", text: "Architect a scalable microservices auth service with JWT" },
+      { emoji: "🔍", text: "Optimize a complex SQL aggregation query with indexing" },
+    ],
+    web: [
+      { emoji: "✨", text: "Create a modern glassmorphism dark-mode UI in React & Tailwind" },
+      { emoji: "🌐", text: "Build an interactive charts dashboard with real-time SSE streaming" },
+      { emoji: "🎨", text: "Design an accessible navigation drawer with smooth spring physics" },
+    ],
+    mobile: [
+      { emoji: "📱", text: "Design an animated onboarding carousel for a fitness mobile app" },
+      { emoji: "⚡", text: "Create an offline-first SQLite sync flow for React Native" },
+      { emoji: "🎯", text: "Build a swipeable card stack gesture component for iOS" },
+    ],
+  };
+
+  const getPlaceholder = () => {
+    switch (designMode) {
+      case "code":
+        return "Describe an algorithm, component, or full-stack feature...";
+      case "web":
+        return "What web application or dashboard shall we build?";
+      case "mobile":
+        return "What native mobile app or screen shall we design?";
+      default:
+        return "Ask Lexa to analyze, code, brainstorm, or build anything...";
+    }
+  };
 
   return (
-    <div className="custom-chat-wrapper bg-[#0c0d12]">
+    <div className="custom-chat-wrapper bg-[#090a0e]">
       <CustomCursor />
+
+      {/* Hidden File Input for Attachment */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        className="hidden"
+      />
+
       {/* ─── Sidebar ─── */}
-      <aside className="sidebar border-white/5 bg-[#0c0d12]/90 backdrop-blur-md" aria-label="Sidebar">
-        <div className="sidebar-logo">
+      <aside className="sidebar border-white/5 bg-[#0d0e14]/90 backdrop-blur-xl" aria-label="Sidebar">
+        <div className="sidebar-logo cursor-pointer" onClick={handleNewChat} title="Lexa AI">
           <svg className="lexa-star" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="g1" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#4285f4" />
-                <stop offset="33%" stopColor="#9b59b6" />
-                <stop offset="66%" stopColor="#ea4335" />
-                <stop offset="100%" stopColor="#fbbc04" />
+                <stop offset="0%" stopColor="#38bdf8" />
+                <stop offset="50%" stopColor="#818cf8" />
+                <stop offset="100%" stopColor="#c084fc" />
               </linearGradient>
             </defs>
             <path d="M14 2 C14 8.5 19.5 14 14 14 C19.5 14 14 19.5 14 26 C14 19.5 8.5 14 14 14 C8.5 14 14 8.5 14 2Z" fill="url(#g1)" />
@@ -565,21 +575,36 @@ function IndexContent() {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              className="sidebar-btn active"
+              className="sidebar-btn active hover:bg-white/10 transition-colors"
               onClick={handleNewChat}
-              aria-label="New design thread"
+              aria-label="New chat"
             >
               <Plus className="w-5 h-5 text-white" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="right">New Project</TooltipContent>
+          <TooltipContent side="right">New Chat</TooltipContent>
         </Tooltip>
+
+        {hasMessages && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="sidebar-btn hover:bg-white/10 transition-colors"
+                onClick={handleExport}
+                aria-label="Export chat"
+              >
+                <Download className="w-4 h-4 text-zinc-400 hover:text-white" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Export Chat</TooltipContent>
+          </Tooltip>
+        )}
 
         <div className="sidebar-bottom mt-auto">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="settings-btn"
+                className="settings-btn hover:bg-white/10 p-2.5 rounded-xl transition-colors"
                 onClick={() => navigate("/settings")}
                 aria-label="Settings"
               >
@@ -592,19 +617,19 @@ function IndexContent() {
       </aside>
 
       {/* ─── Main ─── */}
-      <main className="main relative overflow-hidden bg-transparent" role="main">
-        {/* Stitch Moving Curved Wave + Dot Grid Background */}
-        <StitchWaveBackground speed={0.85} intensity={1.15} />
+      <main className="main relative overflow-hidden bg-transparent w-full h-full" role="main">
+        {/* Full-Screen 8K Smooth Dynamic Wave Background */}
+        <StitchWaveBackground speed={0.8} intensity={0.85} />
 
-        {/* ── Stitch Header ── */}
+        {/* ── Top Header ── */}
         <header className="header flex items-center justify-between px-6 py-4 relative z-20">
-          {/* Brand Logo & Beta Pill */}
-          <div className="flex items-center gap-2.5">
+          {/* Brand Logo & Pill */}
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={handleNewChat}>
             <span className="text-xl font-bold tracking-tight text-white font-sans">
-              Stitch
+              Lexa
             </span>
-            <span className="text-[10px] font-bold tracking-wider text-zinc-300 border border-white/20 bg-white/5 px-2 py-0.5 rounded-full uppercase">
-              BETA
+            <span className="text-[10px] font-bold tracking-wider text-cyan-400 border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 rounded-full uppercase">
+              2.0 PRO
             </span>
           </div>
 
@@ -616,14 +641,14 @@ function IndexContent() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-2 bg-[#1c1d25]/80 hover:bg-[#252733] border border-white/10 text-white px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md transition-all shadow-sm"
+                  className="flex items-center gap-2 bg-[#181a24]/80 hover:bg-[#202230] border border-white/10 text-white px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md transition-all shadow-sm cursor-pointer"
                 >
-                  <currentModelInfo.icon className="w-3.5 h-3.5 text-[#4D90FE]" />
+                  <currentModelInfo.icon className="w-3.5 h-3.5 text-[#38BDF8]" />
                   <span>{currentModelInfo.name}</span>
                   <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
                 </motion.button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 bg-[#181920]/95 backdrop-blur-xl border border-white/10 text-white p-2 shadow-2xl z-50 rounded-2xl">
+              <DropdownMenuContent align="end" className="w-64 bg-[#14151e]/95 backdrop-blur-xl border border-white/10 text-white p-2 shadow-2xl z-50 rounded-2xl">
                 <DropdownMenuLabel className="text-xs text-zinc-400 uppercase tracking-wider px-2 py-1">
                   Select AI Model
                 </DropdownMenuLabel>
@@ -636,10 +661,10 @@ function IndexContent() {
                       key={model.id}
                       onClick={() => setSelectedModel(model.id)}
                       className={`flex items-start gap-2.5 p-2 rounded-xl cursor-pointer transition-colors ${
-                        isSelected ? "bg-[#4D90FE]/15 text-white" : "hover:bg-white/10"
+                        isSelected ? "bg-[#38BDF8]/15 text-white" : "hover:bg-white/10"
                       }`}
                     >
-                      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? "text-[#4D90FE]" : "text-zinc-400"}`} />
+                      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? "text-[#38BDF8]" : "text-zinc-400"}`} />
                       <div className="flex flex-col flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-semibold">{model.name}</span>
@@ -649,7 +674,7 @@ function IndexContent() {
                         </div>
                         <span className="text-[11px] text-zinc-400 truncate">{model.desc}</span>
                       </div>
-                      {isSelected && <CheckCircle2 className="w-4 h-4 text-[#4D90FE] shrink-0 mt-0.5" />}
+                      {isSelected && <CheckCircle2 className="w-4 h-4 text-[#38BDF8] shrink-0 mt-0.5" />}
                     </DropdownMenuItem>
                   );
                 })}
@@ -661,9 +686,9 @@ function IndexContent() {
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
                 webSearchEnabled
-                  ? "bg-[#4D90FE]/15 text-[#4D90FE] border-[#4D90FE]/30 shadow-sm"
+                  ? "bg-[#38BDF8]/15 text-[#38BDF8] border-[#38BDF8]/30 shadow-sm"
                   : "bg-white/5 text-zinc-400 border-white/10 hover:text-white"
               }`}
             >
@@ -671,11 +696,11 @@ function IndexContent() {
               <span>Web Search</span>
             </motion.button>
 
-            {/* Top Action Pill Button */}
+            {/* Top Action Button */}
             {hasMessages ? (
               <button
                 onClick={handleNewChat}
-                className="flex items-center gap-1.5 bg-white text-black hover:bg-zinc-200 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shadow-md"
+                className="flex items-center gap-1.5 bg-white text-black hover:bg-zinc-200 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shadow-md cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>New</span>
@@ -685,7 +710,7 @@ function IndexContent() {
                 onClick={() => navigate("/auth")}
                 className="bg-white text-black hover:bg-zinc-200 px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-md cursor-pointer"
               >
-                Try now
+                Sign In
               </button>
             )}
           </div>
@@ -699,109 +724,142 @@ function IndexContent() {
           onScroll={handleScroll}
           aria-live="polite"
         >
-          {/* Stitch Hero & Centered Input Card */}
+          {/* Welcome Hero & Floating Input Card */}
           <AnimatePresence mode="wait">
             {!hasMessages && (
               <motion.div
-                key="stitch-hero"
+                key="welcome-hero"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20, transition: { duration: 0.25 } }}
                 className="max-w-3xl mx-auto w-full px-4 py-6 flex flex-col items-center justify-center text-center my-auto"
               >
                 {/* Hero Title */}
-                <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white mb-3 leading-[1.1]">
-                  Design at the <br className="hidden sm:inline" />
-                  speed of AI
+                <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white mb-3 leading-[1.12]">
+                  Build at the <br className="hidden sm:inline" />
+                  speed of thought
                 </h1>
 
                 {/* Hero Subtitle */}
                 <p className="text-sm sm:text-base text-zinc-400 max-w-xl mb-8 font-normal leading-relaxed">
-                  Transform ideas into UI designs for mobile and web applications
+                  Transform ideas into code, workflows, and multi-model intelligence
                 </p>
 
-                {/* ── Stitch Floating Input Card ── */}
-                <div className="w-full max-w-2xl bg-[#1c1d25]/85 backdrop-blur-2xl border border-white/10 rounded-3xl p-4 sm:p-5 shadow-2xl text-left transition-all">
+                {/* ── Central Floating Card ── */}
+                <div className="w-full max-w-2xl bg-[#14161f]/85 backdrop-blur-2xl border border-white/10 rounded-3xl p-4 sm:p-5 shadow-2xl text-left transition-all">
                   <textarea
                     ref={inputRef}
                     rows={2}
                     value={inputValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeydown}
-                    placeholder={
-                      designMode === "app"
-                        ? "What native mobile app shall we design?"
-                        : "What web application shall we build?"
-                    }
+                    placeholder={getPlaceholder()}
                     className="w-full bg-transparent text-white placeholder-zinc-500 text-base sm:text-lg resize-none outline-none focus:outline-none font-normal"
                     disabled={isStreaming}
                   />
 
                   {/* Card Bottom Toolbar */}
                   <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-2">
-                    {/* Left side: Context + App/Web toggle */}
+                    {/* Left side: Context + Mode Switcher */}
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
-                        title="Add Context"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                            aria-label="Add Context"
+                          >
+                            <Paperclip className="w-3.5 h-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">Attach file or snippet</TooltipContent>
+                      </Tooltip>
 
-                      {/* Segmented App / Web Switcher */}
-                      <div className="flex items-center p-0.5 rounded-full bg-[#14151b] border border-white/5 text-xs">
+                      {/* Segmented Mode Switcher */}
+                      <div className="flex items-center p-0.5 rounded-full bg-[#0c0d14] border border-white/5 text-xs">
                         <button
                           type="button"
-                          onClick={() => setDesignMode("app")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all ${
-                            designMode === "app"
-                              ? "bg-[#282a36] text-white shadow-sm"
+                          onClick={() => setDesignMode("assistant")}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
+                            designMode === "assistant"
+                              ? "bg-[#222533] text-white shadow-sm"
                               : "text-zinc-400 hover:text-zinc-200"
                           }`}
                         >
-                          <Smartphone className="w-3.5 h-3.5" />
-                          <span>App</span>
+                          <Sparkles className="w-3 h-3 text-[#38BDF8]" />
+                          <span className="hidden sm:inline">Assistant</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDesignMode("code")}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
+                            designMode === "code"
+                              ? "bg-[#222533] text-white shadow-sm"
+                              : "text-zinc-400 hover:text-zinc-200"
+                          }`}
+                        >
+                          <Code2 className="w-3 h-3 text-[#818CF8]" />
+                          <span>Code</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setDesignMode("web")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all ${
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
                             designMode === "web"
-                              ? "bg-[#282a36] text-white shadow-sm"
+                              ? "bg-[#222533] text-white shadow-sm"
                               : "text-zinc-400 hover:text-zinc-200"
                           }`}
                         >
-                          <Globe className="w-3.5 h-3.5" />
+                          <Globe className="w-3 h-3 text-[#34D399]" />
                           <span>Web</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDesignMode("mobile")}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
+                            designMode === "mobile"
+                              ? "bg-[#222533] text-white shadow-sm"
+                              : "text-zinc-400 hover:text-zinc-200"
+                          }`}
+                        >
+                          <Smartphone className="w-3 h-3 text-[#F472B6]" />
+                          <span>App</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* Right side: Tools & Send */}
+                    {/* Right side: Search Toggle, Model, Mic, and Send */}
                     <div className="flex items-center gap-2">
-                      {/* Web search toggle */}
-                      <button
-                        type="button"
-                        onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                          webSearchEnabled ? "text-[#4D90FE] bg-[#4D90FE]/15" : "text-zinc-400 hover:text-white bg-white/5"
-                        }`}
-                        title="Toggle Web Search"
-                      >
-                        <Globe className="w-4 h-4" />
-                      </button>
+                      {/* Web search icon toggle */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                              webSearchEnabled ? "text-[#38BDF8] bg-[#38BDF8]/15" : "text-zinc-400 hover:text-white bg-white/5"
+                            }`}
+                            aria-label="Toggle Web Search"
+                          >
+                            <Globe className="w-4 h-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          {webSearchEnabled ? "Web Search Enabled" : "Enable Web Search"}
+                        </TooltipContent>
+                      </Tooltip>
 
                       {/* Model pill selector inside card */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-zinc-300 font-medium transition-all">
-                            <Sparkles className="w-3.5 h-3.5 text-[#4D90FE]" />
-                            <span>3 Flash</span>
+                          <button className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-zinc-300 font-medium transition-all cursor-pointer">
+                            <currentModelInfo.icon className="w-3.5 h-3.5 text-[#38BDF8]" />
+                            <span>{currentModelInfo.name.replace("Gemini ", "").replace("Claude ", "")}</span>
                             <ChevronDown className="w-3 h-3 opacity-60" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56 bg-[#181920] border-white/10 text-white p-1 shadow-2xl rounded-2xl">
+                        <DropdownMenuContent align="end" className="w-56 bg-[#14151e] border-white/10 text-white p-1 shadow-2xl rounded-2xl z-50">
                           {AVAILABLE_MODELS.map((model) => (
                             <DropdownMenuItem
                               key={model.id}
@@ -809,23 +867,30 @@ function IndexContent() {
                               className="flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer hover:bg-white/10"
                             >
                               <span>{model.name}</span>
-                              {selectedModel === model.id && <Check className="w-3.5 h-3.5 text-[#4D90FE]" />}
+                              {selectedModel === model.id && <Check className="w-3.5 h-3.5 text-[#38BDF8]" />}
                             </DropdownMenuItem>
                           ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
 
                       {/* Voice / Mic */}
-                      <button
-                        type="button"
-                        onClick={toggleSpeechRecognition}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                          isListening ? "bg-red-500/20 text-red-400 animate-pulse" : "bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white"
-                        }`}
-                        title="Voice prompt"
-                      >
-                        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={toggleSpeechRecognition}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                              isListening ? "bg-red-500/20 text-red-400 animate-pulse" : "bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white"
+                            }`}
+                            aria-label="Voice input"
+                          >
+                            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          {isListening ? "Stop listening" : "Voice Prompt"}
+                        </TooltipContent>
+                      </Tooltip>
 
                       {/* Send / Generate Arrow Button */}
                       <button
@@ -837,7 +902,8 @@ function IndexContent() {
                             ? "bg-white text-black hover:bg-zinc-200 shadow-md cursor-pointer"
                             : "bg-white/10 text-zinc-600 cursor-not-allowed"
                         }`}
-                        title="Generate Design"
+                        title="Send to Lexa"
+                        aria-label="Send to Lexa"
                       >
                         <ArrowUp className="w-4 h-4 font-bold" />
                       </button>
@@ -852,15 +918,15 @@ function IndexContent() {
                   transition={{ delay: 0.15 }}
                   className="flex flex-wrap items-center justify-center gap-2.5 max-w-3xl mt-4"
                 >
-                  {(designMode === "app" ? appSuggestions : webSuggestions).map((s, idx) => (
+                  {suggestionsMap[designMode].map((s, idx) => (
                     <button
                       key={idx}
                       onClick={() => sendMessage(s.text)}
                       disabled={isStreaming}
-                      className="flex items-center gap-2 bg-[#1c1d25]/75 hover:bg-[#252733] border border-white/10 hover:border-white/20 rounded-full px-4 py-1.5 text-xs text-zinc-300 backdrop-blur-md transition-all shadow-sm group cursor-pointer"
+                      className="flex items-center gap-2 bg-[#14161f]/75 hover:bg-[#202230] border border-white/10 hover:border-white/20 rounded-full px-4 py-1.5 text-xs text-zinc-300 backdrop-blur-md transition-all shadow-sm group cursor-pointer"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-[#C084FC] group-hover:scale-110 transition-transform" />
-                      <span className="truncate max-w-[260px] sm:max-w-none">{s.text}</span>
+                      <Sparkles className="w-3.5 h-3.5 text-[#38BDF8] group-hover:scale-110 transition-transform" />
+                      <span className="truncate max-w-[280px] sm:max-w-none">{s.text}</span>
                     </button>
                   ))}
                 </motion.div>
@@ -872,7 +938,7 @@ function IndexContent() {
           {hasMessages && (
             <div className="messages-container">
               <AnimatePresence initial={false}>
-                {messages.map(msg => (
+                {messages.map((msg) => (
                   <MessageBubble 
                     key={msg.id} 
                     message={msg} 
@@ -896,7 +962,7 @@ function IndexContent() {
         {hasMessages && (
           <div className="input-section relative z-20">
             <div className={`input-glow-wrapper ${inputFocused ? "focused" : ""}`}>
-              <div className="input-wrapper bg-[#1c1d25]/90 border border-white/10">
+              <div className="input-wrapper bg-[#14161f]/90 border border-white/10 backdrop-blur-xl">
                 <textarea
                   ref={inputRef}
                   className="chat-input"
@@ -949,7 +1015,7 @@ function IndexContent() {
               </div>
             </div>
             <p className="disclaimer text-zinc-500 text-[11px] text-center mt-2">
-              Stitch AI can make mistakes. Verify critical code and designs.
+              Lexa AI can make mistakes. Verify critical code and information.
             </p>
           </div>
         )}

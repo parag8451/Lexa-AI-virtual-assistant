@@ -30,7 +30,7 @@ uniform float uIntensity;
 
 varying vec2 vUv;
 
-#define PI 3.14159265359
+#define PI 3.14159265358979323846
 
 // Simplex / Perlin noise helpers
 vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
@@ -64,103 +64,109 @@ float snoise(vec2 v){
 
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution.xy;
-  float aspect = uResolution.x / uResolution.y;
+  float aspect = uResolution.x / max(uResolution.y, 1.0);
   
-  // Normalized coordinates centered
-  vec2 p = uv * 2.0 - 1.0;
-  p.x *= aspect;
+  float t = uTime * uSpeed * 0.35;
+  
+  // Base deep background canvas
+  vec3 bgColor = vec3(0.035, 0.039, 0.055); // #090a0e
+  
+  // Stitch & Horizon Vibrant Harmonic Palette
+  vec3 electricCyan   = vec3(0.12, 0.78, 0.98); // #1ec7fa
+  vec3 deepBlue       = vec3(0.15, 0.42, 0.95); // #266bf2
+  vec3 neonViolet     = vec3(0.62, 0.30, 0.98); // #9e4cfa
+  vec3 magentaPink    = vec3(0.88, 0.25, 0.72); // #e040b8
+  vec3 coreWhiteGlow  = vec3(0.85, 0.95, 1.00); // Soft core
+  
+  // Normalized mouse coordinate for fluid interactive warping
+  vec2 mouseNorm = uMouse / uResolution.xy;
+  float mouseDist = distance(uv, mouseNorm);
+  float mouseWave = exp(-mouseDist * 4.0) * 0.06;
 
-  float t = uTime * uSpeed * 0.4;
-  
-  // Base deep background color (#0c0d12)
-  vec3 bgColor = vec3(0.047, 0.051, 0.071);
-  
-  // Vibrant Google Stitch Palette
-  vec3 purpleViolet = vec3(0.65, 0.35, 0.98); // #A855F7
-  vec3 deepViolet   = vec3(0.48, 0.22, 0.88); // #7C3AED
-  vec3 stitchBlue   = vec3(0.24, 0.56, 0.98); // #38BDF8 / #4285F4
-  vec3 cyanGlow     = vec3(0.18, 0.78, 0.95); // #22D3EE
-  vec3 magentaFlare = vec3(0.85, 0.28, 0.75); // #D946EF
+  // ── Full-Screen Dynamic Parabolic Ribbon Architecture ──
+  // Smooth U-shaped curvature across the entire screen width (0.0 to 1.0)
+  float xNormalized = (uv.x - 0.5) * 2.0; // -1.0 to 1.0
+  float baseArch = 0.28 + 0.38 * (xNormalized * xNormalized); 
 
-  // Mouse interaction influence
-  vec2 mouseNorm = (uMouse / uResolution.xy) * 2.0 - 1.0;
-  mouseNorm.x *= aspect;
-  float mouseDist = length(p - mouseNorm);
-  float mouseEffect = smoothstep(1.5, 0.0, mouseDist) * 0.08;
+  // Multi-frequency organic motion waves
+  float waveNoise1 = snoise(vec2(uv.x * 2.0 + t * 0.3, t * 0.25)) * 0.12;
+  float waveNoise2 = snoise(vec2(uv.x * 4.0 - t * 0.35, uv.y * 1.5)) * 0.05;
+  float primaryWaveY = baseArch + waveNoise1 + waveNoise2 + mouseWave;
 
-  // ── Stitch Arch Curved Horizon Geometry ──
-  // The iconic curved parabolic ribbon that spans from bottom-center arching upward to the sides
-  float archCurve = 0.55 - 0.45 * pow(sin(uv.x * PI), 1.2);
-  
-  // Layer 1: Primary Neon Violet/Cyan Wave Ribbon
-  float n1 = snoise(vec2(uv.x * 2.5 + t * 0.3, t * 0.2)) * 0.12;
-  float n2 = snoise(vec2(uv.x * 5.0 - t * 0.4, uv.y * 2.0)) * 0.06;
-  float wave1Pos = archCurve + n1 + n2 + mouseEffect;
-  
-  float dist1 = abs(uv.y - wave1Pos);
-  float glow1 = exp(-dist1 * 6.5) * 1.35;
-  float core1 = exp(-dist1 * 22.0) * 1.8;
+  // Layer 1: Primary Vibrant Ribbon (Cyan to Violet)
+  float dist1 = abs(uv.y - primaryWaveY);
+  float glow1 = exp(-dist1 * 7.0) * 1.1;
+  float softCore1 = exp(-dist1 * 20.0) * 0.9;
 
-  // Layer 2: Secondary Supporting Fluid Wave (Cyan/Blue)
-  float n3 = snoise(vec2(uv.x * 3.2 - t * 0.25, t * 0.35 + 2.0)) * 0.14;
-  float wave2Pos = archCurve - 0.08 + n3;
-  float dist2 = abs(uv.y - wave2Pos);
-  float glow2 = exp(-dist2 * 5.5) * 1.1;
-  float core2 = exp(-dist2 * 18.0) * 1.4;
+  // Layer 2: Secondary Fluid Echo Wave (Blue to Magenta)
+  float waveNoise3 = snoise(vec2(uv.x * 2.6 - t * 0.2, t * 0.3 + 1.5)) * 0.14;
+  float secondaryWaveY = baseArch - 0.08 + waveNoise3;
+  float dist2 = abs(uv.y - secondaryWaveY);
+  float glow2 = exp(-dist2 * 6.0) * 0.9;
+  float softCore2 = exp(-dist2 * 18.0) * 0.7;
 
   // Layer 3: Deep Atmospheric Ambient Flow
-  float n4 = snoise(vec2(uv.x * 1.8 + t * 0.15, uv.y * 1.5 - t * 0.1)) * 0.2;
-  float dist3 = abs(uv.y - (archCurve + 0.05 + n4));
-  float ambientGlow = exp(-dist3 * 3.5) * 0.8;
+  float waveNoise4 = snoise(vec2(uv.x * 1.4 + t * 0.15, uv.y * 1.2 - t * 0.1)) * 0.20;
+  float ambientWaveY = baseArch + 0.06 + waveNoise4;
+  float dist3 = abs(uv.y - ambientWaveY);
+  float ambientGlow = exp(-dist3 * 3.8) * 0.6;
 
-  // Color composition along the x-axis & layers
-  float colorShift = sin(uv.x * PI + t * 0.5) * 0.5 + 0.5;
-  vec3 ribbonColor1 = mix(purpleViolet, magentaFlare, colorShift);
-  vec3 ribbonColor2 = mix(stitchBlue, cyanGlow, 1.0 - colorShift);
-  vec3 blendRibbon = mix(ribbonColor1, ribbonColor2, smoothstep(wave1Pos - 0.1, wave1Pos + 0.1, uv.y));
+  // Dynamic Horizontal Color Blending across viewport width
+  float colorGradient = smoothstep(0.0, 1.0, uv.x + 0.15 * sin(t + uv.y * 2.0));
+  vec3 ribbonColorA = mix(electricCyan, deepBlue, colorGradient);
+  vec3 ribbonColorB = mix(neonViolet, magentaPink, 1.0 - colorGradient);
+  vec3 mainRibbonColor = mix(ribbonColorA, ribbonColorB, smoothstep(primaryWaveY - 0.15, primaryWaveY + 0.15, uv.y));
 
-  // Volumetric combination
+  // Volumetric Lighting Composition (Faded, clean, balanced)
   vec3 finalColor = bgColor;
-  finalColor += blendRibbon * (glow1 * 0.85 + core1 * 1.1) * uIntensity;
-  finalColor += ribbonColor2 * (glow2 * 0.7 + core2 * 0.9) * uIntensity;
-  finalColor += deepViolet * ambientGlow * 0.5 * uIntensity;
+  float intensityFactor = uIntensity * 0.85;
 
-  // Bottom corner ambient flare
-  float bottomFlare = smoothstep(1.0, 0.2, uv.y) * (0.15 + 0.05 * sin(t));
-  finalColor += stitchBlue * bottomFlare * 0.3;
+  finalColor += mainRibbonColor * glow1 * intensityFactor;
+  finalColor += coreWhiteGlow * softCore1 * 0.45 * intensityFactor;
 
-  // ── Dot Matrix Grid (Catching the light) ──
+  finalColor += mix(deepBlue, neonViolet, colorGradient) * glow2 * 0.8 * intensityFactor;
+  finalColor += coreWhiteGlow * softCore2 * 0.3 * intensityFactor;
+
+  finalColor += mix(neonViolet, deepBlue, 0.5) * ambientGlow * 0.45 * intensityFactor;
+
+  // Subtle bottom ambient reflection
+  float bottomAmbient = smoothstep(0.6, 0.0, uv.y) * 0.18;
+  finalColor += deepBlue * bottomAmbient * intensityFactor;
+
+  // ── 8K Ultra-Sharp Dot Matrix Grid ──
+  // Grid size in logical pixels
+  float gridSize = 28.0;
   vec2 gridCoord = gl_FragCoord.xy;
-  float gridSize = 32.0;
-  vec2 gridPos = mod(gridCoord, gridSize) - vec2(gridSize * 0.5);
-  float dotDist = length(gridPos);
-  float dotRadius = 1.25;
+  vec2 gridOffset = mod(gridCoord, gridSize) - vec2(gridSize * 0.5);
+  float dotDistance = length(gridOffset);
+  float dotRadius = 1.0;
   
-  // Base dot brightness + illuminated dots where the light ribbon passes
-  float dotMask = smoothstep(dotRadius, dotRadius - 0.8, dotDist);
-  float localLight = max(glow1, max(glow2, ambientGlow));
-  float dotAlpha = mix(0.12, 0.45, clamp(localLight * 1.2, 0.0, 1.0));
+  float dotShape = smoothstep(dotRadius + 0.4, dotRadius - 0.4, dotDistance);
+  float totalIllumination = clamp((glow1 + glow2 * 0.7 + ambientGlow * 0.5), 0.0, 1.5);
+  float dotBrightness = mix(0.08, 0.50, clamp(totalIllumination, 0.0, 1.0));
+  vec3 dotTint = mix(vec3(0.4, 0.5, 0.65), vec3(0.9, 0.95, 1.0), clamp(totalIllumination, 0.0, 1.0));
   
-  vec3 dotColor = mix(vec3(0.6, 0.65, 0.75), vec3(1.0, 1.0, 1.0), localLight);
-  finalColor += dotColor * dotMask * dotAlpha;
+  finalColor += dotTint * dotShape * dotBrightness;
 
-  // Vignette & top gradient to preserve readability of top content
-  float topVignette = smoothstep(1.0, 0.4, uv.y);
-  float vignette = smoothstep(1.8, 0.5, length(p * 0.7));
-  finalColor *= vignette;
+  // Clean soft top fade to keep header text perfectly legible
+  float topReadability = smoothstep(1.0, 0.75, uv.y);
+  finalColor = mix(finalColor, finalColor * 0.85, topReadability * 0.4);
 
-  gl_FragColor = vec4(finalColor, 1.0);
+  // Subtle overall edge softening
+  float edgeSoft = smoothstep(0.0, 0.04, uv.x) * smoothstep(1.0, 0.96, uv.x);
+  finalColor = mix(bgColor, finalColor, edgeSoft);
+
+  gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), 1.0);
 }
 `;
 
 export function StitchWaveBackground({
   className = "",
-  speed = 1.0,
-  intensity = 1.0,
+  speed = 0.85,
+  intensity = 0.85,
   enableMouse = true,
 }: StitchWaveBackgroundProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -171,8 +177,11 @@ export function StitchWaveBackground({
     let animationFrameId: number;
 
     try {
+      // Use device pixel ratio for 4K / 8K ultra-sharp rendering
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+
       renderer = new Renderer({
-        dpr: Math.min(window.devicePixelRatio, 2),
+        dpr,
         alpha: false,
         antialias: true,
         powerPreference: "high-performance",
@@ -207,8 +216,8 @@ export function StitchWaveBackground({
 
       const handleResize = () => {
         if (!container || !renderer || !gl) return;
-        const width = container.clientWidth || window.innerWidth;
-        const height = container.clientHeight || window.innerHeight;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
         renderer.setSize(width, height);
         program.uniforms.uResolution.value = [width, height];
       };
@@ -240,8 +249,8 @@ export function StitchWaveBackground({
         program.uniforms.uTime.value = elapsedTime;
 
         if (enableMouse) {
-          currentMouseX += (targetMouseX - currentMouseX) * 0.05;
-          currentMouseY += (targetMouseY - currentMouseY) * 0.05;
+          currentMouseX += (targetMouseX - currentMouseX) * 0.04;
+          currentMouseY += (targetMouseY - currentMouseY) * 0.04;
           program.uniforms.uMouse.value = [currentMouseX, currentMouseY];
         }
 
@@ -269,8 +278,8 @@ export function StitchWaveBackground({
   return (
     <div
       ref={containerRef}
-      className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}
-      style={{ zIndex: 0, backgroundColor: "#0c0d12" }}
+      className={`fixed inset-0 w-full h-full pointer-events-none ${className}`}
+      style={{ zIndex: 0, backgroundColor: "#090a0e" }}
       aria-hidden="true"
     />
   );
