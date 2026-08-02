@@ -1233,7 +1233,7 @@ function IndexContent() {
                 className="max-w-3xl mx-auto w-full px-4 py-6 flex flex-col items-center justify-center text-center my-auto"
               >
                 {/* Hero Rotating Tagline Carousel */}
-                <HeroRotatingTitle intervalMs={7800} />
+                <HeroRotatingTitle pauseDurationMs={10000} typingSpeedMs={50} />
 
                 {/* Hero Subtitle */}
                 <motion.p

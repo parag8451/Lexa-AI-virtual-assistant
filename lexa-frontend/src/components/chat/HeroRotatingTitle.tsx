@@ -36,89 +36,73 @@ export const HERO_ROTATING_MESSAGES = [
 ];
 
 interface HeroRotatingTitleProps {
-  pauseDurationMs?: number; // Time to keep sentence on screen (default 7500ms)
-  typingSpeedMs?: number;   // Typing speed per character (default 45ms)
-  fadeDurationMs?: number;  // Transition fade duration (default 380ms)
+  pauseDurationMs?: number; // Time to hold completed sentence on screen (default 10000ms = 10s)
+  typingSpeedMs?: number;   // Typing speed per letter (default 50ms)
+  fadeDurationMs?: number;  // Smooth fade transition between sentences (default 400ms)
   className?: string;
 }
 
 export function HeroRotatingTitle({
-  pauseDurationMs = 7500,
-  typingSpeedMs = 45,
-  fadeDurationMs = 380,
+  pauseDurationMs = 10000,
+  typingSpeedMs = 50,
+  fadeDurationMs = 400,
   className = "",
 }: HeroRotatingTitleProps) {
   const [index, setIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState("");
-  const [phase, setPhase] = useState<"typing" | "paused" | "fading">("typing");
+  const [isFading, setIsFading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  const isHoveredRef = useRef(isHovered);
+  const isHoveredRef = useRef(false);
   isHoveredRef.current = isHovered;
-
-  // Check prefers-reduced-motion
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPrefersReducedMotion(mediaQuery.matches);
-
-    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-    mediaQuery.addEventListener("change", handler);
-    return () => mediaQuery.removeEventListener("change", handler);
-  }, []);
 
   const currentSentence = HERO_ROTATING_MESSAGES[index];
 
-  // Core Typewriter State Machine
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let typeInterval: NodeJS.Timeout | null = null;
+    let fadeTimer: NodeJS.Timeout | null = null;
+    let hoverCheckInterval: NodeJS.Timeout | null = null;
 
-    if (prefersReducedMotion) {
-      setDisplayedText(currentSentence);
-      timeoutId = setTimeout(() => {
-        if (!isHoveredRef.current) {
-          setIndex((prev) => (prev + 1) % HERO_ROTATING_MESSAGES.length);
-        }
-      }, pauseDurationMs);
-      return () => clearTimeout(timeoutId);
-    }
+    // Reset text for new sentence
+    setDisplayedText("");
+    setIsFading(false);
 
-    if (phase === "typing") {
-      if (displayedText.length < currentSentence.length) {
-        timeoutId = setTimeout(() => {
-          setDisplayedText(currentSentence.slice(0, displayedText.length + 1));
-        }, typingSpeedMs);
-      } else {
-        // Full sentence typed out -> pause for 7.5 seconds
-        setPhase("paused");
-      }
-    } else if (phase === "paused") {
-      const checkAndAdvance = () => {
-        if (isHoveredRef.current) {
-          // If hovered, retry check every 250ms
-          timeoutId = setTimeout(checkAndAdvance, 250);
-        } else {
-          timeoutId = setTimeout(() => {
-            if (isHoveredRef.current) {
-              checkAndAdvance();
-            } else {
-              setPhase("fading");
+    let charIdx = 0;
+
+    // Letter-by-letter typing animation (50ms per character)
+    typeInterval = setInterval(() => {
+      charIdx++;
+      setDisplayedText(currentSentence.slice(0, charIdx));
+
+      if (charIdx >= currentSentence.length) {
+        if (typeInterval) clearInterval(typeInterval);
+
+        // Sentence fully typed -> hold on screen for 10 seconds (10000ms)
+        let elapsed = 0;
+        hoverCheckInterval = setInterval(() => {
+          if (!isHoveredRef.current) {
+            elapsed += 250;
+            if (elapsed >= pauseDurationMs) {
+              if (hoverCheckInterval) clearInterval(hoverCheckInterval);
+
+              // Smooth fade transition
+              setIsFading(true);
+
+              fadeTimer = setTimeout(() => {
+                setIndex((prev) => (prev + 1) % HERO_ROTATING_MESSAGES.length);
+              }, fadeDurationMs);
             }
-          }, pauseDurationMs);
-        }
-      };
+          }
+        }, 250);
+      }
+    }, typingSpeedMs);
 
-      checkAndAdvance();
-    } else if (phase === "fading") {
-      timeoutId = setTimeout(() => {
-        setIndex((prev) => (prev + 1) % HERO_ROTATING_MESSAGES.length);
-        setDisplayedText("");
-        setPhase("typing");
-      }, fadeDurationMs);
-    }
-
-    return () => clearTimeout(timeoutId);
-  }, [displayedText, phase, currentSentence, typingSpeedMs, pauseDurationMs, fadeDurationMs, prefersReducedMotion]);
+    return () => {
+      if (typeInterval) clearInterval(typeInterval);
+      if (fadeTimer) clearTimeout(fadeTimer);
+      if (hoverCheckInterval) clearInterval(hoverCheckInterval);
+    };
+  }, [index, currentSentence, typingSpeedMs, pauseDurationMs, fadeDurationMs]);
 
   return (
     <div
@@ -129,8 +113,8 @@ export function HeroRotatingTitle({
     >
       <h1
         className={`text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white leading-[1.15] text-center transition-all duration-300 ${
-          phase === "fading"
-            ? "opacity-0 -translate-y-2.5 blur-[2px]"
+          isFading
+            ? "opacity-0 -translate-y-2 blur-sm"
             : "opacity-100 translate-y-0 blur-0"
         }`}
       >
@@ -140,9 +124,7 @@ export function HeroRotatingTitle({
         <motion.span
           animate={{ opacity: [1, 0, 1] }}
           transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
-          className={`inline-block w-[3px] h-[0.85em] bg-[#38BDF8] ml-1.5 align-middle rounded-full shadow-[0_0_10px_#38BDF8] ${
-            prefersReducedMotion ? "hidden" : ""
-          }`}
+          className="inline-block w-[3px] h-[0.85em] bg-[#38BDF8] ml-1.5 align-middle rounded-full shadow-[0_0_10px_#38BDF8]"
         />
       </h1>
     </div>
