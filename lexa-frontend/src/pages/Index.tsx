@@ -1124,7 +1124,16 @@ function IndexContent() {
       {/* ─── Main ─── */}
       <main className="main relative overflow-hidden bg-transparent w-full h-full" role="main">
         {/* Full-Screen 8K Smooth Dynamic Wave Background */}
-        <StitchWaveBackground speed={0.7} intensity={0.55} />
+        <StitchWaveBackground speed={0.75} intensity={0.75} />
+
+        {/* Upper-Half Smooth Black Fade Scrim for seamless blend & crystal-clear readability */}
+        <div
+          className="fixed inset-x-0 top-0 h-[48vh] pointer-events-none z-10"
+          style={{
+            background: "linear-gradient(to bottom, rgba(9, 10, 14, 0.88) 0%, rgba(9, 10, 14, 0.55) 45%, rgba(9, 10, 14, 0.18) 75%, transparent 100%)",
+          }}
+          aria-hidden="true"
+        />
 
         {/* Cinematic power-on black fade overlay */}
         <AnimatePresence>
