@@ -10,7 +10,7 @@ export function WelcomeScreen({
   onSuggestionClick,
   userName,
 }: WelcomeScreenProps) {
-  const displayName = userName ? userName.toUpperCase() : "THERE";
+  const displayName = userName ? userName : "";
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-8 relative overflow-hidden w-full h-full">
@@ -34,15 +34,26 @@ export function WelcomeScreen({
       </div>
 
       <div className="w-full max-w-3xl mx-auto relative z-10 flex flex-col items-center justify-center -mt-16">
-        {/* Main Text */}
+        {/* Main Text - concise prompt */}
         <motion.h1
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           className="text-4xl md:text-5xl lg:text-6xl font-medium text-foreground/90 tracking-tight"
         >
-          Ask away, {displayName}!
+          How can I help?
         </motion.h1>
+
+        {displayName && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35 }}
+            className="mt-3 text-sm text-muted-foreground"
+          >
+            {displayName}
+          </motion.p>
+        )}
       </div>
     </div>
   );

@@ -78,10 +78,10 @@ function groupConversations(convs: StoredConversation[]) {
 }
 
 const AVAILABLE_MODELS = [
-  { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash", badge: "Fast & Smart", desc: "Ultra-fast multimodal reasoning, logic & code", icon: Zap },
-  { id: "gemini-3-flash-preview", name: "Gemini 3 Flash", badge: "Next-Gen", desc: "Next-generation speed and code intelligence", icon: Cpu },
-  { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", badge: "Pro", desc: "Complex architecture, reasoning & deep coding", icon: Sparkles },
-  { id: "claude-3-7-sonnet", name: "Claude 3.7 Sonnet", badge: "Expert", desc: "Nuanced reasoning & full-stack programming", icon: Wand2 },
+  { id: "gemini-3.5-flash", name: "Assistant — Fast", badge: "Fast", desc: "Low-latency assistant for quick answers and drafts", icon: Zap },
+  { id: "gemini-3-flash-preview", name: "Assistant — Balanced", badge: "Balanced", desc: "Balanced assistant for general use", icon: Cpu },
+  { id: "gemini-3.1-pro-preview", name: "Assistant — Pro", badge: "Pro", desc: "Higher accuracy for complex coding and reasoning", icon: Sparkles },
+  { id: "claude-3-7-sonnet", name: "Assistant — Expert", badge: "Expert", desc: "Expert mode for detailed or specialized tasks", icon: Wand2 },
 ];
 
 /* ─── Helpers ─── */
@@ -265,6 +265,10 @@ function IndexContent() {
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [designMode, setDesignMode] = useState<"assistant" | "code" | "web" | "mobile">("assistant");
   const [pageReady, setPageReady] = useState(false);
+
+  // Endpoint for chat backend - prefer explicit env override, then Supabase functions path, then local backend
+  const CHAT_ENDPOINT = (import.meta.env.VITE_CHAT_ENDPOINT as string) || '/functions/v1/chat';
+  // Note: In development, set VITE_CHAT_ENDPOINT to e.g. 'http://localhost:3000/api/chat' if running the local Node backend.
 
   // Conversation history states
   const [conversations, setConversations] = useState<StoredConversation[]>(() => {
@@ -652,7 +656,7 @@ function IndexContent() {
 
       let response: Response | null = null;
       try {
-        response = await fetch("http://localhost:3000/api/chat", {
+        response = await fetch(CHAT_ENDPOINT, {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -689,13 +693,20 @@ function IndexContent() {
               if (data === "[DONE]") break;
               try {
                 const parsed = JSON.parse(data);
-                if (parsed.type === "text_delta" && parsed.text) {
+
+                // OpenAI/Anthropic transformed SSE: { choices: [{ delta: { content } }] }
+                const openaiDelta = parsed?.choices?.[0]?.delta?.content;
+                if (openaiDelta) {
+                  accumulatedContent += openaiDelta;
+                } else if (parsed.type === "text_delta" && parsed.text) {
+                  // Gemini/text-delta
                   accumulatedContent += parsed.text;
                 } else if (parsed.text) {
                   accumulatedContent += parsed.text;
                 } else if (parsed.finalText) {
                   accumulatedContent = parsed.finalText;
                 }
+
                 setMessages((prev) =>
                   prev.map((msg) =>
                     msg.id === aiMessageId
@@ -703,8 +714,9 @@ function IndexContent() {
                       : msg
                   )
                 );
-              } catch {
-                // Incomplete JSON frame in SSE stream
+              } catch (e) {
+                // Incomplete JSON frame in SSE stream or parse error
+                // console.debug('SSE parse error', e)
               }
             }
           }
@@ -729,7 +741,7 @@ function IndexContent() {
                 systemInstruction: {
                   parts: [
                     {
-                      text: "You are Lexa AI, an advanced, highly intelligent virtual AI assistant. When asked to write code, provide full, production-ready, well-commented code with correct language blocks and explanations.",
+                      text: "You are Lexa AI, a helpful, concise virtual assistant. Match response length to the user's request: brief acknowledgements for short inputs (e.g., if the user says \"hi\" reply \"How can I help?\"), and fuller answers only when asked. Avoid long salutations or extra introductions. When asked to write code, provide full, production-ready, well-commented code with correct language blocks; keep explanations concise unless the user asks for more detail.",
                     },
                   ],
                 },

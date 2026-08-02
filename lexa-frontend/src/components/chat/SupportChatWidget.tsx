@@ -44,7 +44,7 @@ export function SupportChatWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
-      content: "Hi! 👋 I'm here to help. What can I assist you with today?",
+      content: "How can I help?",
       isBot: true,
       timestamp: new Date(),
     },

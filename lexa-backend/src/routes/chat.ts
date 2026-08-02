@@ -50,10 +50,11 @@ For general queries:
 // POST /api/chat - Stream chat response
 chatRouter.post('/chat', async (c) => {
   const userId = c.get('userId') || 'anonymous';
-  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+  const openaiKey = process.env.OPENAI_API_KEY || '';
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
 
-  if (!apiKey) {
-    return c.json({ error: 'Gemini API key is not configured on server' }, 500);
+  if (!openaiKey && !geminiKey) {
+    return c.json({ error: 'No LLM API key configured on server (OPENAI_API_KEY or GEMINI_API_KEY required)' }, 500);
   }
 
   try {
@@ -114,6 +115,113 @@ chatRouter.post('/chat', async (c) => {
       });
     }
 
+    // If OpenAI key is available, prefer OpenAI streaming path
+    if (openaiKey) {
+      // Map messages to OpenAI chat format
+      const openaiMessages = [
+        { role: 'system', content: SYSTEM_INSTRUCTION },
+        ...messages.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
+      ];
+
+      const openaiModel = requestedModel || 'gpt-4o';
+      const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({ model: openaiModel, messages: openaiMessages, stream: true, temperature: 0.7 }),
+      });
+
+      if (!openaiRes.ok || !openaiRes.body) {
+        const errText = await openaiRes.text().catch(() => '');
+        console.error('[OpenAI] Stream request failed', openaiRes.status, errText.slice(0, 200));
+        return c.json({ error: 'OpenAI streaming request failed' }, 502);
+      }
+
+      const sourceReader = openaiRes.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = '';
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          let buffer = '';
+
+          try {
+            while (true) {
+              const { done, value } = await sourceReader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+
+              for (const line of lines) {
+                if (!line.trim()) continue;
+                // OpenAI SSE lines are prefixed with 'data: '
+                const dataLine = line.startsWith('data: ') ? line.slice(6).trim() : line.trim();
+                if (!dataLine || dataLine === '[DONE]') continue;
+
+                try {
+                  const parsed = JSON.parse(dataLine);
+                  // delta content for chat completions: parsed.choices[0].delta.content
+                  const textDelta = parsed?.choices?.[0]?.delta?.content;
+                  if (textDelta) {
+                    accumulatedText += textDelta;
+                    controller.enqueue(
+                      encoder.encode(`data: ${JSON.stringify({ type: 'text_delta', text: textDelta, model: openaiModel })}\n\n`)
+                    );
+                  }
+                } catch (e) {
+                  // partial JSON, ignore until complete
+                }
+              }
+            }
+
+            // Save assistant message to conversation
+            if (conversation && accumulatedText) {
+              conversation.messages.push({
+                role: 'assistant',
+                content: accumulatedText,
+                timestamp: new Date(),
+              });
+
+              const tokens = Math.ceil((accumulatedText.length + latestUserMessage.length) / 4);
+              conversation.totalTokens += tokens;
+              await conversation.save().catch((e) => console.error('Error saving conversation:', e));
+            }
+
+            // Increment user usage
+            if (user) {
+              user.usageCount++;
+              await user.save().catch((e) => console.error('Error saving user usage:', e));
+            }
+
+            // Send message completion event
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: 'message_stop', finalText: accumulatedText, model: openaiModel })}\n\n`)
+            );
+            controller.close();
+          } catch (streamErr: any) {
+            console.error('[OpenAI Stream Error]', streamErr);
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: 'error', error: streamErr?.message || 'Streaming interrupted' })}\n\n`)
+            );
+            controller.close();
+          }
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    }
+
     // Model fallback loop
     const candidates = getModelCandidates(requestedModel);
     let successfulResponse: globalThis.Response | null = null;
@@ -121,7 +229,7 @@ chatRouter.post('/chat', async (c) => {
 
     for (const candidate of candidates) {
       try {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${candidate}:streamGenerateContent?alt=sse&key=${apiKey}`;
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${candidate}:streamGenerateContent?alt=sse&key=${geminiKey}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
