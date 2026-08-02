@@ -12,11 +12,25 @@ const app = new Hono<AppEnv>()
 // 🔑 CONNECT DATABASE (IMPORTANT)
 await connectDB();
 
-const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || ['http://localhost:8080', 'http://localhost:8082']
+const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [
+  'http://localhost:8080',
+  'http://localhost:8081',
+  'http://localhost:8082',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:5173',
+]
 
 // Middleware stack
 app.use('*', cors({
-  origin: allowedOrigins,
+  origin: (origin) => {
+    if (!origin) return '*'
+    if (origin.includes('localhost') || origin.includes('127.0.0.1') || allowedOrigins.includes(origin)) {
+      return origin
+    }
+    return origin
+  },
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }))

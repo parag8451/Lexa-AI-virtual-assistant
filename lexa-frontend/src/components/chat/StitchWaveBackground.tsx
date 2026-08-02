@@ -167,23 +167,36 @@ void main() {
   float bottomAmbient = smoothstep(0.45, 0.0, uv.y) * 0.18;
   finalColor += deepBlue * bottomAmbient * totalIntensity;
 
-  // ── Subtle Dot Matrix (Dim, delicate, non-interfering) ──
-  float gridSize = 32.0;
+  // ── Upper Fade Smooth Blend into Pitch Black ──
+  float topSmoothFade = smoothstep(0.40, 0.96, uv.y);
+  finalColor = mix(finalColor, deepBlack, topSmoothFade * 0.75);
+
+  // ── Tech Dot Matrix Across Entire Canvas & Upper Black Fade ──
+  float gridSize = 28.0;
   vec2 gridCoord = gl_FragCoord.xy;
   vec2 gridOffset = mod(gridCoord, gridSize) - vec2(gridSize * 0.5);
   float dotDistance = length(gridOffset);
-  float dotRadius = 0.85;
+  float dotRadius = 1.1;
   
-  float dotShape = smoothstep(dotRadius + 0.3, dotRadius - 0.3, dotDistance);
+  float dotShape = smoothstep(dotRadius + 0.4, dotRadius - 0.4, dotDistance);
+  
+  // Coordinate-based subtle twinkle
+  float cellId = floor(gridCoord.x / gridSize) * 37.0 + floor(gridCoord.y / gridSize) * 91.0;
+  float twinkle = 0.5 + 0.5 * sin(t * 1.8 + cellId);
+  
+  // Illumination from waves
   float totalIllumination = clamp((glow1 + glow2 * 0.6 + ambientGlow * 0.4), 0.0, 1.0);
-  float dotBrightness = mix(0.02, 0.18, totalIllumination) * powerOn * onOffBreathing * upperHalfFade;
-  vec3 dotTint = mix(vec3(0.25, 0.30, 0.45), vec3(0.80, 0.90, 1.00), totalIllumination);
   
+  // Base brightness on black fade vs waves
+  float dotBrightness = mix(0.18 + 0.14 * twinkle, 0.38 + 0.20 * twinkle, totalIllumination) * powerOn * onOffBreathing;
+  
+  // Dot tint: Tech luminous cyan/silver on top black fade, vibrant electric cyan/violet near waves
+  vec3 dotTintTop = vec3(0.60, 0.75, 0.95);
+  vec3 dotTintWaves = mix(vec3(0.35, 0.75, 1.00), vec3(0.75, 0.45, 1.00), totalIllumination);
+  vec3 dotTint = mix(dotTintWaves, dotTintTop, topSmoothFade);
+  
+  // Add crisp dot matrix
   finalColor += dotTint * dotShape * dotBrightness;
-
-  // Extra upper fade smooth blend into pitch black
-  float topSmoothFade = smoothstep(0.60, 1.0, uv.y);
-  finalColor = mix(finalColor, deepBlack, topSmoothFade * 0.60);
 
   gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), 1.0);
 }

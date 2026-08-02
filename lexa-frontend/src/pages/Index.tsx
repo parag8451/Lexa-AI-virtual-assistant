@@ -78,10 +78,10 @@ function groupConversations(convs: StoredConversation[]) {
 }
 
 const AVAILABLE_MODELS = [
-  { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", badge: "Fast", desc: "Ultra-fast multimodal reasoning", icon: Zap },
-  { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", badge: "Pro", desc: "Complex problem solving & deep logic", icon: Sparkles },
-  { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", badge: "Next-Gen", desc: "Next generation speed and accuracy", icon: Cpu },
-  { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet", badge: "Smart", desc: "Superior coding & nuanced writing", icon: Wand2 },
+  { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash", badge: "Fast & Smart", desc: "Ultra-fast multimodal reasoning, logic & code", icon: Zap },
+  { id: "gemini-3-flash-preview", name: "Gemini 3 Flash", badge: "Next-Gen", desc: "Next-generation speed and code intelligence", icon: Cpu },
+  { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", badge: "Pro", desc: "Complex architecture, reasoning & deep coding", icon: Sparkles },
+  { id: "claude-3-7-sonnet", name: "Claude 3.7 Sonnet", badge: "Expert", desc: "Nuanced reasoning & full-stack programming", icon: Wand2 },
 ];
 
 /* ─── Helpers ─── */
@@ -258,7 +258,7 @@ function IndexContent() {
   const [inputValue, setInputValue] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("gemini-1.5-flash");
+  const [selectedModel, setSelectedModel] = useState("gemini-3.5-flash");
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -650,31 +650,32 @@ function IndexContent() {
         headers["x-conversation-id"] = activeConvId;
       }
 
-      const response = await fetch("http://localhost:3000/api/chat", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          messages: [
-            ...messages.map((m) => ({
-              role: m.role === "ai" ? ("assistant" as const) : ("user" as const),
-              content: m.content,
-            })),
-            { role: "user" as const, content },
-          ],
-          model: selectedModel,
-          webSearch: webSearchEnabled,
-          mode: designMode,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      let response: Response | null = null;
+      try {
+        response = await fetch("http://localhost:3000/api/chat", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            messages: [
+              ...messages.map((m) => ({
+                role: m.role === "ai" ? ("assistant" as const) : ("user" as const),
+                content: m.content,
+              })),
+              { role: "user" as const, content },
+            ],
+            model: selectedModel,
+            webSearch: webSearchEnabled,
+            mode: designMode,
+          }),
+        });
+      } catch (backendNetErr) {
+        console.warn("Backend server not reachable, attempting direct Gemini client connection...", backendNetErr);
       }
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
+      if (response && response.ok && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
 
-      if (reader) {
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
@@ -702,16 +703,82 @@ function IndexContent() {
                       : msg
                   )
                 );
-              } catch (e) {
-                // Ignore incomplete SSE chunks
+              } catch {
+                // Incomplete JSON frame in SSE stream
               }
             }
           }
         }
+      } else {
+        // Direct Gemini client-side fallback if backend is unavailable
+        const clientApiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+        if (clientApiKey) {
+          const directRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse&key=${clientApiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
+                  ...messages.slice(-15).map((m) => ({
+                    role: m.role === "ai" ? "model" : "user",
+                    parts: [{ text: m.content }],
+                  })),
+                  { role: "user", parts: [{ text: content }] },
+                ],
+                systemInstruction: {
+                  parts: [
+                    {
+                      text: "You are Lexa AI, an advanced, highly intelligent virtual AI assistant. When asked to write code, provide full, production-ready, well-commented code with correct language blocks and explanations.",
+                    },
+                  ],
+                },
+              }),
+            }
+          );
+
+          if (directRes.ok && directRes.body) {
+            const reader = directRes.body.getReader();
+            const decoder = new TextDecoder();
+            let buf = "";
+
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+
+              buf += decoder.decode(value, { stream: true });
+              const lines = buf.split("\n");
+              buf = lines.pop() || "";
+
+              for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                  try {
+                    const parsed = JSON.parse(line.slice(6).trim());
+                    const delta = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (delta) {
+                      accumulatedContent += delta;
+                      setMessages((prev) =>
+                        prev.map((msg) =>
+                          msg.id === aiMessageId
+                            ? { ...msg, content: accumulatedContent }
+                            : msg
+                        )
+                      );
+                    }
+                  } catch {}
+                }
+              }
+            }
+          } else {
+            throw new Error(`Direct Gemini API failed with status ${directRes.status}`);
+          }
+        } else {
+          throw new Error("Backend server unavailable and no client API key found");
+        }
       }
     } catch (err: any) {
-      console.warn("Backend chat API error, displaying fallback:", err);
-      accumulatedContent = `I received your request: "${content}"\n\nI am currently running in local mode with model **${currentModelInfo.name}**. Let me know how else I can assist you!`;
+      console.error("Chat generation error:", err);
+      accumulatedContent = `I encountered an issue processing your request: "${err.message || 'Connection failed'}". Please verify the backend service or try again in a moment.`;
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === aiMessageId
@@ -1100,11 +1167,11 @@ function IndexContent() {
         {/* Full-Screen 8K Smooth Dynamic Wave Background */}
         <StitchWaveBackground speed={0.75} intensity={0.75} />
 
-        {/* Upper-Half Smooth Black Fade Scrim for seamless blend & crystal-clear readability */}
+        {/* Upper-Half Soft Translucent Black Blend (leaves glowing dot matrix crisp & visible) */}
         <div
           className="fixed inset-x-0 top-0 h-[48vh] pointer-events-none z-10"
           style={{
-            background: "linear-gradient(to bottom, rgba(9, 10, 14, 0.88) 0%, rgba(9, 10, 14, 0.55) 45%, rgba(9, 10, 14, 0.18) 75%, transparent 100%)",
+            background: "linear-gradient(to bottom, rgba(9, 10, 14, 0.40) 0%, rgba(9, 10, 14, 0.15) 50%, transparent 100%)",
           }}
           aria-hidden="true"
         />
