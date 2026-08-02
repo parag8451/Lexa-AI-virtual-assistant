@@ -120,7 +120,7 @@ export function SettingsLayout({ children, currentTab }: SettingsLayoutProps) {
       {/* Mobile Header */}
       <div className="md:hidden sticky top-0 z-40 glass-strong border-b border-border/40 px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/chat")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex flex-col">
@@ -147,7 +147,7 @@ export function SettingsLayout({ children, currentTab }: SettingsLayoutProps) {
       <aside className="hidden md:flex flex-col w-[280px] lg:w-[320px] border-r border-border/40 h-screen sticky top-0 glass-card">
         <div className="p-6 pb-2 flex items-center gap-4">
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="shrink-0 h-8 w-8">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/chat")} className="shrink-0 h-8 w-8">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </motion.div>
@@ -167,8 +167,8 @@ export function SettingsLayout({ children, currentTab }: SettingsLayoutProps) {
             animate={{ opacity: 1, x: 0 }}
             className="hidden md:flex items-center gap-2 text-sm text-muted-foreground mb-6"
           >
-            <button onClick={() => navigate("/")} className="hover:text-foreground transition-colors">
-              Home
+            <button onClick={() => navigate("/chat")} className="hover:text-foreground transition-colors">
+              Chat
             </button>
             <span className="text-muted-foreground/30">/</span>
             <span className="text-muted-foreground/60">Settings</span>

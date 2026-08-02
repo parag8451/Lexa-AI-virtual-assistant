@@ -5,13 +5,15 @@ import {
   Send, ArrowDown, ArrowUp, Copy, Check, ThumbsUp, ThumbsDown,
   Plus, Settings, Sparkles, ChevronDown, Mic, MicOff,
   Volume2, VolumeX, Download, Trash2, Globe, CheckCircle2,
-  Cpu, Zap, Wand2, Smartphone, Code2, Paperclip, MessageSquare
+  Cpu, Zap, Wand2, Smartphone, Code2, Paperclip, MessageSquare,
+  History, Search, Edit2, X, Clock, PanelLeftClose, CheckSquare
 } from "lucide-react";
 import { ErrorBoundary } from "react-error-boundary";
 import "@/components/chat/CustomChatUI.css";
 import StitchWaveBackground from "@/components/chat/StitchWaveBackground";
 import { SafeMarkdown } from "@/components/chat/SafeMarkdown";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +32,48 @@ interface ChatMessage {
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
+}
+
+interface StoredConversation {
+  id: string;
+  title: string;
+  model: string;
+  createdAt: number;
+  updatedAt: number;
+  messages: Array<{
+    id: string;
+    role: "user" | "ai";
+    content: string;
+    timestamp: string | Date;
+  }>;
+}
+
+const STORAGE_KEY = "lexa_saved_conversations_v3";
+
+function groupConversations(convs: StoredConversation[]) {
+  const now = Date.now();
+  const oneDay = 24 * 60 * 60 * 1000;
+  const groups: { [key: string]: StoredConversation[] } = {
+    "Today": [],
+    "Yesterday": [],
+    "Previous 7 Days": [],
+    "Older": [],
+  };
+
+  convs.forEach((c) => {
+    const diff = now - c.updatedAt;
+    if (diff < oneDay) {
+      groups["Today"].push(c);
+    } else if (diff < 2 * oneDay) {
+      groups["Yesterday"].push(c);
+    } else if (diff < 7 * oneDay) {
+      groups["Previous 7 Days"].push(c);
+    } else {
+      groups["Older"].push(c);
+    }
+  });
+
+  return groups;
 }
 
 const AVAILABLE_MODELS = [
@@ -223,6 +267,21 @@ function IndexContent() {
   const [typedText, setTypedText] = useState("");
   const [showCursor, setShowCursor] = useState(true);
 
+  // Conversation history states
+  const [conversations, setConversations] = useState<StoredConversation[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historySearch, setHistorySearch] = useState("");
+  const [editingConvId, setEditingConvId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+
   const navigate = useNavigate();
   const { toast } = useToast();
   const chatAreaRef = useRef<HTMLDivElement>(null);
@@ -233,11 +292,57 @@ function IndexContent() {
   const hasMessages = messages.length > 0;
   const currentModelInfo = AVAILABLE_MODELS.find((m) => m.id === selectedModel) || AVAILABLE_MODELS[0];
 
+  /* Helper to save conversations */
+  const persistConversations = useCallback((updated: StoredConversation[]) => {
+    setConversations(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.warn("LocalStorage save error:", e);
+    }
+  }, []);
+
+  /* Sync with Supabase on mount if user is logged in */
+  useEffect(() => {
+    async function syncSupabaseConversations() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        const { data, error } = await supabase
+          .from("conversations")
+          .select("*")
+          .order("updated_at", { ascending: false });
+        if (!error && data && data.length > 0) {
+          const dbConvs: StoredConversation[] = data.map((d: any) => ({
+            id: d.id,
+            title: d.title || "Conversation",
+            model: d.model || "gemini-1.5-flash",
+            createdAt: new Date(d.created_at).getTime(),
+            updatedAt: new Date(d.updated_at || d.created_at).getTime(),
+            messages: Array.isArray(d.messages) ? d.messages : [],
+          }));
+          setConversations((prev) => {
+            const map = new Map<string, StoredConversation>();
+            prev.forEach((c) => map.set(c.id, c));
+            dbConvs.forEach((c) => map.set(c.id, c));
+            const merged = Array.from(map.values()).sort((a, b) => b.updatedAt - a.updatedAt);
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        }
+      } catch (err) {
+        console.warn("Supabase sync skipped:", err);
+      }
+    }
+    syncSupabaseConversations();
+  }, []);
+
   /* Cinematic page fade-in + Typewriter effect */
   const heroTitle = "Where Intelligence Meets Conversation";
 
   useEffect(() => {
-    // Slow cinematic black-fade reveal
     const fadeTimer = setTimeout(() => setPageReady(true), 300);
     return () => clearTimeout(fadeTimer);
   }, []);
@@ -251,18 +356,16 @@ function IndexContent() {
       setTypedText(heroTitle.slice(0, i));
       if (i >= heroTitle.length) {
         clearInterval(typeInterval);
-        // Keep cursor blinking for a bit, then hide
         setTimeout(() => setShowCursor(false), 2000);
       }
     }, 55);
     return () => clearInterval(typeInterval);
   }, [pageReady, hasMessages]);
 
-  // Blinking cursor effect
   useEffect(() => {
     if (!showCursor) return;
     const blinkInterval = setInterval(() => {
-      setShowCursor(prev => !prev);
+      setShowCursor((prev) => !prev);
     }, 530);
     return () => clearInterval(blinkInterval);
   }, []);
@@ -402,6 +505,97 @@ function IndexContent() {
     }
   };
 
+  /* Select and load conversation from history */
+  const handleSelectConversation = (conv: StoredConversation) => {
+    if (isStreaming) return;
+    if (speakingMessageId) {
+      window.speechSynthesis.cancel();
+      setSpeakingMessageId(null);
+    }
+    setCurrentConversationId(conv.id);
+    setSelectedModel(conv.model || "gemini-1.5-flash");
+    setMessages(
+      conv.messages.map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        timestamp: new Date(m.timestamp),
+      }))
+    );
+    if (window.innerWidth < 768) {
+      setIsHistoryOpen(false);
+    }
+  };
+
+  /* New chat */
+  const handleNewChat = () => {
+    if (isStreaming) return;
+    if (speakingMessageId) {
+      window.speechSynthesis.cancel();
+      setSpeakingMessageId(null);
+    }
+    setCurrentConversationId(null);
+    setMessages([]);
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+    if (window.innerWidth < 768) {
+      setIsHistoryOpen(false);
+    }
+  };
+
+  /* Delete conversation */
+  const handleDeleteConversation = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = conversations.filter((c) => c.id !== id);
+    persistConversations(updated);
+    if (currentConversationId === id) {
+      setCurrentConversationId(null);
+      setMessages([]);
+    }
+    toast({
+      title: "Conversation deleted",
+      description: "Chat session removed from history.",
+    });
+  };
+
+  /* Start rename */
+  const handleStartRename = (conv: StoredConversation, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingConvId(conv.id);
+    setEditingTitle(conv.title);
+  };
+
+  /* Save rename */
+  const handleSaveRename = (id: string, e?: React.MouseEvent | React.FormEvent) => {
+    if (e) e.stopPropagation();
+    if (!editingTitle.trim()) {
+      setEditingConvId(null);
+      return;
+    }
+    const updated = conversations.map((c) =>
+      c.id === id ? { ...c, title: editingTitle.trim() } : c
+    );
+    persistConversations(updated);
+    setEditingConvId(null);
+    toast({
+      title: "Conversation renamed",
+    });
+  };
+
+  /* Clear all history */
+  const handleClearAllHistory = () => {
+    if (window.confirm("Are you sure you want to clear all conversation history?")) {
+      persistConversations([]);
+      setCurrentConversationId(null);
+      setMessages([]);
+      toast({
+        title: "History cleared",
+        description: "All past conversations have been deleted.",
+      });
+    }
+  };
+
   /* Send message */
   const sendMessage = async (overrideContent?: string) => {
     const content = (overrideContent ?? inputValue).trim();
@@ -414,9 +608,48 @@ function IndexContent() {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
     setInputValue("");
     setIsStreaming(true);
+
+    let activeConvId = currentConversationId;
+    let currentTitle = "";
+    if (!activeConvId) {
+      activeConvId = generateId();
+      setCurrentConversationId(activeConvId);
+      currentTitle = content.length > 38 ? content.slice(0, 38) + "..." : content;
+      const newConv: StoredConversation = {
+        id: activeConvId,
+        title: currentTitle,
+        model: selectedModel,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        messages: nextMessages.map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp.toISOString(),
+        })),
+      };
+      persistConversations([newConv, ...conversations]);
+    } else {
+      const updated = conversations.map((c) =>
+        c.id === activeConvId
+          ? {
+              ...c,
+              updatedAt: Date.now(),
+              messages: nextMessages.map((m) => ({
+                id: m.id,
+                role: m.role,
+                content: m.content,
+                timestamp: m.timestamp.toISOString(),
+              })),
+            }
+          : c
+      );
+      persistConversations(updated);
+    }
 
     const aiMessageId = generateId();
     const aiMessage: ChatMessage = {
@@ -429,12 +662,31 @@ function IndexContent() {
 
     setMessages((prev) => [...prev, aiMessage]);
 
+    let accumulatedContent = "";
+
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+      if (activeConvId) {
+        headers["x-conversation-id"] = activeConvId;
+      }
+
       const response = await fetch("http://localhost:3000/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
-          message: content,
+          messages: [
+            ...messages.map((m) => ({
+              role: m.role === "ai" ? ("assistant" as const) : ("user" as const),
+              content: m.content,
+            })),
+            { role: "user" as const, content },
+          ],
           model: selectedModel,
           webSearch: webSearchEnabled,
           mode: designMode,
@@ -447,7 +699,6 @@ function IndexContent() {
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let accumulatedContent = "";
 
       if (reader) {
         while (true) {
@@ -459,22 +710,26 @@ function IndexContent() {
 
           for (const line of lines) {
             if (line.startsWith("data: ")) {
-              const data = line.slice(6);
+              const data = line.slice(6).trim();
               if (data === "[DONE]") break;
               try {
                 const parsed = JSON.parse(data);
-                if (parsed.text) {
+                if (parsed.type === "text_delta" && parsed.text) {
                   accumulatedContent += parsed.text;
-                  setMessages((prev) =>
-                    prev.map((msg) =>
-                      msg.id === aiMessageId
-                        ? { ...msg, content: accumulatedContent }
-                        : msg
-                    )
-                  );
+                } else if (parsed.text) {
+                  accumulatedContent += parsed.text;
+                } else if (parsed.finalText) {
+                  accumulatedContent = parsed.finalText;
                 }
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === aiMessageId
+                      ? { ...msg, content: accumulatedContent }
+                      : msg
+                  )
+                );
               } catch (e) {
-                // Ignore SSE framing chunks
+                // Ignore incomplete SSE chunks
               }
             }
           }
@@ -482,21 +737,52 @@ function IndexContent() {
       }
     } catch (err: any) {
       console.warn("Backend chat API error, displaying fallback:", err);
-      const fallbackResponse = `I received your request: "${content}"\n\nI am currently running in local mode with model **${currentModelInfo.name}**. Let me know how else I can assist you!`;
+      accumulatedContent = `I received your request: "${content}"\n\nI am currently running in local mode with model **${currentModelInfo.name}**. Let me know how else I can assist you!`;
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === aiMessageId
-            ? { ...msg, content: fallbackResponse, isStreaming: false }
+            ? { ...msg, content: accumulatedContent, isStreaming: false }
             : msg
         )
       );
     } finally {
       setIsStreaming(false);
+      const finalAiMsg: ChatMessage = {
+        id: aiMessageId,
+        role: "ai",
+        content: accumulatedContent,
+        timestamp: new Date(),
+        isStreaming: false,
+      };
+
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === aiMessageId ? { ...msg, isStreaming: false } : msg
         )
       );
+
+      // Save complete conversation history with AI response
+      const allFinalMessages = [...nextMessages, finalAiMsg];
+      setConversations((prevConvs) => {
+        const updated = prevConvs.map((c) =>
+          c.id === activeConvId
+            ? {
+                ...c,
+                updatedAt: Date.now(),
+                messages: allFinalMessages.map((m) => ({
+                  id: m.id,
+                  role: m.role,
+                  content: m.content,
+                  timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
+                })),
+              }
+            : c
+        );
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
     }
   };
 
@@ -534,15 +820,11 @@ function IndexContent() {
     });
   };
 
-  /* New chat */
-  const handleNewChat = () => {
-    if (isStreaming) return;
-    if (speakingMessageId) {
-      window.speechSynthesis.cancel();
-      setSpeakingMessageId(null);
-    }
-    setMessages([]);
-  };
+  /* Filtered and grouped conversations */
+  const filteredConversations = conversations.filter((c) =>
+    c.title.toLowerCase().includes(historySearch.toLowerCase())
+  );
+  const groupedHistory = groupConversations(filteredConversations);
 
   /* Categorized Suggestions */
   const suggestionsMap = {
@@ -582,7 +864,7 @@ function IndexContent() {
   };
 
   return (
-    <div className="custom-chat-wrapper bg-[#090a0e]">
+    <div className="custom-chat-wrapper bg-[#090a0e] relative flex overflow-hidden">
       <CustomCursor />
 
       {/* Hidden File Input for Attachment */}
@@ -594,7 +876,7 @@ function IndexContent() {
       />
 
       {/* ─── Sidebar ─── */}
-      <aside className="sidebar border-white/5 bg-[#0d0e14]/90 backdrop-blur-xl" aria-label="Sidebar">
+      <aside className="sidebar border-white/5 bg-[#0d0e14]/90 backdrop-blur-xl shrink-0" aria-label="Sidebar">
         <div className="sidebar-logo cursor-pointer" onClick={handleNewChat} title="Lexa AI">
           <svg className="lexa-star" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -620,6 +902,19 @@ function IndexContent() {
             </button>
           </TooltipTrigger>
           <TooltipContent side="right">New Chat</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className={`sidebar-btn hover:bg-white/10 transition-colors ${isHistoryOpen ? "bg-white/15 text-white" : "text-zinc-400"}`}
+              onClick={() => setIsHistoryOpen((prev) => !prev)}
+              aria-label="Chat History"
+            >
+              <History className="w-4 h-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Chat History ({conversations.length})</TooltipContent>
         </Tooltip>
 
         {hasMessages && (
@@ -652,6 +947,179 @@ function IndexContent() {
           </Tooltip>
         </div>
       </aside>
+
+      {/* ─── Slide-out Conversation History Drawer ─── */}
+      <AnimatePresence>
+        {isHistoryOpen && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 300, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="h-screen bg-[#0e1017]/95 border-r border-white/10 backdrop-blur-2xl z-30 flex flex-col overflow-hidden shrink-0 shadow-2xl relative"
+          >
+            {/* Drawer Header */}
+            <div className="p-3.5 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#38bdf8]" />
+                <span className="font-semibold text-sm text-white">Chat History</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleNewChat}
+                  className="p-1.5 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors"
+                  title="New Chat"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setIsHistoryOpen(false)}
+                  className="p-1.5 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors"
+                  title="Close History"
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Search Input */}
+            <div className="p-3 border-b border-white/5">
+              <div className="relative flex items-center">
+                <Search className="w-3.5 h-3.5 absolute left-3 text-zinc-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search history..."
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  className="w-full bg-[#161822] text-xs text-white pl-8 pr-7 py-2 rounded-xl border border-white/5 focus:border-[#38bdf8]/50 focus:outline-none placeholder:text-zinc-500"
+                />
+                {historySearch && (
+                  <button
+                    onClick={() => setHistorySearch("")}
+                    className="absolute right-2.5 text-zinc-400 hover:text-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Conversation Group List */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-4 scrollbar-thin">
+              {filteredConversations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mb-2.5 text-zinc-500">
+                    <MessageSquare className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-medium text-zinc-400">
+                    {historySearch ? "No matching conversations" : "No conversation history yet"}
+                  </p>
+                  <p className="text-[11px] text-zinc-600 mt-1">
+                    {historySearch ? "Try searching for a different keyword" : "Start a new chat to see history here"}
+                  </p>
+                </div>
+              ) : (
+                Object.entries(groupedHistory).map(([groupTitle, convs]) => {
+                  if (convs.length === 0) return null;
+                  return (
+                    <div key={groupTitle} className="space-y-1">
+                      <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                        {groupTitle}
+                      </div>
+                      {convs.map((conv) => {
+                        const isActive = conv.id === currentConversationId;
+                        const isEditing = editingConvId === conv.id;
+
+                        return (
+                          <div
+                            key={conv.id}
+                            onClick={() => handleSelectConversation(conv)}
+                            className={`group relative flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition-all ${
+                              isActive
+                                ? "bg-[#38bdf8]/15 border border-[#38bdf8]/30 text-white font-medium shadow-sm"
+                                : "hover:bg-white/5 text-zinc-300 border border-transparent hover:border-white/5"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1 mr-1">
+                              <MessageSquare
+                                className={`w-3.5 h-3.5 shrink-0 ${
+                                  isActive ? "text-[#38bdf8]" : "text-zinc-500 group-hover:text-zinc-300"
+                                }`}
+                              />
+                              {isEditing ? (
+                                <form
+                                  onSubmit={(e) => handleSaveRename(conv.id, e)}
+                                  className="flex items-center gap-1 w-full"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <input
+                                    type="text"
+                                    value={editingTitle}
+                                    onChange={(e) => setEditingTitle(e.target.value)}
+                                    autoFocus
+                                    className="bg-black/50 text-xs text-white px-1.5 py-0.5 rounded border border-white/20 w-full focus:outline-none"
+                                  />
+                                  <button
+                                    type="submit"
+                                    className="p-1 hover:text-emerald-400 text-zinc-400"
+                                  >
+                                    <Check className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingConvId(null)}
+                                    className="p-1 hover:text-rose-400 text-zinc-400"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </form>
+                              ) : (
+                                <span className="truncate">{conv.title}</span>
+                              )}
+                            </div>
+
+                            {!isEditing && (
+                              <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0 transition-opacity">
+                                <button
+                                  onClick={(e) => handleStartRename(conv, e)}
+                                  className="p-1 hover:bg-white/10 rounded text-zinc-400 hover:text-white"
+                                  title="Rename"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteConversation(conv.id, e)}
+                                  className="p-1 hover:bg-red-500/20 rounded text-zinc-400 hover:text-rose-400"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Bottom Actions */}
+            {conversations.length > 0 && (
+              <div className="p-3 border-t border-white/10 flex items-center justify-between text-[11px] text-zinc-500">
+                <span>{conversations.length} sessions</span>
+                <button
+                  onClick={handleClearAllHistory}
+                  className="text-zinc-400 hover:text-rose-400 transition-colors"
+                >
+                  Clear All
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Main ─── */}
       <main className="main relative overflow-hidden bg-transparent w-full h-full" role="main">

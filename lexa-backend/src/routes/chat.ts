@@ -16,7 +16,19 @@ const chatRequestSchema = z.object({
     content: z.string().max(10000, "Message too long"),
   })).max(100, "Too many messages"),
   model: z.string().optional().default('gemini-1.5-flash'),
-}).strict(); // strict rejects unexpected fields
+  webSearch: z.boolean().optional(),
+  mode: z.string().optional(),
+});
+
+// Map friendly model IDs to active Gemini model endpoints
+const mapToGeminiModel = (requestedModel?: string): string => {
+  if (!requestedModel) return 'gemini-1.5-flash';
+  const m = requestedModel.toLowerCase();
+  if (m.includes('pro') || m.includes('expert') || m.includes('ultra') || m.includes('gpt-4') || m.includes('opus')) {
+    return 'gemini-1.5-pro';
+  }
+  return 'gemini-1.5-flash';
+};
 
 // POST /api/chat - Stream chat response
 chatRouter.post('/chat', async (c) => {
@@ -25,7 +37,7 @@ chatRouter.post('/chat', async (c) => {
   try {
     // Validate input
     const body = await c.req.json();
-    const { messages, model } = chatRequestSchema.parse(body);
+    const { messages, model: requestedModel } = chatRequestSchema.parse(body);
 
     if (messages.length === 0) {
       return c.json({ error: 'Messages array cannot be empty' }, 400);
@@ -73,11 +85,13 @@ chatRouter.post('/chat', async (c) => {
       ? await Conversation.findOne({ _id: conversationId, userId })
       : null;
 
+    const activeGeminiModel = mapToGeminiModel(requestedModel);
+
     if (!conversation && userId !== 'anonymous') {
       conversation = new Conversation({
         userId,
         title: latestMessage.content.substring(0, 50) || 'New Chat',
-        model,
+        model: activeGeminiModel,
         messages: [],
         totalTokens: 0,
       });
@@ -91,7 +105,7 @@ chatRouter.post('/chat', async (c) => {
       });
     }
 
-    const generativeModel = genAI.getGenerativeModel({ model });
+    const generativeModel = genAI.getGenerativeModel({ model: activeGeminiModel });
     const chat = generativeModel.startChat({ history });
 
     try {

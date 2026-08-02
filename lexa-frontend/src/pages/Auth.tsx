@@ -15,7 +15,7 @@ export default function Auth() {
       }
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        navigate("/");
+        navigate("/chat");
       }
     });
     supabase.auth.getSession().then(({
@@ -24,7 +24,7 @@ export default function Auth() {
       }
     }) => {
       if (session?.user) {
-        navigate("/");
+        navigate("/chat");
       }
     });
     return () => subscription.unsubscribe();
