@@ -66,7 +66,7 @@ float snoise(vec2 v){
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution.xy;
   
-  float t = uTime * uSpeed * 0.50;
+  float t = uTime * uSpeed * 0.65;
   
   // Base deep background canvas (Deep velvety dark obsidian)
   vec3 deepBlack = vec3(0.012, 0.014, 0.020);
@@ -128,27 +128,27 @@ void main() {
 
   // ── Full-Screen Smooth Wave Geometry ──
   float xNormalized = (uv.x - 0.5) * 2.0;
-  float baseArch = 0.26 + 0.32 * (xNormalized * xNormalized); 
+  float baseArch = 0.26 + 0.40 * (xNormalized * xNormalized); 
 
   // Organic motion waves
-  float waveNoise1 = snoise(vec2(uv.x * 1.8 + t * 0.25, t * 0.2)) * 0.10;
-  float waveNoise2 = snoise(vec2(uv.x * 3.6 - t * 0.28, uv.y * 1.4)) * 0.04;
+  float waveNoise1 = snoise(vec2(uv.x * 1.8 + t * 0.25, t * 0.2)) * 0.14;
+  float waveNoise2 = snoise(vec2(uv.x * 3.6 - t * 0.28, uv.y * 1.4)) * 0.06;
   float primaryWaveY = baseArch + waveNoise1 + waveNoise2 + mouseWave;
 
   // Layer 1: Primary Ribbon — increased brightness & crisp luminous core
   float dist1 = abs(uv.y - primaryWaveY);
-  float glow1 = exp(-dist1 * 4.8) * 1.15 * onOffBreathing;
-  float softCore1 = exp(-dist1 * 14.0) * 0.60 * onOffBreathing;
+  float glow1 = exp(-dist1 * 4.8) * 1.35 * onOffBreathing;
+  float softCore1 = exp(-dist1 * 14.0) * 0.80 * onOffBreathing;
 
   // Layer 2: Secondary Echo Wave
-  float waveNoise3 = snoise(vec2(uv.x * 2.4 - t * 0.18, t * 0.25 + 1.2)) * 0.11;
+  float waveNoise3 = snoise(vec2(uv.x * 2.4 - t * 0.18, t * 0.25 + 1.2)) * 0.14;
   float secondaryWaveY = baseArch - 0.08 + waveNoise3;
   float dist2 = abs(uv.y - secondaryWaveY);
   float glow2 = exp(-dist2 * 4.2) * 0.80 * (1.15 - onOffBreathing * 0.25);
   float softCore2 = exp(-dist2 * 12.0) * 0.40 * (1.15 - onOffBreathing * 0.25);
 
   // Layer 3: Deep Atmospheric Ambient Fill
-  float waveNoise4 = snoise(vec2(uv.x * 1.2 + t * 0.12, uv.y * 1.0 - t * 0.08)) * 0.16;
+  float waveNoise4 = snoise(vec2(uv.x * 1.2 + t * 0.12, uv.y * 1.0 - t * 0.08)) * 0.20;
   float ambientWaveY = baseArch + 0.04 + waveNoise4;
   float dist3 = abs(uv.y - ambientWaveY);
   float ambientGlow = exp(-dist3 * 2.4) * 0.65 * blackFadeWave;
@@ -177,7 +177,7 @@ void main() {
 
   // Side emphasis: boost waves near sides to create strong side ribbons like the reference
   float sideStrength = smoothstep(0.20, 0.48, centerDist); // 0 near center, 1 near edges
-  float sideBoost = 1.0 + sideStrength * 0.65; // up to +65% at edges
+  float sideBoost = 1.0 + sideStrength * 0.85; // up to +85% at edges
 
   finalColor += mainRibbonColor * glow1 * totalIntensity * waveBlend * sideBoost;
   finalColor += coreWhiteGlow * softCore1 * 0.36 * totalIntensity * waveBlend * sideBoost;

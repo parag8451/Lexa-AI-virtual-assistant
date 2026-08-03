@@ -6,7 +6,8 @@ import {
   Plus, Settings, Sparkles, ChevronDown, Mic, MicOff, Lock, Unlock,
   Volume2, VolumeX, Download, Trash2, Globe, CheckCircle2,
   Cpu, Zap, Wand2, Smartphone, Code2, Paperclip, MessageSquare,
-  History, Search, Edit2, X, Clock, PanelLeftClose, CheckSquare
+  History, Search, Edit2, X, Clock, PanelLeftClose, Camera, FileText,
+  FileCode, Eye, Radio, ExternalLink
 } from "lucide-react";
 import { ErrorBoundary } from "react-error-boundary";
 import "@/components/chat/CustomChatUI.css";
@@ -24,6 +25,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { parseFile, FileAttachment, formatFileSize } from "@/lib/fileParser";
+import { CameraScannerModal } from "@/components/chat/CameraScannerModal";
+import { RealtimeTalkingAssistant } from "@/components/chat/RealtimeTalkingAssistant";
 
 /* ─── Types ─── */
 interface ChatMessage {
@@ -31,6 +35,7 @@ interface ChatMessage {
   role: "user" | "ai";
   content: string;
   timestamp: Date;
+  attachments?: FileAttachment[];
   isStreaming?: boolean;
 }
 
@@ -44,6 +49,7 @@ interface StoredConversation {
     id: string;
     role: "user" | "ai";
     content: string;
+    attachments?: FileAttachment[];
     timestamp: string | Date;
   }>;
 }
@@ -77,15 +83,15 @@ function groupConversations(convs: StoredConversation[]) {
 }
 
 const AVAILABLE_MODELS = [
-  { id: "gemini-3.5-flash", name: "Assistant — Fast", badge: "Fast", desc: "Low-latency assistant for quick answers and drafts", icon: Zap },
-  { id: "gemini-3-flash-preview", name: "Assistant — Balanced", badge: "Balanced", desc: "Balanced assistant for general use", icon: Cpu },
-  { id: "gemini-3.1-pro-preview", name: "Assistant — Pro", badge: "Pro", desc: "Higher accuracy for complex coding and reasoning", icon: Sparkles },
-  { id: "claude-3-7-sonnet", name: "Assistant — Expert", badge: "Expert", desc: "Expert mode for detailed or specialized tasks", icon: Wand2 },
+  { id: "gemini-3.5-flash", name: "Assistant — Fast (Gemini)", badge: "Fast", desc: "Low-latency multimodal assistant with live vision", icon: Zap },
+  { id: "gemini-3-flash-preview", name: "Assistant — Balanced", badge: "Balanced", desc: "Balanced intelligence for general reasoning", icon: Cpu },
+  { id: "gemini-3.1-pro-preview", name: "Assistant — Pro", badge: "Pro", desc: "Deep reasoning, documents, and complex code", icon: Sparkles },
+  { id: "gpt-4o", name: "GPT-4o — OpenAI", badge: "OpenAI", desc: "Multimodal GPT-4o with high accuracy", icon: Wand2 },
 ];
 
-/* ─── Helpers ─── */
+/* ─── Helper: Unique ID generator ─── */
 function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 /* ─── Error Fallback ─── */
@@ -120,12 +126,14 @@ function MessageBubble({
   message,
   onCopy,
   onSpeak,
-  isSpeaking
+  isSpeaking,
+  onPreviewImage,
 }: {
   message: ChatMessage;
   onCopy: (text: string) => void;
   onSpeak?: (text: string, id: string) => void;
   isSpeaking?: boolean;
+  onPreviewImage?: (url: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [reaction, setReaction] = useState<"up" | "down" | null>(null);
@@ -160,6 +168,43 @@ function MessageBubble({
       )}
 
       <div className="message-body flex-1 min-w-0">
+        {/* Render Attachments in User Bubble */}
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {message.attachments.map((att) => (
+              <div key={att.id} className="relative group">
+                {att.isImage ? (
+                  <div
+                    onClick={() => onPreviewImage?.(att.dataUrl)}
+                    className="relative cursor-pointer overflow-hidden rounded-xl border border-white/20 shadow-md hover:border-cyan-400 transition-all"
+                  >
+                    <img
+                      src={att.dataUrl}
+                      alt={att.name}
+                      className="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-xl group-hover:scale-105 transition-transform"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+                      <Eye className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-white/15 rounded-xl backdrop-blur-md text-xs text-zinc-200 shadow-sm">
+                    {att.isPdf ? (
+                      <FileText className="w-4 h-4 text-rose-400 shrink-0" />
+                    ) : (
+                      <FileCode className="w-4 h-4 text-cyan-400 shrink-0" />
+                    )}
+                    <div className="flex flex-col min-w-0">
+                      <span className="truncate max-w-[130px] font-medium">{att.name}</span>
+                      <span className="text-[10px] text-zinc-400">{formatFileSize(att.size)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="bubble text-sm sm:text-base leading-relaxed">
           {message.role === "user" ? (
             <p className="whitespace-pre-wrap">{message.content}</p>
@@ -251,10 +296,66 @@ function ScrollToBottomButton({ visible, onClick }: { visible: boolean; onClick:
   );
 }
 
+/* ─── Attachment Preview Tray Component ─── */
+function AttachmentTray({
+  attachments,
+  onRemove,
+  onPreview,
+}: {
+  attachments: FileAttachment[];
+  onRemove: (id: string) => void;
+  onPreview: (url: string) => void;
+}) {
+  if (attachments.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-2 p-2 bg-black/40 border border-white/10 rounded-2xl backdrop-blur-md">
+      {attachments.map((att) => (
+        <div
+          key={att.id}
+          className="relative flex items-center gap-2 p-1.5 pr-2.5 bg-white/10 hover:bg-white/15 border border-white/15 rounded-xl text-xs text-zinc-200 transition-colors group"
+        >
+          {att.isImage ? (
+            <img
+              src={att.dataUrl}
+              alt={att.name}
+              onClick={() => onPreview(att.dataUrl)}
+              className="w-8 h-8 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
+            />
+          ) : att.isPdf ? (
+            <div className="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
+              <FileText className="w-4 h-4" />
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+              <FileCode className="w-4 h-4" />
+            </div>
+          )}
+
+          <div className="flex flex-col min-w-0 pr-1">
+            <span className="truncate max-w-[120px] font-medium">{att.name}</span>
+            <span className="text-[10px] text-zinc-400">{formatFileSize(att.size)}</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onRemove(att.id)}
+            className="w-4 h-4 rounded-full bg-white/10 hover:bg-rose-500/30 hover:text-rose-400 flex items-center justify-center text-zinc-400 transition-colors"
+            title="Remove attachment"
+          >
+            <X className="w-2.5 h-2.5" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ─── Main Chat Content ─── */
 function IndexContent() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
+  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [selectedModel, setSelectedModel] = useState("gemini-3.5-flash");
@@ -266,16 +367,20 @@ function IndexContent() {
   const [pageReady, setPageReady] = useState(false);
   const [isPrivateConversation, setIsPrivateConversation] = useState(false);
 
-  // Expose private mode to other hooks via a global window flag so lower-level hooks can opt out of DB writes
+  // Modals
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [isVoiceAssistantOpen, setIsVoiceAssistantOpen] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+
+  // Expose private mode to other hooks via a global window flag
   useEffect(() => {
     try {
       (window as any).__LEXA_PRIVATE_MODE = isPrivateConversation === true;
     } catch (e) {}
   }, [isPrivateConversation]);
 
-  // Endpoint for chat backend - prefer explicit env override, then Supabase functions path, then local backend
-  const CHAT_ENDPOINT = (import.meta.env.VITE_CHAT_ENDPOINT as string) || '/functions/v1/chat';
-  // Note: In development, set VITE_CHAT_ENDPOINT to e.g. 'http://localhost:3000/api/chat' if running the local Node backend.
+  // Endpoint for chat backend
+  const CHAT_ENDPOINT = (import.meta.env.VITE_CHAT_ENDPOINT as string) || '/api/chat';
 
   // Conversation history states
   const [conversations, setConversations] = useState<StoredConversation[]>(() => {
@@ -326,7 +431,7 @@ function IndexContent() {
           const dbConvs: StoredConversation[] = data.map((d: any) => ({
             id: d.id,
             title: d.title || "Conversation",
-            model: d.model || "gemini-1.5-flash",
+            model: d.model || "gemini-3.5-flash",
             createdAt: new Date(d.created_at).getTime(),
             updatedAt: new Date(d.updated_at || d.created_at).getTime(),
             messages: Array.isArray(d.messages) ? d.messages : [],
@@ -475,18 +580,42 @@ function IndexContent() {
     });
   };
 
-  /* Handle File Attachment */
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      toast({
-        title: "File attached",
-        description: `${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
-      });
-      setInputValue((prev) => (prev ? `${prev}\n[Attached: ${file.name}]` : `[Attached: ${file.name}] `));
-      if (inputRef.current) {
-        inputRef.current.focus();
+  /* Handle File Uploads (Images, PDFs, Documents, Code) */
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const parsedList: FileAttachment[] = [];
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const att = await parseFile(files[i]);
+        parsedList.push(att);
+      } catch (err) {
+        console.error("File parse error:", err);
       }
+    }
+
+    if (parsedList.length > 0) {
+      setAttachments((prev) => [...prev, ...parsedList]);
+      toast({
+        title: `${parsedList.length} file(s) attached`,
+        description: parsedList.map((f) => f.name).join(", "),
+      });
+    }
+
+    // Reset input value so same file can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  /* Handle Camera capture and direct prompt */
+  const handleCameraCaptureAndSend = (attachment: FileAttachment, promptPreset?: string) => {
+    setAttachments((prev) => [...prev, attachment]);
+    if (promptPreset) {
+      sendMessage(promptPreset, [...attachments, attachment]);
     }
   };
 
@@ -498,12 +627,13 @@ function IndexContent() {
       setSpeakingMessageId(null);
     }
     setCurrentConversationId(conv.id);
-    setSelectedModel(conv.model || "gemini-1.5-flash");
+    setSelectedModel(conv.model || "gemini-3.5-flash");
     setMessages(
       conv.messages.map((m) => ({
         id: m.id,
         role: m.role,
         content: m.content,
+        attachments: m.attachments,
         timestamp: new Date(m.timestamp),
       }))
     );
@@ -521,6 +651,7 @@ function IndexContent() {
     }
     setCurrentConversationId(null);
     setMessages([]);
+    setAttachments([]);
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -537,6 +668,7 @@ function IndexContent() {
     if (currentConversationId === id) {
       setCurrentConversationId(null);
       setMessages([]);
+      setAttachments([]);
     }
     toast({
       title: "Conversation deleted",
@@ -574,6 +706,7 @@ function IndexContent() {
       persistConversations([]);
       setCurrentConversationId(null);
       setMessages([]);
+      setAttachments([]);
       toast({
         title: "History cleared",
         description: "All past conversations have been deleted.",
@@ -581,21 +714,25 @@ function IndexContent() {
     }
   };
 
-  /* Send message */
-  const sendMessage = async (overrideContent?: string) => {
+  /* Send message (supports text, multimodal attachments, and vision) */
+  const sendMessage = async (overrideContent?: string, overrideAttachments?: FileAttachment[]) => {
     const content = (overrideContent ?? inputValue).trim();
-    if (!content || isStreaming) return;
+    const currentAttachments = overrideAttachments ?? attachments;
+
+    if ((!content && currentAttachments.length === 0) || isStreaming) return;
 
     const userMessage: ChatMessage = {
       id: generateId(),
       role: "user",
-      content,
+      content: content || "Please analyze the attached file(s).",
+      attachments: currentAttachments.length > 0 ? [...currentAttachments] : undefined,
       timestamp: new Date(),
     };
 
     const nextMessages = [...messages, userMessage];
     setMessages(nextMessages);
     setInputValue("");
+    setAttachments([]);
     setIsStreaming(true);
 
     let activeConvId = currentConversationId;
@@ -603,7 +740,7 @@ function IndexContent() {
     if (!activeConvId) {
       activeConvId = generateId();
       setCurrentConversationId(activeConvId);
-      currentTitle = content.length > 38 ? content.slice(0, 38) + "..." : content;
+      currentTitle = content.length > 38 ? content.slice(0, 38) + "..." : content || "Multimodal Scan";
       const newConv: StoredConversation = {
         id: activeConvId,
         title: currentTitle,
@@ -614,6 +751,7 @@ function IndexContent() {
           id: m.id,
           role: m.role,
           content: m.content,
+          attachments: m.attachments,
           timestamp: m.timestamp.toISOString(),
         })),
       };
@@ -628,6 +766,7 @@ function IndexContent() {
                 id: m.id,
                 role: m.role,
                 content: m.content,
+                attachments: m.attachments,
                 timestamp: m.timestamp.toISOString(),
               })),
             }
@@ -661,6 +800,14 @@ function IndexContent() {
         headers["x-conversation-id"] = activeConvId;
       }
 
+      // Prepare attachment payload for backend
+      const attachmentsPayload = currentAttachments.map((a) => ({
+        name: a.name,
+        type: a.type,
+        data: a.base64Data,
+        textContent: a.textContent,
+      }));
+
       let response: Response | null = null;
       try {
         response = await fetch(CHAT_ENDPOINT, {
@@ -672,15 +819,16 @@ function IndexContent() {
                 role: m.role === "ai" ? ("assistant" as const) : ("user" as const),
                 content: m.content,
               })),
-              { role: "user" as const, content },
+              { role: "user" as const, content: content || "Analyze attached file(s)." },
             ],
+            attachments: attachmentsPayload,
             model: selectedModel,
             webSearch: webSearchEnabled,
             mode: designMode,
           }),
         });
       } catch (backendNetErr) {
-        console.warn("Backend server not reachable, attempting direct Gemini client connection...", backendNetErr);
+        console.warn("Backend server connection failed, attempting direct client fallback...", backendNetErr);
       }
 
       if (response && response.ok && response.body) {
@@ -700,13 +848,10 @@ function IndexContent() {
               if (data === "[DONE]") break;
               try {
                 const parsed = JSON.parse(data);
-
-                // OpenAI/Anthropic transformed SSE: { choices: [{ delta: { content } }] }
                 const openaiDelta = parsed?.choices?.[0]?.delta?.content;
                 if (openaiDelta) {
                   accumulatedContent += openaiDelta;
                 } else if (parsed.type === "text_delta" && parsed.text) {
-                  // Gemini/text-delta
                   accumulatedContent += parsed.text;
                 } else if (parsed.text) {
                   accumulatedContent += parsed.text;
@@ -721,17 +866,38 @@ function IndexContent() {
                       : msg
                   )
                 );
-              } catch (e) {
-                // Incomplete JSON frame in SSE stream or parse error
-                // console.debug('SSE parse error', e)
-              }
+              } catch (e) {}
             }
           }
         }
       } else {
-        // Direct Gemini client-side fallback if backend is unavailable
-        const clientApiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+        // Direct Gemini client-side fallback (with full multimodal vision & inlineData support)
+        const clientApiKey =
+          localStorage.getItem("lexa_gemini_key") ||
+          import.meta.env.VITE_GEMINI_API_KEY ||
+          "";
+
         if (clientApiKey) {
+          // Prepare Gemini parts for the latest message
+          const latestParts: any[] = [
+            { text: content || "Please analyze this attached document or image in detail." },
+          ];
+
+          for (const att of currentAttachments) {
+            if (att.textContent) {
+              latestParts.push({
+                text: `\n\n[Attached File: ${att.name}]\n\`\`\`\n${att.textContent}\n\`\`\``,
+              });
+            } else if (att.base64Data && (att.isImage || att.isPdf)) {
+              latestParts.push({
+                inlineData: {
+                  mimeType: att.type,
+                  data: att.base64Data,
+                },
+              });
+            }
+          }
+
           const directRes = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse&key=${clientApiKey}`,
             {
@@ -739,16 +905,16 @@ function IndexContent() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 contents: [
-                  ...messages.slice(-15).map((m) => ({
+                  ...messages.slice(-10).map((m) => ({
                     role: m.role === "ai" ? "model" : "user",
                     parts: [{ text: m.content }],
                   })),
-                  { role: "user", parts: [{ text: content }] },
+                  { role: "user", parts: latestParts },
                 ],
                 systemInstruction: {
                   parts: [
                     {
-                      text: "You are Lexa AI, a helpful, concise virtual assistant. Match response length to the user's request: brief acknowledgements for short inputs (e.g., if the user says \"hi\" reply \"How can I help?\"), and fuller answers only when asked. Avoid long salutations or extra introductions. When asked to write code, provide full, production-ready, well-commented code with correct language blocks; keep explanations concise unless the user asks for more detail.",
+                      text: "You are Lexa AI, an advanced multimodal assistant. Provide accurate vision analysis, OCR extraction, document summaries, and high-quality structured answers.",
                     },
                   ],
                 },
@@ -792,12 +958,12 @@ function IndexContent() {
             throw new Error(`Direct Gemini API failed with status ${directRes.status}`);
           }
         } else {
-          throw new Error("Backend server unavailable and no client API key found");
+          throw new Error("Backend server unavailable and no API key configured. Check Settings > Integrations.");
         }
       }
     } catch (err: any) {
       console.error("Chat generation error:", err);
-      accumulatedContent = `I encountered an issue processing your request: "${err.message || 'Connection failed'}". Please verify the backend service or try again in a moment.`;
+      accumulatedContent = `I encountered an issue processing your request: "${err.message || 'Connection failed'}". Please verify your API key in Settings > Integrations.`;
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === aiMessageId
@@ -821,7 +987,7 @@ function IndexContent() {
         )
       );
 
-      // Save complete conversation history with AI response
+      // Save complete conversation history
       const allFinalMessages = [...nextMessages, finalAiMsg];
       if (!isPrivateConversation) {
         setConversations((prevConvs) => {
@@ -834,6 +1000,7 @@ function IndexContent() {
                     id: m.id,
                     role: m.role,
                     content: m.content,
+                    attachments: m.attachments,
                     timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
                   })),
                 }
@@ -844,9 +1011,6 @@ function IndexContent() {
           } catch {}
           return updated;
         });
-      } else {
-        // Private conversation: do not persist to localStorage or conversation list
-        // Keep currentConversationId and messages in-memory only
       }
     }
   };
@@ -894,8 +1058,8 @@ function IndexContent() {
   /* Categorized Suggestions */
   const suggestionsMap = {
     assistant: [
+      { emoji: "📷", text: "Scan and transcribe a document or handwritten page" },
       { emoji: "⚡", text: "Explain quantum computing algorithms in plain English" },
-      { emoji: "💡", text: "Summarize key architecture trends in modern distributed systems" },
       { emoji: "🚀", text: "Help me draft a high-impact technical launch strategy" },
     ],
     code: [
@@ -916,6 +1080,9 @@ function IndexContent() {
   };
 
   const getPlaceholder = () => {
+    if (attachments.length > 0) {
+      return `Ask a question about the ${attachments.length} attached file(s)...`;
+    }
     switch (designMode) {
       case "code":
         return "Describe an algorithm, component, or full-stack feature...";
@@ -924,20 +1091,71 @@ function IndexContent() {
       case "mobile":
         return "What native mobile app or screen shall we design?";
       default:
-        return "Ask Lexa to analyze, code, brainstorm, or build anything...";
+        return "Ask Lexa, scan documents, or talk in real-time...";
     }
   };
 
   return (
     <div className="custom-chat-wrapper bg-[#090a0e] relative flex overflow-hidden">
-
       {/* Hidden File Input for Attachment */}
       <input
         type="file"
         ref={fileInputRef}
         onChange={handleFileUpload}
+        multiple
+        accept="image/*,application/pdf,text/*,.json,.csv,.md,.ts,.tsx,.js,.py,.html,.css"
         className="hidden"
       />
+
+      {/* Camera Scanner Modal */}
+      <CameraScannerModal
+        isOpen={isCameraModalOpen}
+        onClose={() => setIsCameraModalOpen(false)}
+        onCaptureAndSend={handleCameraCaptureAndSend}
+      />
+
+      {/* Real-time Voice Talking Assistant Modal */}
+      <RealtimeTalkingAssistant
+        isOpen={isVoiceAssistantOpen}
+        onClose={() => setIsVoiceAssistantOpen(false)}
+        onSendToChatHistory={(userText, aiText) => {
+          // Sync voice conversation into chat history
+          const uMsg: ChatMessage = { id: generateId(), role: "user", content: userText, timestamp: new Date() };
+          const aMsg: ChatMessage = { id: generateId(), role: "ai", content: aiText, timestamp: new Date() };
+          setMessages((prev) => [...prev, uMsg, aMsg]);
+        }}
+      />
+
+      {/* Image Zoom Lightbox Modal */}
+      <AnimatePresence>
+        {previewImageUrl && (
+          <div
+            onClick={() => setPreviewImageUrl(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl cursor-zoom-out"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative max-w-4xl max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={previewImageUrl}
+                alt="Enlarged preview"
+                className="max-h-[85vh] w-auto max-w-full rounded-2xl shadow-2xl border border-white/20 object-contain"
+              />
+              <button
+                type="button"
+                onClick={() => setPreviewImageUrl(null)}
+                className="absolute top-3 right-3 p-2 rounded-full bg-black/70 text-white hover:bg-black border border-white/20 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Sidebar ─── */}
       <aside className="sidebar border-white/5 bg-[#0d0e14]/90 backdrop-blur-xl shrink-0" aria-label="Sidebar">
@@ -966,6 +1184,32 @@ function IndexContent() {
             </button>
           </TooltipTrigger>
           <TooltipContent side="right">New Chat</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setIsCameraModalOpen(true)}
+              className="sidebar-btn hover:bg-white/10 text-zinc-400 hover:text-cyan-400 transition-colors"
+              aria-label="Vision Scanner"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Camera Scanner (OCR & Vision)</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setIsVoiceAssistantOpen(true)}
+              className="sidebar-btn hover:bg-white/10 text-zinc-400 hover:text-emerald-400 transition-colors"
+              aria-label="Live Voice Assistant"
+            >
+              <Radio className="w-4 h-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Real-Time Talking Assistant</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -1020,7 +1264,7 @@ function IndexContent() {
                 <Settings className="w-5 h-5 text-zinc-400 hover:text-white" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">Settings</TooltipContent>
+            <TooltipContent side="right">Settings & API Keys</TooltipContent>
           </Tooltip>
         </div>
       </aside>
@@ -1200,10 +1444,10 @@ function IndexContent() {
 
       {/* ─── Main ─── */}
       <main className="main relative overflow-hidden bg-transparent w-full h-full" role="main">
-        {/* Full-Screen 8K Smooth Dynamic Wave Background */}
+        {/* Full-Screen Smooth Dynamic Wave Background */}
         <StitchWaveBackground speed={0.75} intensity={0.75} />
 
-        {/* Upper-Half Soft Translucent Black Blend (leaves glowing dot matrix crisp & visible) */}
+        {/* Upper-Half Soft Translucent Black Blend */}
         <div
           className="fixed inset-x-0 top-0 h-[48vh] pointer-events-none z-10"
           style={{
@@ -1232,12 +1476,34 @@ function IndexContent() {
               Lexa
             </span>
             <span className="text-[10px] font-bold tracking-wider text-cyan-400 border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 rounded-full uppercase">
-              2.0 PRO
+              2.0 MULTIMODAL
             </span>
           </div>
 
           {/* Header Controls */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* Live Voice Assistant Launch Button */}
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setIsVoiceAssistantOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 transition-all shadow-sm cursor-pointer"
+            >
+              <Radio className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
+              <span className="hidden sm:inline">Live Talking AI</span>
+            </motion.button>
+
+            {/* Camera Scanner Button */}
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setIsCameraModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 transition-all shadow-sm cursor-pointer"
+            >
+              <Camera className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">Scan / OCR</span>
+            </motion.button>
+
             {/* Model selector dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -1247,7 +1513,7 @@ function IndexContent() {
                   className="flex items-center gap-2 bg-[#181a24]/80 hover:bg-[#202230] border border-white/10 text-white px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md transition-all shadow-sm cursor-pointer"
                 >
                   <currentModelInfo.icon className="w-3.5 h-3.5 text-[#38BDF8]" />
-                  <span>{currentModelInfo.name}</span>
+                  <span>{currentModelInfo.name.replace("Assistant — ", "")}</span>
                   <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
                 </motion.button>
               </DropdownMenuTrigger>
@@ -1263,8 +1529,9 @@ function IndexContent() {
                     <DropdownMenuItem
                       key={model.id}
                       onClick={() => setSelectedModel(model.id)}
-                      className={`flex items-start gap-2.5 p-2 rounded-xl cursor-pointer transition-colors ${isSelected ? "bg-[#38BDF8]/15 text-white" : "hover:bg-white/10"
-                        }`}
+                      className={`flex items-start gap-2.5 p-2 rounded-xl cursor-pointer transition-colors ${
+                        isSelected ? "bg-[#38BDF8]/15 text-white" : "hover:bg-white/10"
+                      }`}
                     >
                       <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? "text-[#38BDF8]" : "text-zinc-400"}`} />
                       <div className="flex flex-col flex-1 min-w-0">
@@ -1288,10 +1555,11 @@ function IndexContent() {
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${webSearchEnabled
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+                webSearchEnabled
                   ? "bg-[#38BDF8]/15 text-[#38BDF8] border-[#38BDF8]/30 shadow-sm"
                   : "bg-white/5 text-zinc-400 border-white/10 hover:text-white"
-                }`}
+              }`}
             >
               <Globe className="w-3.5 h-3.5" />
               <span>Web Search</span>
@@ -1345,7 +1613,7 @@ function IndexContent() {
                   transition={{ duration: 0.7, delay: 0.2 }}
                   className="text-sm sm:text-base text-zinc-400 max-w-xl mb-8 font-normal leading-relaxed"
                 >
-                  Your AI-powered assistant for code, creativity, and conversation
+                  Your multimodal AI assistant for vision OCR, documents, code, creativity, and voice
                 </motion.p>
 
                 {/* ── Central Floating Glassmorphic Card ── */}
@@ -1363,6 +1631,13 @@ function IndexContent() {
                     borderStyle: "solid",
                   }}
                 >
+                  {/* Attachment Tray */}
+                  <AttachmentTray
+                    attachments={attachments}
+                    onRemove={removeAttachment}
+                    onPreview={(url) => setPreviewImageUrl(url)}
+                  />
+
                   <textarea
                     ref={inputRef}
                     rows={2}
@@ -1378,7 +1653,7 @@ function IndexContent() {
 
                   {/* Card Bottom Toolbar */}
                   <div className="flex items-center justify-between pt-3 border-t border-white/10 mt-2">
-                    {/* Left side: Context + Mode Switcher */}
+                    {/* Left side: Attachments + Camera + Mode Switcher */}
                     <div className="flex items-center gap-2">
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -1386,16 +1661,30 @@ function IndexContent() {
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
                             className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.14] border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer shadow-sm"
-                            aria-label="Add Context"
+                            aria-label="Upload File / Document / PDF"
                           >
                             <Paperclip className="w-3.5 h-3.5" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="top">Attach file or snippet</TooltipContent>
+                        <TooltipContent side="top">Attach image, PDF, or code</TooltipContent>
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => setIsCameraModalOpen(true)}
+                            className="w-8 h-8 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 flex items-center justify-center backdrop-blur-md transition-all cursor-pointer shadow-sm"
+                            aria-label="Camera OCR Scanner"
+                          >
+                            <Camera className="w-3.5 h-3.5 text-cyan-400" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">Camera scanner (OCR & docs)</TooltipContent>
                       </Tooltip>
 
                       {/* Segmented Mode Switcher */}
-                      <div className="flex items-center p-0.5 rounded-full bg-black/40 border border-white/10 backdrop-blur-md text-xs shadow-inner">
+                      <div className="hidden sm:flex items-center p-0.5 rounded-full bg-black/40 border border-white/10 backdrop-blur-md text-xs shadow-inner">
                         <button
                           type="button"
                           onClick={() => setDesignMode("assistant")}
@@ -1406,7 +1695,7 @@ function IndexContent() {
                           }`}
                         >
                           <Sparkles className="w-3 h-3 text-[#38BDF8]" />
-                          <span className="hidden sm:inline">Assistant</span>
+                          <span>Assistant</span>
                         </button>
                         <button
                           type="button"
@@ -1447,9 +1736,9 @@ function IndexContent() {
                       </div>
                     </div>
 
-                    {/* Right side: Search Toggle, Model, Mic, and Send */}
+                    {/* Right side: Search Toggle, Live Voice, Mic, and Send */}
                     <div className="flex items-center gap-2">
-                      {/* Web search icon toggle */}
+                      {/* Web search toggle */}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
@@ -1470,28 +1759,20 @@ function IndexContent() {
                         </TooltipContent>
                       </Tooltip>
 
-                      {/* Model pill selector inside card */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.14] border border-white/10 hover:border-white/20 text-xs text-zinc-200 font-medium backdrop-blur-md transition-all cursor-pointer shadow-sm">
-                            <currentModelInfo.icon className="w-3.5 h-3.5 text-[#38BDF8]" />
-                            <span>{currentModelInfo.name.replace("Gemini ", "").replace("Claude ", "")}</span>
-                            <ChevronDown className="w-3 h-3 opacity-60" />
+                      {/* Live Voice Assistant Modal */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => setIsVoiceAssistantOpen(true)}
+                            className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-all cursor-pointer border bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-400"
+                            aria-label="Real-time Voice Chat"
+                          >
+                            <Radio className="w-4 h-4 animate-pulse text-emerald-400" />
                           </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56 bg-[#14151e]/95 backdrop-blur-xl border-white/10 text-white p-1 shadow-2xl rounded-2xl z-50">
-                          {AVAILABLE_MODELS.map((model) => (
-                            <DropdownMenuItem
-                              key={model.id}
-                              onClick={() => setSelectedModel(model.id)}
-                              className="flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer hover:bg-white/10"
-                            >
-                              <span>{model.name}</span>
-                              {selectedModel === model.id && <Check className="w-3.5 h-3.5 text-[#38BDF8]" />}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">Real-Time Talking Assistant</TooltipContent>
+                      </Tooltip>
 
                       {/* Voice / Mic */}
                       <Tooltip>
@@ -1517,10 +1798,10 @@ function IndexContent() {
                       {/* Send / Generate Arrow Button */}
                       <button
                         type="button"
-                        disabled={!inputValue.trim() || isStreaming}
+                        disabled={(!inputValue.trim() && attachments.length === 0) || isStreaming}
                         onClick={() => sendMessage()}
                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                          inputValue.trim()
+                          inputValue.trim() || attachments.length > 0
                             ? "bg-white text-black hover:bg-zinc-200 shadow-lg shadow-white/20 cursor-pointer"
                             : "bg-white/10 text-zinc-600 border border-white/5 cursor-not-allowed"
                         }`}
@@ -1567,6 +1848,7 @@ function IndexContent() {
                     onCopy={handleCopy}
                     onSpeak={handleSpeak}
                     isSpeaking={speakingMessageId === msg.id}
+                    onPreviewImage={(url) => setPreviewImageUrl(url)}
                   />
                 ))}
               </AnimatePresence>
@@ -1584,6 +1866,13 @@ function IndexContent() {
         {hasMessages && (
           <div className="input-section relative z-20">
             <div className={`input-glow-wrapper ${inputFocused ? "focused" : ""}`}>
+              {/* Attachment Tray above bottom input */}
+              <AttachmentTray
+                attachments={attachments}
+                onRemove={removeAttachment}
+                onPreview={(url) => setPreviewImageUrl(url)}
+              />
+
               <div
                 className="input-wrapper"
                 style={{
@@ -1594,10 +1883,49 @@ function IndexContent() {
                   boxShadow: "0 12px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.02)",
                 }}
               >
+                {/* Left Action Buttons in bottom bar */}
+                <div className="flex items-center gap-1 pl-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                        title="Attach file / document"
+                      >
+                        <Paperclip className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Attach file</TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setIsCameraModalOpen(true)}
+                        className="p-1.5 rounded-lg text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors"
+                        title="Camera Scanner"
+                      >
+                        <Camera className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Camera scanner (OCR & docs)</TooltipContent>
+                  </Tooltip>
+                </div>
+
                 <textarea
                   ref={inputRef}
                   className="chat-input placeholder-zinc-400 text-white"
-                  placeholder={isListening ? "Listening... speak now..." : isStreaming ? "Lexa is thinking..." : "Ask Lexa anything..."}
+                  placeholder={
+                    isListening
+                      ? "Listening... speak now..."
+                      : isStreaming
+                      ? "Lexa is thinking..."
+                      : attachments.length > 0
+                      ? `Ask about ${attachments.length} attached file(s)...`
+                      : "Ask Lexa anything..."
+                  }
                   rows={1}
                   value={inputValue}
                   onChange={handleInputChange}
@@ -1607,9 +1935,25 @@ function IndexContent() {
                   disabled={isStreaming}
                   aria-label="Chat input message"
                 />
-                <div className="input-right">
+
+                <div className="input-right flex items-center gap-1 pr-2">
+                  {/* Live Talking Button */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setIsVoiceAssistantOpen(true)}
+                        className="p-1.5 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+                        title="Live Voice Assistant"
+                      >
+                        <Radio className="w-4 h-4 animate-pulse" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Real-Time Talking Assistant</TooltipContent>
+                  </Tooltip>
+
                   <AnimatePresence mode="wait">
-                    {inputValue.trim() ? (
+                    {inputValue.trim() || attachments.length > 0 ? (
                       <motion.button
                         key="send"
                         initial={{ opacity: 0, scale: 0.8 }}
@@ -1634,7 +1978,11 @@ function IndexContent() {
                         whileHover={{ scale: 1.08 }}
                         whileTap={{ scale: 0.92 }}
                         onClick={toggleSpeechRecognition}
-                        className={`mic-btn ${isListening ? "text-red-400 animate-pulse bg-red-500/25 border border-red-500/40" : "text-zinc-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.14] border border-white/10"}`}
+                        className={`mic-btn ${
+                          isListening
+                            ? "text-red-400 animate-pulse bg-red-500/25 border border-red-500/40"
+                            : "text-zinc-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.14] border border-white/10"
+                        }`}
                         title={isListening ? "Stop listening" : "Voice input"}
                         aria-label="Voice input"
                       >
@@ -1646,7 +1994,7 @@ function IndexContent() {
               </div>
             </div>
             <p className="disclaimer text-zinc-500 text-[11px] text-center mt-2">
-              Lexa AI can make mistakes. Verify critical code and information.
+              Lexa AI can make mistakes. Verify critical code and documents.
             </p>
           </div>
         )}
