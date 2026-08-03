@@ -2,9 +2,19 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mic, MicOff, Volume2, VolumeX, PhoneOff, Sparkles, MessageSquare,
-  Settings2, Pause, Play, ChevronDown, Check, Loader2, RotateCcw
+  Settings2, Pause, Play, ChevronDown, Check, Loader2, RotateCcw,
+  Radio, Shield, Wifi, Captions, Maximize2, Minimize2, User, PhoneCall
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Strands from "./Strands";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface VoiceMessage {
   id: string;
@@ -28,12 +38,13 @@ export function RealtimeTalkingAssistant({
   const [transcript, setTranscript] = useState("");
   const [interimText, setInterimText] = useState("");
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
-  const [isHandsFree, setIsHandsFree] = useState(true);
   const [selectedVoice, setSelectedVoice] = useState<string>("default");
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [audioLevel, setAudioLevel] = useState<number>(0.2);
-  const [showTranscript, setShowTranscript] = useState(true);
+  const [audioLevel, setAudioLevel] = useState<number>(0.15);
+  const [showCaptions, setShowCaptions] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
+  const [callDuration, setCallDuration] = useState<number>(0);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
 
   const recognitionRef = useRef<any>(null);
   const synthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -42,18 +53,15 @@ export function RealtimeTalkingAssistant({
   const micStreamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number>();
   const isComponentMounted = useRef<boolean>(true);
+  const durationTimerRef = useRef<any>(null);
   const { toast } = useToast();
 
   const activeGeminiKey =
     import.meta.env.VITE_GEMINI_API_KEY ||
     localStorage.getItem("lexa_gemini_key") ||
     "";
-  const activeElevenLabsKey =
-    import.meta.env.VITE_ELEVENLABS_API_KEY ||
-    localStorage.getItem("lexa_elevenlabs_key") ||
-    "";
 
-  // Load browser voices
+  // Load available speech synthesis voices
   useEffect(() => {
     const updateVoices = () => {
       if ("speechSynthesis" in window) {
@@ -75,7 +83,28 @@ export function RealtimeTalkingAssistant({
     }
   }, [selectedVoice]);
 
-  // Audio level analyzer from microphone
+  // Call duration counter
+  useEffect(() => {
+    if (isOpen) {
+      setCallDuration(0);
+      durationTimerRef.current = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+    }
+    return () => {
+      if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+    };
+  }, [isOpen]);
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  // Real-time Audio Analyzer for sound-reactive waves
   const startAudioAnalyzer = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -83,7 +112,8 @@ export function RealtimeTalkingAssistant({
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       audioContextRef.current = audioCtx;
       const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 64;
+      analyser.fftSize = 128;
+      analyser.smoothingTimeConstant = 0.8;
       analyserRef.current = analyser;
 
       const source = audioCtx.createMediaStreamSource(stream);
@@ -95,8 +125,8 @@ export function RealtimeTalkingAssistant({
         analyser.getByteFrequencyData(dataArray);
         const sum = dataArray.reduce((a, b) => a + b, 0);
         const avg = sum / dataArray.length;
-        const normalized = Math.min(1, avg / 128);
-        setAudioLevel(0.15 + normalized * 0.85);
+        const normalized = Math.min(1, avg / 110);
+        setAudioLevel(0.12 + normalized * 0.88);
         animationFrameRef.current = requestAnimationFrame(updateVolume);
       };
       updateVolume();
@@ -126,7 +156,7 @@ export function RealtimeTalkingAssistant({
     if (!SpeechRecognition) {
       toast({
         title: "Speech Recognition Unavailable",
-        description: "Your browser does not support Web Speech API.",
+        description: "Your browser does not support the Web Speech API.",
         variant: "destructive",
       });
       return;
@@ -173,7 +203,6 @@ export function RealtimeTalkingAssistant({
 
       rec.onend = () => {
         if (status === "listening") {
-          // If stopped without text, idle
           setStatus("idle");
         }
       };
@@ -212,7 +241,6 @@ export function RealtimeTalkingAssistant({
     setMessages((prev) => [...prev, userMsg]);
 
     try {
-      // Call LLM
       const historyContents = messages.slice(-6).map((m) => ({
         role: m.role === "ai" ? "model" : "user",
         parts: [{ text: m.content }],
@@ -231,7 +259,7 @@ export function RealtimeTalkingAssistant({
             systemInstruction: {
               parts: [
                 {
-                  text: "You are Lexa, an intelligent, charming, and highly articulate real-time voice assistant. Keep answers natural, spoken, and conversational (1-3 sentences max unless deeply asked). Do not use markdown headers, asterisks, or code blocks in voice answers unless reading code.",
+                  text: "You are Lexa, a warm, intelligent, and highly articulate real-time voice assistant on a live phone call. Keep answers natural, spoken, concise and conversational (1-3 sentences max). Speak directly and concisely without markdown formatting.",
                 },
               ],
             },
@@ -249,8 +277,7 @@ export function RealtimeTalkingAssistant({
         const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (candidate) aiReply = candidate;
       } else {
-        // Fallback response
-        aiReply = "I'm listening and right here with you. What would you like to explore next?";
+        aiReply = "I'm listening and right here with you. What would you like to discuss next?";
       }
 
       const aiMsg: VoiceMessage = {
@@ -263,14 +290,16 @@ export function RealtimeTalkingAssistant({
       setMessages((prev) => [...prev, aiMsg]);
       onSendToChatHistory?.(text, aiReply);
 
-      // Speak reply aloud
-      speakResponse(aiReply);
+      if (isSpeakerOn) {
+        speakResponse(aiReply);
+      } else {
+        setStatus("idle");
+        setTimeout(startListening, 500);
+      }
     } catch (err) {
       console.error("Voice assistant generation error:", err);
       setStatus("idle");
-      if (isHandsFree) {
-        setTimeout(startListening, 1000);
-      }
+      setTimeout(startListening, 1000);
     }
   };
 
@@ -297,15 +326,15 @@ export function RealtimeTalkingAssistant({
 
     utterance.onend = () => {
       setStatus("idle");
-      if (isHandsFree && isOpen) {
-        setTimeout(startListening, 400);
+      if (isOpen && !isMuted) {
+        setTimeout(startListening, 350);
       }
     };
 
     utterance.onerror = () => {
       setStatus("idle");
-      if (isHandsFree && isOpen) {
-        setTimeout(startListening, 400);
+      if (isOpen && !isMuted) {
+        setTimeout(startListening, 350);
       }
     };
 
@@ -313,13 +342,27 @@ export function RealtimeTalkingAssistant({
     window.speechSynthesis.speak(utterance);
   };
 
-  // Stop / Interrupt
+  // Stop / Interrupt AI
   const handleInterrupt = () => {
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
     stopListening();
     setStatus("idle");
+    setTimeout(startListening, 200);
+  };
+
+  // Toggle Mute
+  const toggleMute = () => {
+    if (isMuted) {
+      setIsMuted(false);
+      startListening();
+      toast({ title: "Microphone unmuted" });
+    } else {
+      setIsMuted(true);
+      stopListening();
+      toast({ title: "Microphone muted" });
+    }
   };
 
   // Open / Close lifecycle
@@ -327,279 +370,388 @@ export function RealtimeTalkingAssistant({
     isComponentMounted.current = true;
     if (isOpen) {
       startAudioAnalyzer();
-      // Start initial listening automatically
       const timer = setTimeout(() => {
         startListening();
       }, 500);
       return () => clearTimeout(timer);
     } else {
-      handleInterrupt();
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      stopListening();
       stopAudioAnalyzer();
     }
 
     return () => {
       isComponentMounted.current = false;
-      handleInterrupt();
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      stopListening();
       stopAudioAnalyzer();
     };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // Visualizer Orb dynamic styles based on status
-  const getOrbGlow = () => {
+  // Sound-Reactive Wave Parameters according to voice / speech state
+  const getStrandsConfig = () => {
     switch (status) {
       case "listening":
-        return "from-cyan-500 via-blue-500 to-indigo-500 shadow-[0_0_80px_rgba(56,189,248,0.5)]";
-      case "thinking":
-        return "from-purple-500 via-pink-500 to-amber-500 shadow-[0_0_90px_rgba(168,85,247,0.6)] animate-spin";
+        return {
+          colors: ["#38BDF8", "#3B82F6", "#0673d4", "#818CF8"],
+          count: 1,
+          speed: 1.4 + audioLevel * 1.8,
+          amplitude: 0.45 + audioLevel * 1.5,
+          waviness: 2.2 + audioLevel * 1.6,
+          thickness: 0.7 + audioLevel * 0.5,
+          glow: 2.6 + audioLevel * 1.2,
+          taper: 5.5,
+          spread: 3.0,
+          intensity: 1.0,
+          saturation: 2.0,
+          opacity: 0.85,
+          scale: 2.3,
+        };
       case "speaking":
-        return "from-emerald-400 via-teal-500 to-cyan-500 shadow-[0_0_90px_rgba(52,211,153,0.6)]";
+        return {
+          colors: ["#34D399", "#38BDF8", "#3B82F6", "#0673d4"],
+          count: 2,
+          speed: 2.0,
+          amplitude: 0.75,
+          waviness: 2.8,
+          thickness: 0.8,
+          glow: 2.8,
+          taper: 4.8,
+          spread: 2.5,
+          intensity: 1.0,
+          saturation: 2.2,
+          opacity: 0.9,
+          scale: 2.2,
+        };
+      case "thinking":
+        return {
+          colors: ["#818CF8", "#C084FC", "#38BDF8"],
+          count: 1,
+          speed: 2.6,
+          amplitude: 0.6,
+          waviness: 3.4,
+          thickness: 0.75,
+          glow: 3.0,
+          taper: 5.0,
+          spread: 2.8,
+          intensity: 1.0,
+          saturation: 2.0,
+          opacity: 0.8,
+          scale: 2.3,
+        };
       default:
-        return "from-indigo-600 via-purple-600 to-blue-600 shadow-[0_0_50px_rgba(99,102,241,0.3)]";
+        return {
+          colors: ["#3B82F6", "#0a126b", "#0673d4"],
+          count: 1,
+          speed: 0.9 + audioLevel * 0.6,
+          amplitude: 0.35 + audioLevel * 0.4,
+          waviness: 2.0,
+          thickness: 0.7,
+          glow: 2.4,
+          taper: 5.5,
+          spread: 3.0,
+          intensity: 0.8,
+          saturation: 1.8,
+          opacity: 0.65,
+          scale: 2.3,
+        };
     }
   };
 
-  const getStatusLabel = () => {
-    switch (status) {
-      case "listening":
-        return "Listening to your voice...";
-      case "thinking":
-        return "Lexa is reasoning...";
-      case "speaking":
-        return "Lexa is speaking...";
-      default:
-        return isHandsFree ? "Tap the orb to start speaking" : "Hold to talk";
-    }
-  };
+  const currentStrands = getStrandsConfig();
+  const latestMessage = messages[messages.length - 1];
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#07080c]/95 backdrop-blur-2xl p-4 sm:p-8">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/95 backdrop-blur-2xl select-none overflow-hidden">
+        {/* Fullscreen Phone Call Container */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.94 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.94 }}
-          className="relative w-full max-w-4xl h-[90vh] bg-gradient-to-b from-[#11131f]/90 to-[#0b0c14]/95 border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="relative w-full h-full sm:max-w-md sm:h-[780px] sm:max-h-[92vh] sm:rounded-[40px] bg-[#07080d] border border-white/10 shadow-2xl flex flex-col justify-between overflow-hidden"
         >
-          {/* Top Bar */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                <Sparkles className="w-4 h-4" />
+          {/* ── WebGL Audio-Reactive Strands Background ── */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-90">
+            <Strands
+              colors={currentStrands.colors}
+              count={currentStrands.count}
+              speed={currentStrands.speed}
+              amplitude={currentStrands.amplitude}
+              waviness={currentStrands.waviness}
+              thickness={currentStrands.thickness}
+              glow={currentStrands.glow}
+              taper={currentStrands.taper}
+              spread={currentStrands.spread}
+              intensity={currentStrands.intensity}
+              saturation={currentStrands.saturation}
+              opacity={currentStrands.opacity}
+              scale={currentStrands.scale}
+            />
+          </div>
+
+          {/* Vignette & Soft Gradient Overlays */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none z-0" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(7,8,13,0.75)_100%)] pointer-events-none z-0" />
+
+          {/* ── Top Header / Call Info Bar ── */}
+          <div className="relative z-10 px-6 pt-7 sm:pt-6 flex items-center justify-between">
+            {/* Call Encryption & Live Badge */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[11px] text-zinc-300 font-medium">
+                <Shield className="w-3 h-3 text-emerald-400" />
+                <span>HD Voice</span>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                  Lexa Live Voice
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20 uppercase tracking-wider">
-                    Continuous
-                  </span>
-                </h3>
-                <p className="text-[11px] text-zinc-400">Natural Real-Time Dialogue</p>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[11px] text-zinc-400">
+                <Wifi className="w-3 h-3 text-cyan-400" />
+                <span>12ms</span>
               </div>
             </div>
 
-            {/* Top controls */}
-            <div className="flex items-center gap-2">
-              {/* Voice selector */}
-              {availableVoices.length > 0 && (
-                <div className="relative">
-                  <select
-                    value={selectedVoice}
-                    onChange={(e) => setSelectedVoice(e.target.value)}
-                    className="bg-[#181a28] text-zinc-200 text-xs px-3 py-1.5 rounded-xl border border-white/10 focus:outline-none cursor-pointer pr-6"
+            {/* Voice Settings Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-zinc-300 hover:text-white transition-all active:scale-95 cursor-pointer backdrop-blur-md"
+                  title="Voice Settings"
+                >
+                  <Settings2 className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-[#131520]/95 backdrop-blur-xl border border-white/10 text-white p-2 rounded-2xl shadow-2xl z-50">
+                <DropdownMenuLabel className="text-xs text-zinc-400 uppercase tracking-wider px-2 py-1">
+                  AI Spoken Voice
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-white/10" />
+                {availableVoices.slice(0, 8).map((voice) => (
+                  <DropdownMenuItem
+                    key={voice.name}
+                    onClick={() => setSelectedVoice(voice.name)}
+                    className={`flex items-center justify-between text-xs p-2 rounded-xl cursor-pointer ${
+                      selectedVoice === voice.name ? "bg-cyan-500/20 text-cyan-300" : "hover:bg-white/10 text-zinc-300"
+                    }`}
                   >
-                    {availableVoices.slice(0, 10).map((v) => (
-                      <option key={v.name} value={v.name}>
-                        {v.name.slice(0, 18)}
-                      </option>
-                    ))}
-                  </select>
+                    <span className="truncate max-w-[170px]">{voice.name}</span>
+                    {selectedVoice === voice.name && <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* ── Center Caller Identity & Status ── */}
+          <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 py-4 my-auto">
+            {/* Animated Lexa Emblem & Breathing Halo */}
+            <div className="relative mb-6">
+              {/* Outer Pulse Rings */}
+              <motion.div
+                animate={{
+                  scale: status === "speaking" ? [1, 1.25, 1] : status === "listening" ? [1, 1.15 + audioLevel * 0.35, 1] : [1, 1.05, 1],
+                  opacity: status === "speaking" ? [0.4, 0.8, 0.4] : [0.25, 0.55, 0.25],
+                }}
+                transition={{ duration: status === "speaking" ? 1.4 : 2.2, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -inset-4 rounded-full bg-gradient-to-tr from-cyan-500/30 via-indigo-500/30 to-purple-500/30 blur-xl pointer-events-none"
+              />
+
+              {/* Center Luxury Round Avatar */}
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-b from-[#181c2e] to-[#0d0f1a] border-2 border-white/20 shadow-2xl flex items-center justify-center backdrop-blur-xl">
+                <svg className="w-14 h-14 sm:w-16 sm:h-16" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="phoneStar" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stopColor="#38bdf8" />
+                      <stop offset="50%" stopColor="#818cf8" />
+                      <stop offset="100%" stopColor="#c084fc" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M14 2 C14 8.5 19.5 14 14 14 C19.5 14 14 19.5 14 26 C14 19.5 8.5 14 14 14 C8.5 14 14 8.5 14 2Z" fill="url(#phoneStar)" />
+                  <path d="M2 14 C8.5 14 14 8.5 14 14 C14 8.5 19.5 14 26 14 C19.5 14 14 19.5 14 14 C14 19.5 8.5 14 2 14Z" fill="url(#phoneStar)" opacity="0.6" />
+                </svg>
+
+                {/* Subtle active status indicator dot */}
+                <div className="absolute bottom-1 right-2 w-4 h-4 rounded-full bg-[#07080d] p-0.5 flex items-center justify-center">
+                  <span
+                    className={`w-full h-full rounded-full ${
+                      status === "speaking"
+                        ? "bg-emerald-400 animate-pulse"
+                        : status === "listening"
+                        ? "bg-cyan-400 animate-ping"
+                        : status === "thinking"
+                        ? "bg-purple-400 animate-spin"
+                        : isMuted
+                        ? "bg-rose-500"
+                        : "bg-emerald-500"
+                    }`}
+                  />
                 </div>
+              </div>
+            </div>
+
+            {/* Caller Name & Subtitle */}
+            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-1 font-sans">
+              Lexa AI
+            </h2>
+            <p className="text-xs text-zinc-400 font-medium mb-3">
+              Realtime Multimodal Neural Call
+            </p>
+
+            {/* Live Call Duration Timer */}
+            <div className="text-sm font-semibold text-zinc-300 font-mono tracking-wider bg-white/[0.07] px-3.5 py-1 rounded-full border border-white/10 mb-4 shadow-sm">
+              {formatDuration(callDuration)}
+            </div>
+
+            {/* Dynamic Status Pill */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/15 text-xs text-zinc-200 shadow-sm">
+              {status === "listening" && (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  <span>Listening to you...</span>
+                </>
               )}
-
-              <button
-                type="button"
-                onClick={() => setShowTranscript(!showTranscript)}
-                className={`p-2 rounded-xl border transition-colors ${
-                  showTranscript
-                    ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
-                    : "bg-white/5 text-zinc-400 border-white/10 hover:text-white"
-                }`}
-                title="Toggle transcript feed"
-              >
-                <MessageSquare className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors"
-                title="End Voice Chat"
-              >
-                <PhoneOff className="w-4 h-4" />
-              </button>
+              {status === "thinking" && (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin" />
+                  <span>Lexa is thinking...</span>
+                </>
+              )}
+              {status === "speaking" && (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Lexa is speaking...</span>
+                </>
+              )}
+              {status === "idle" && (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-zinc-400" />
+                  <span>{isMuted ? "Muted" : "Ready / Waiting..."}</span>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Central Experience: Visualizer Orb & Transcript */}
-          <div className="relative flex-1 flex flex-col items-center justify-center p-6 overflow-hidden">
-            {/* Background Ambient Glow */}
-            <div
-              className="absolute w-96 h-96 rounded-full blur-[120px] pointer-events-none opacity-25"
-              style={{
-                background:
-                  status === "listening"
-                    ? "#38bdf8"
-                    : status === "speaking"
-                    ? "#34d399"
-                    : status === "thinking"
-                    ? "#c084fc"
-                    : "#6366f1",
-              }}
-            />
-
-            {/* Glowing Orb */}
-            <div className="relative flex items-center justify-center my-6">
-              {/* Outer Pulsing Wave Rings */}
-              {[1, 2, 3].map((ring) => (
-                <motion.div
-                  key={ring}
-                  animate={{
-                    scale: status === "speaking" || status === "listening" ? [1, 1.25 + ring * 0.18, 1] : [1, 1.08, 1],
-                    opacity: status === "speaking" || status === "listening" ? [0.6, 0.1, 0.6] : [0.3, 0.1, 0.3],
-                  }}
-                  transition={{
-                    duration: 2 + ring * 0.4,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: ring * 0.3,
-                  }}
-                  className={`absolute w-48 h-48 rounded-full border border-white/10 pointer-events-none`}
-                  style={{
-                    transform: `scale(${1 + audioLevel * (ring * 0.15)})`,
-                  }}
-                />
-              ))}
-
-              {/* Main Interactive Center Orb */}
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.95 }}
-                type="button"
-                onClick={status === "speaking" ? handleInterrupt : status === "listening" ? stopListening : startListening}
-                className={`w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-gradient-to-tr ${getOrbGlow()} p-1 flex items-center justify-center transition-all duration-500 cursor-pointer relative z-10`}
-                style={{
-                  transform: `scale(${status === "speaking" || status === "listening" ? 1 + audioLevel * 0.15 : 1})`,
-                }}
-              >
-                <div className="w-full h-full rounded-full bg-[#0a0b12]/80 backdrop-blur-xl flex flex-col items-center justify-center p-4 text-center border border-white/20">
-                  {status === "thinking" ? (
-                    <Loader2 className="w-10 h-10 text-purple-400 animate-spin" />
-                  ) : status === "speaking" ? (
-                    <Volume2 className="w-10 h-10 text-emerald-400 animate-pulse" />
-                  ) : status === "listening" ? (
-                    <Mic className="w-10 h-10 text-cyan-400 animate-pulse" />
-                  ) : (
-                    <Mic className="w-10 h-10 text-zinc-400 hover:text-white" />
-                  )}
-                  <span className="text-[11px] text-zinc-300 font-medium mt-2">
-                    {status === "speaking" ? "Tap to Stop" : status === "listening" ? "Listening..." : "Tap to Speak"}
-                  </span>
-                </div>
-              </motion.button>
-            </div>
-
-            {/* Status Subtitle */}
-            <div className="text-center mt-2">
-              <p className="text-sm font-semibold text-white tracking-wide">{getStatusLabel()}</p>
-              {interimText && (
-                <motion.p
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-xs text-cyan-300 italic max-w-md mx-auto mt-1"
-                >
-                  "{interimText}"
-                </motion.p>
-              )}
-            </div>
-
-            {/* Live Transcript Drawer/Panel */}
+          {/* ── Live Captions & Teleprompter Card ── */}
+          <div className="relative z-10 px-6 mb-2">
             <AnimatePresence>
-              {showTranscript && messages.length > 0 && (
+              {showCaptions && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="w-full max-w-xl max-h-36 overflow-y-auto mt-4 p-3 bg-black/40 border border-white/10 rounded-2xl space-y-2 backdrop-blur-md text-left text-xs"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="w-full min-h-[64px] max-h-[100px] overflow-y-auto rounded-2xl p-3 bg-black/60 backdrop-blur-xl border border-white/15 text-center flex flex-col items-center justify-center text-xs sm:text-sm leading-relaxed shadow-lg"
                 >
-                  {messages.slice(-3).map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex gap-2 ${msg.role === "user" ? "text-cyan-300" : "text-zinc-300"}`}
-                    >
-                      <span className="font-bold text-[10px] uppercase opacity-75 shrink-0">
-                        {msg.role === "user" ? "You:" : "Lexa:"}
+                  {interimText ? (
+                    <p className="text-cyan-300 italic font-medium">"{interimText}"</p>
+                  ) : status === "thinking" ? (
+                    <p className="text-purple-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 animate-spin" /> Formulating response...
+                    </p>
+                  ) : latestMessage ? (
+                    <p className="text-zinc-200">
+                      <span className="text-zinc-400 font-semibold mr-1">
+                        {latestMessage.role === "user" ? "You:" : "Lexa:"}
                       </span>
-                      <p className="flex-1 leading-relaxed">{msg.content}</p>
-                    </div>
-                  ))}
+                      {latestMessage.content}
+                    </p>
+                  ) : (
+                    <p className="text-zinc-400 text-xs">
+                      Start speaking naturally. Lexa will respond in real time.
+                    </p>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Bottom Control Bar */}
-          <div className="px-6 py-4 border-t border-white/10 bg-[#121422]/90 backdrop-blur-md flex items-center justify-between shrink-0">
-            {/* Hands-Free Toggle */}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setIsHandsFree(!isHandsFree)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                  isHandsFree
-                    ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
-                    : "bg-white/5 text-zinc-400 border-white/10 hover:text-white"
-                }`}
-              >
-                <span className={`w-2 h-2 rounded-full ${isHandsFree ? "bg-cyan-400 animate-pulse" : "bg-zinc-500"}`} />
-                <span>Hands-free Mode</span>
-              </button>
-            </div>
+          {/* ── Realistic Phone Call Bottom Control Tray ── */}
+          <div className="relative z-10 px-6 pb-8 pt-3 bg-gradient-to-t from-[#05060a] via-[#05060a]/90 to-transparent">
+            <div className="grid grid-cols-4 gap-3 items-center justify-items-center max-w-sm mx-auto mb-4">
+              {/* 1. Mic Mute / Unmute */}
+              <div className="flex flex-col items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  className={`w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-md border ${
+                    isMuted
+                      ? "bg-rose-500/25 border-rose-500/40 text-rose-400"
+                      : "bg-white/[0.08] hover:bg-white/[0.16] border-white/12 text-white"
+                  }`}
+                  aria-label={isMuted ? "Unmute Microphone" : "Mute Microphone"}
+                >
+                  {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                </button>
+                <span className="text-[10px] text-zinc-400 font-medium">
+                  {isMuted ? "Unmute" : "Mute"}
+                </span>
+              </div>
 
-            {/* Central Actions */}
-            <div className="flex items-center gap-2">
-              {status === "speaking" && (
+              {/* 2. Speaker Output Toggle */}
+              <div className="flex flex-col items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSpeakerOn((prev) => !prev);
+                    if (isSpeakerOn && "speechSynthesis" in window) {
+                      window.speechSynthesis.cancel();
+                    }
+                  }}
+                  className={`w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-md border ${
+                    isSpeakerOn
+                      ? "bg-white/[0.08] hover:bg-white/[0.16] border-white/12 text-white"
+                      : "bg-white/5 border-white/5 text-zinc-500"
+                  }`}
+                  aria-label="Toggle Speaker"
+                >
+                  {isSpeakerOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                </button>
+                <span className="text-[10px] text-zinc-400 font-medium">Speaker</span>
+              </div>
+
+              {/* 3. Captions / Subtitles Toggle */}
+              <div className="flex flex-col items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowCaptions((prev) => !prev)}
+                  className={`w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-md border ${
+                    showCaptions
+                      ? "bg-cyan-500/20 border-cyan-500/30 text-cyan-300"
+                      : "bg-white/[0.08] hover:bg-white/[0.16] border-white/12 text-zinc-400"
+                  }`}
+                  aria-label="Toggle Captions"
+                >
+                  <Captions className="w-5 h-5" />
+                </button>
+                <span className="text-[10px] text-zinc-400 font-medium">Captions</span>
+              </div>
+
+              {/* 4. Interrupt / Push-to-Talk Turn */}
+              <div className="flex flex-col items-center gap-1.5">
                 <button
                   type="button"
                   onClick={handleInterrupt}
-                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors border border-white/10"
+                  className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-white/[0.08] hover:bg-white/[0.16] border border-white/12 text-white flex items-center justify-center transition-all active:scale-95 shadow-md"
+                  title="Interrupt & Speak Now"
+                  aria-label="Interrupt AI"
                 >
-                  <Pause className="w-3.5 h-3.5" />
-                  Interrupt
+                  <RotateCcw className="w-5 h-5 text-amber-400" />
                 </button>
-              )}
-              {status === "idle" && (
-                <button
-                  type="button"
-                  onClick={startListening}
-                  className="px-5 py-2 bg-white text-black hover:bg-zinc-200 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-white/20 transition-all cursor-pointer"
-                >
-                  <Mic className="w-3.5 h-3.5" />
-                  Start Talking
-                </button>
-              )}
+                <span className="text-[10px] text-zinc-400 font-medium">Interrupt</span>
+              </div>
             </div>
 
-            {/* End Call Button */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-500 text-white hover:bg-rose-600 text-xs font-semibold shadow-lg shadow-rose-500/25 transition-all"
-            >
-              <PhoneOff className="w-3.5 h-3.5" />
-              <span>Done</span>
-            </button>
+            {/* 🔴 Big Red End Call Button */}
+            <div className="flex justify-center mt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full max-w-[260px] py-3.5 rounded-full bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold text-sm flex items-center justify-center gap-2.5 shadow-[0_8px_25px_rgba(225,29,72,0.4)] border border-rose-400/40 transition-all cursor-pointer"
+                aria-label="End Voice Call"
+              >
+                <PhoneOff className="w-5 h-5" />
+                <span>End Call</span>
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>
