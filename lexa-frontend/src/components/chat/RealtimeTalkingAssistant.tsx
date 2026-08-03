@@ -390,74 +390,26 @@ export function RealtimeTalkingAssistant({
 
   if (!isOpen) return null;
 
-  // Sound-Reactive Wave Parameters according to voice / speech state
+  // Sound-Reactive Wave: Keep the slow, hypnotic, glowing thinking-style waves permanently
   const getStrandsConfig = () => {
-    switch (status) {
-      case "listening":
-        return {
-          colors: ["#38BDF8", "#3B82F6", "#0673d4", "#818CF8"],
-          count: 1,
-          speed: 1.4 + audioLevel * 1.8,
-          amplitude: 0.45 + audioLevel * 1.5,
-          waviness: 2.2 + audioLevel * 1.6,
-          thickness: 0.7 + audioLevel * 0.5,
-          glow: 2.6 + audioLevel * 1.2,
-          taper: 5.5,
-          spread: 3.0,
-          intensity: 1.0,
-          saturation: 2.0,
-          opacity: 0.85,
-          scale: 2.3,
-        };
-      case "speaking":
-        return {
-          colors: ["#34D399", "#38BDF8", "#3B82F6", "#0673d4"],
-          count: 2,
-          speed: 2.0,
-          amplitude: 0.75,
-          waviness: 2.8,
-          thickness: 0.8,
-          glow: 2.8,
-          taper: 4.8,
-          spread: 2.5,
-          intensity: 1.0,
-          saturation: 2.2,
-          opacity: 0.9,
-          scale: 2.2,
-        };
-      case "thinking":
-        return {
-          colors: ["#818CF8", "#C084FC", "#38BDF8"],
-          count: 1,
-          speed: 2.6,
-          amplitude: 0.6,
-          waviness: 3.4,
-          thickness: 0.75,
-          glow: 3.0,
-          taper: 5.0,
-          spread: 2.8,
-          intensity: 1.0,
-          saturation: 2.0,
-          opacity: 0.8,
-          scale: 2.3,
-        };
-      default:
-        return {
-          colors: ["#3B82F6", "#0a126b", "#0673d4"],
-          count: 1,
-          speed: 0.9 + audioLevel * 0.6,
-          amplitude: 0.35 + audioLevel * 0.4,
-          waviness: 2.0,
-          thickness: 0.7,
-          glow: 2.4,
-          taper: 5.5,
-          spread: 3.0,
-          intensity: 0.8,
-          saturation: 1.8,
-          opacity: 0.65,
-          scale: 2.3,
-        };
-    }
+    // Beautiful glowing thinking palette: Violet -> Cyan -> Indigo
+    const thinkingColors = ["#818CF8", "#C084FC", "#38BDF8"];
+
+    return {
+      colors: thinkingColors,
+      count: 1,
+      speed: 0.65, // Slow, hypnotic, soothing wave speed
+      amplitude: 0.55 + (status === "speaking" ? 0.08 : status === "listening" ? audioLevel * 0.15 : 0.0),
+      waviness: 2.3,
+      thickness: 0.72,
+      glow: 2.8,
+      taper: 5.5,
+      spread: 3.0,
+      intensity: 1.0,
+      saturation: 2.0,
+      opacity: 0.85,
+      scale: 2.3,
+    };
   };
 
   const currentStrands = getStrandsConfig();
