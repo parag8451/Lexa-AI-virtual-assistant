@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 
-export function CustomCursor() {
+export function CustomCursor({ enabled = false }: { enabled?: boolean }) {
+  // Disabled by default to restore the native cursor. Enable only if explicitly requested.
+  if (!enabled) return null;
+
   const cursorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

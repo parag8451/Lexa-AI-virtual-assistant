@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send, ArrowDown, ArrowUp, Copy, Check, ThumbsUp, ThumbsDown,
-  Plus, Settings, Sparkles, ChevronDown, Mic, MicOff,
+  Plus, Settings, Sparkles, ChevronDown, Mic, MicOff, Lock, Unlock,
   Volume2, VolumeX, Download, Trash2, Globe, CheckCircle2,
   Cpu, Zap, Wand2, Smartphone, Code2, Paperclip, MessageSquare,
   History, Search, Edit2, X, Clock, PanelLeftClose, CheckSquare
@@ -24,7 +24,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { CustomCursor } from "@/components/ui/CustomCursor";
 
 /* ─── Types ─── */
 interface ChatMessage {
@@ -265,6 +264,14 @@ function IndexContent() {
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [designMode, setDesignMode] = useState<"assistant" | "code" | "web" | "mobile">("assistant");
   const [pageReady, setPageReady] = useState(false);
+  const [isPrivateConversation, setIsPrivateConversation] = useState(false);
+
+  // Expose private mode to other hooks via a global window flag so lower-level hooks can opt out of DB writes
+  useEffect(() => {
+    try {
+      (window as any).__LEXA_PRIVATE_MODE = isPrivateConversation === true;
+    } catch (e) {}
+  }, [isPrivateConversation]);
 
   // Endpoint for chat backend - prefer explicit env override, then Supabase functions path, then local backend
   const CHAT_ENDPOINT = (import.meta.env.VITE_CHAT_ENDPOINT as string) || '/functions/v1/chat';
@@ -610,7 +617,7 @@ function IndexContent() {
           timestamp: m.timestamp.toISOString(),
         })),
       };
-      persistConversations([newConv, ...conversations]);
+      if (!isPrivateConversation) persistConversations([newConv, ...conversations]);
     } else {
       const updated = conversations.map((c) =>
         c.id === activeConvId
@@ -626,7 +633,7 @@ function IndexContent() {
             }
           : c
       );
-      persistConversations(updated);
+      if (!isPrivateConversation) persistConversations(updated);
     }
 
     const aiMessageId = generateId();
@@ -816,26 +823,31 @@ function IndexContent() {
 
       // Save complete conversation history with AI response
       const allFinalMessages = [...nextMessages, finalAiMsg];
-      setConversations((prevConvs) => {
-        const updated = prevConvs.map((c) =>
-          c.id === activeConvId
-            ? {
-                ...c,
-                updatedAt: Date.now(),
-                messages: allFinalMessages.map((m) => ({
-                  id: m.id,
-                  role: m.role,
-                  content: m.content,
-                  timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
-                })),
-              }
-            : c
-        );
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-        } catch {}
-        return updated;
-      });
+      if (!isPrivateConversation) {
+        setConversations((prevConvs) => {
+          const updated = prevConvs.map((c) =>
+            c.id === activeConvId
+              ? {
+                  ...c,
+                  updatedAt: Date.now(),
+                  messages: allFinalMessages.map((m) => ({
+                    id: m.id,
+                    role: m.role,
+                    content: m.content,
+                    timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
+                  })),
+                }
+              : c
+          );
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          } catch {}
+          return updated;
+        });
+      } else {
+        // Private conversation: do not persist to localStorage or conversation list
+        // Keep currentConversationId and messages in-memory only
+      }
     }
   };
 
@@ -918,7 +930,6 @@ function IndexContent() {
 
   return (
     <div className="custom-chat-wrapper bg-[#090a0e] relative flex overflow-hidden">
-      <CustomCursor />
 
       {/* Hidden File Input for Attachment */}
       <input
@@ -955,6 +966,19 @@ function IndexContent() {
             </button>
           </TooltipTrigger>
           <TooltipContent side="right">New Chat</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setIsPrivateConversation((p) => !p)}
+              className={`sidebar-btn hover:bg-white/10 transition-colors ${isPrivateConversation ? "bg-white/10 text-white" : "text-zinc-400"}`}
+              aria-label="Toggle private conversation"
+            >
+              {isPrivateConversation ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">{isPrivateConversation ? "Private: conversations won't be saved" : "Public: conversations are saved"}</TooltipContent>
         </Tooltip>
 
         <Tooltip>

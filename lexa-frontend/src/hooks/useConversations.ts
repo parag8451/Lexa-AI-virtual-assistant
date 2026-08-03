@@ -10,6 +10,9 @@ export function useConversations() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Helper to read the global private mode flag set by the UI
+  const isPrivateMode = () => (window as any).__LEXA_PRIVATE_MODE === true;
+
   // Fetch all conversations
   const fetchConversations = useCallback(async () => {
     if (!user) return;
@@ -57,6 +60,22 @@ export function useConversations() {
   // Create a new conversation
   const createConversation = useCallback(async (title?: string) => {
     if (!user) return null;
+
+    if (isPrivateMode()) {
+      // Create a local-only conversation object (session-only)
+      const localConv: Conversation = {
+        id: `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`,
+        user_id: user.id,
+        title: title || "New Chat",
+        model: "session",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setConversations((prev) => [localConv, ...prev]);
+      setCurrentConversation(localConv);
+      setMessages([]);
+      return localConv;
+    }
 
     const { data, error } = await supabase
       .from("conversations")
@@ -138,40 +157,46 @@ export function useConversations() {
         )
       );
       setCurrentConversation((prev) => prev ? { ...prev, title } : null);
-      
-      // Update title in DB (fire and forget for speed)
-      supabase
-        .from("conversations")
-        .update({ title })
-        .eq("id", conv.id)
-        .then(() => {});
+       
+      // Update title in DB (fire and forget for speed) unless private mode
+      if (!isPrivateMode()) {
+        supabase
+          .from("conversations")
+          .update({ title })
+          .eq("id", conv.id)
+          .then(() => {});
+      }
     }
-
-    // Save to database in background (don't await for speed)
-    supabase
-      .from("messages")
-      .insert({
-        conversation_id: conv.id,
-        role,
-        content,
-        attachments,
-      })
-      .select()
-      .single()
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error saving message:", error);
-          return;
-        }
-        // Replace temp ID with real ID
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === tempId
-              ? { ...m, id: data.id }
-              : m
-          )
-        );
-      });
+ 
+    // Save to database in background (don't await for speed) unless private
+    if (!isPrivateMode()) {
+      supabase
+        .from("messages")
+        .insert({
+          conversation_id: conv.id,
+          role,
+          content,
+          attachments,
+        })
+        .select()
+        .single()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error("Error saving message:", error);
+            return;
+          }
+          // Replace temp ID with real ID
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempId
+                ? { ...m, id: data.id }
+                : m
+            )
+          );
+        });
+    } else {
+      // In private mode: do not write to DB, keep optimistic temp IDs
+    }
 
     return optimisticMessage;
   }, [currentConversation, messages.length]);
@@ -214,14 +239,18 @@ export function useConversations() {
       citations: (citations as any) || null,
     };
 
-    // Fire and forget for speed - don't await
-    Promise.all([
-      supabase.from("messages").insert(messageData),
-      supabase
-        .from("conversations")
-        .update({ updated_at: new Date().toISOString() })
-        .eq("id", currentConversation.id),
-    ]).catch((error) => console.error("Error saving assistant message:", error));
+    // Fire and forget for speed - don't await (skip when in private mode)
+    if (!isPrivateMode()) {
+      Promise.all([
+        supabase.from("messages").insert(messageData),
+        supabase
+          .from("conversations")
+          .update({ updated_at: new Date().toISOString() })
+          .eq("id", currentConversation.id),
+      ]).catch((error) => console.error("Error saving assistant message:", error));
+    } else {
+      // Private mode: do not persist assistant messages or update conversation timestamp
+    }
   }, [currentConversation]);
 
   // Start a new chat

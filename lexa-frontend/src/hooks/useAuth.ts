@@ -29,6 +29,14 @@ export function useAuth() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    try {
+      // Clear client-side stored conversations and any local session caches
+      localStorage.removeItem("lexa_saved_conversations_v3");
+    } catch (e) {}
+    // Redirect to auth page to force login flow
+    try {
+      window.location.href = "/auth";
+    } catch (e) {}
   };
 
   return { user, session, loading, signOut };
