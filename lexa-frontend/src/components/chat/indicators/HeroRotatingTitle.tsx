@@ -106,25 +106,25 @@ export function HeroRotatingTitle({
 
   return (
     <div
-      className={`w-full max-w-4xl min-h-[3.2em] sm:min-h-[2.6em] flex items-center justify-center mb-3 select-none ${className}`}
+      className={`w-full max-w-4xl min-h-[3.2em] sm:min-h-[2.6em] flex items-center justify-center mb-2 select-none ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       aria-label={currentSentence}
     >
       <h1
-        className={`text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white leading-[1.15] text-center transition-all duration-300 ${
+        className={`text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-white leading-[1.2] text-center transition-all duration-300 ${
           isFading
-            ? "opacity-0 -translate-y-2 blur-sm"
+            ? "opacity-0 -translate-y-1 blur-sm"
             : "opacity-100 translate-y-0 blur-0"
         }`}
       >
-        <span className="bg-gradient-to-b from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
+        <span className="bg-gradient-to-b from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent font-semibold">
           {displayedText}
         </span>
         <motion.span
           animate={{ opacity: [1, 0, 1] }}
           transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
-          className="inline-block w-[3px] h-[0.85em] bg-[#38BDF8] ml-1.5 align-middle rounded-full shadow-[0_0_10px_#38BDF8]"
+          className="inline-block w-[2.5px] h-[0.75em] bg-[#38BDF8] ml-1.5 align-middle rounded-full"
         />
       </h1>
     </div>

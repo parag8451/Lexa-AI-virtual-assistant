@@ -1484,32 +1484,24 @@ function IndexContent() {
         <header className="header flex items-center justify-between px-6 py-4 relative z-20">
           {/* Permanent & Stable LEXA AI Brand Anchor */}
           <div
-            className="flex items-center gap-3 cursor-pointer select-none group"
+            className="flex items-center gap-2.5 cursor-pointer select-none group"
             onClick={handleNewChat}
             title="Lexa AI Assistant - Home"
           >
-            {/* Emblem */}
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500/20 via-indigo-500/20 to-purple-500/20 border border-white/15 flex items-center justify-center backdrop-blur-md shadow-sm group-hover:border-cyan-400/50 transition-colors">
-              <svg className="w-5 h-5" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="headerStar" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stopColor="#38bdf8" />
-                    <stop offset="50%" stopColor="#818cf8" />
-                    <stop offset="100%" stopColor="#c084fc" />
-                  </linearGradient>
-                </defs>
-                <path d="M14 2 C14 8.5 19.5 14 14 14 C19.5 14 14 19.5 14 26 C14 19.5 8.5 14 14 14 C8.5 14 14 8.5 14 2Z" fill="url(#headerStar)" />
-                <path d="M2 14 C8.5 14 14 8.5 14 14 C14 8.5 19.5 14 26 14 C19.5 14 14 19.5 14 14 C14 19.5 8.5 14 2 14Z" fill="url(#headerStar)" opacity="0.6" />
+            {/* High-Precision Modern Emblem */}
+            <div className="w-8 h-8 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center backdrop-blur-md shadow-sm group-hover:border-white/20 transition-all">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" fill="#38BDF8" fillOpacity="0.9" />
               </svg>
             </div>
 
             {/* Stable Branding Text */}
             <div className="flex items-center gap-2">
-              <span className="text-lg font-bold tracking-tight text-white font-sans">
+              <span className="text-[15px] font-semibold tracking-tight text-white font-sans">
                 LEXA AI
               </span>
-              <span className="text-[10px] font-semibold tracking-wider text-cyan-300 border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 rounded-full uppercase flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-medium tracking-wide text-zinc-300 border border-white/10 bg-white/[0.05] px-2 py-0.5 rounded-full flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 2.0
               </span>
             </div>
@@ -1520,7 +1512,7 @@ function IndexContent() {
             {/* Live Voice Assistant Launch Button */}
             <button
               onClick={() => setIsVoiceAssistantOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-emerald-300 transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/15 text-zinc-300 hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <Radio className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden sm:inline">Live Talking AI</span>
@@ -1529,7 +1521,7 @@ function IndexContent() {
             {/* Camera Scanner Button */}
             <button
               onClick={() => setIsCameraModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-300 hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/15 text-zinc-300 hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <Camera className="w-3.5 h-3.5 text-cyan-400" />
               <span className="hidden sm:inline">Scan / OCR</span>
@@ -1539,7 +1531,7 @@ function IndexContent() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="flex items-center gap-2 bg-[#161824]/90 hover:bg-[#202334] border border-white/10 text-zinc-200 px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md transition-all shadow-sm active:scale-95 cursor-pointer"
+                  className="flex items-center gap-2 bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/15 text-zinc-200 px-3.5 py-1.5 rounded-full text-xs font-medium backdrop-blur-md transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   <currentModelInfo.icon className="w-3.5 h-3.5 text-[#38BDF8]" />
                   <span>{currentModelInfo.name}</span>
@@ -1582,10 +1574,10 @@ function IndexContent() {
             {/* Web Search toggle */}
             <button
               onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 cursor-pointer ${
+              className={`hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 cursor-pointer ${
                 webSearchEnabled
                   ? "bg-[#38BDF8]/15 text-[#38BDF8] border-[#38BDF8]/30 shadow-sm"
-                  : "bg-white/[0.06] text-zinc-400 border-white/10 hover:text-white"
+                  : "bg-white/[0.05] text-zinc-400 border-white/[0.08] hover:text-white"
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
@@ -1596,7 +1588,7 @@ function IndexContent() {
             {hasMessages ? (
               <button
                 onClick={handleNewChat}
-                className="flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-200 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shadow-md active:scale-95 cursor-pointer"
+                className="flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-100 px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>New</span>
@@ -1604,7 +1596,7 @@ function IndexContent() {
             ) : (
               <button
                 onClick={() => navigate("/auth")}
-                className="bg-white text-zinc-950 hover:bg-zinc-200 px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-md active:scale-95 cursor-pointer"
+                className="bg-white text-zinc-950 hover:bg-zinc-100 px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
               >
                 Sign In
               </button>
@@ -1638,20 +1630,20 @@ function IndexContent() {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.15 }}
-                  className="text-sm sm:text-base text-zinc-400 max-w-xl mb-8 font-normal leading-relaxed"
+                  className="text-sm text-zinc-400 max-w-lg mb-8 font-normal leading-relaxed tracking-normal"
                 >
-                  Your multimodal AI assistant for vision OCR, documents, code, creativity, and voice
+                  Multimodal intelligence for live vision OCR, documents, code synthesis, and voice
                 </motion.p>
 
                 {/* ── Central Floating Realistic Card ── */}
                 <div
                   className={`w-full max-w-2xl rounded-3xl p-4 sm:p-5 text-left transition-all duration-200 ${
                     inputFocused
-                      ? "border-cyan-500/50 shadow-[0_20px_50px_rgba(0,0,0,0.55),0_0_0_1px_rgba(56,189,248,0.4)]"
-                      : "border-white/12 hover:border-white/20 shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
+                      ? "border-cyan-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_0_1px_rgba(56,189,248,0.3)]"
+                      : "border-white/[0.09] hover:border-white/[0.15] shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
                   }`}
                   style={{
-                    background: "rgba(18, 20, 32, 0.75)",
+                    background: "rgba(14, 16, 25, 0.82)",
                     backdropFilter: "blur(24px) saturate(180%)",
                     WebkitBackdropFilter: "blur(24px) saturate(180%)",
                     borderWidth: "1px",
@@ -1674,20 +1666,20 @@ function IndexContent() {
                     onFocus={() => setInputFocused(true)}
                     onBlur={() => setInputFocused(false)}
                     placeholder={getPlaceholder()}
-                    className="w-full bg-transparent text-white placeholder-zinc-500 text-base sm:text-lg resize-none outline-none focus:outline-none font-normal"
+                    className="w-full bg-transparent text-white placeholder-zinc-500 text-base resize-none outline-none focus:outline-none font-normal"
                     disabled={isStreaming}
                   />
 
                   {/* Card Bottom Toolbar */}
-                  <div className="flex items-center justify-between pt-3 border-t border-white/10 mt-2">
+                  <div className="flex items-center justify-between pt-3 border-t border-white/[0.08] mt-2">
                     {/* Left side: Attachments + Camera + Mode Switcher */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm"
+                            className="w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/15 text-zinc-300 hover:text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm"
                             aria-label="Upload File / Document / PDF"
                           >
                             <Paperclip className="w-3.5 h-3.5" />
@@ -1701,7 +1693,7 @@ function IndexContent() {
                           <button
                             type="button"
                             onClick={() => setIsCameraModalOpen(true)}
-                            className="w-8 h-8 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/25 text-cyan-300 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm"
+                            className="w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/15 text-zinc-300 hover:text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm"
                             aria-label="Camera OCR Scanner"
                           >
                             <Camera className="w-3.5 h-3.5 text-cyan-400" />
@@ -1711,13 +1703,13 @@ function IndexContent() {
                       </Tooltip>
 
                       {/* Segmented Mode Switcher */}
-                      <div className="hidden sm:flex items-center p-0.5 rounded-full bg-[#10121a] border border-white/10 text-xs shadow-inner">
+                      <div className="hidden sm:flex items-center p-0.5 rounded-full bg-black/40 border border-white/[0.06] text-xs">
                         <button
                           type="button"
                           onClick={() => setDesignMode("assistant")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all active:scale-95 cursor-pointer ${
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                             designMode === "assistant"
-                              ? "bg-[#242738] text-white shadow-sm border border-white/15"
+                              ? "bg-white/15 text-white shadow-sm border border-white/10"
                               : "text-zinc-400 hover:text-white"
                           }`}
                         >
@@ -1727,9 +1719,9 @@ function IndexContent() {
                         <button
                           type="button"
                           onClick={() => setDesignMode("code")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all active:scale-95 cursor-pointer ${
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                             designMode === "code"
-                              ? "bg-[#242738] text-white shadow-sm border border-white/15"
+                              ? "bg-white/15 text-white shadow-sm border border-white/10"
                               : "text-zinc-400 hover:text-white"
                           }`}
                         >
@@ -1739,9 +1731,9 @@ function IndexContent() {
                         <button
                           type="button"
                           onClick={() => setDesignMode("web")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all active:scale-95 cursor-pointer ${
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                             designMode === "web"
-                              ? "bg-[#242738] text-white shadow-sm border border-white/15"
+                              ? "bg-white/15 text-white shadow-sm border border-white/10"
                               : "text-zinc-400 hover:text-white"
                           }`}
                         >
@@ -1751,9 +1743,9 @@ function IndexContent() {
                         <button
                           type="button"
                           onClick={() => setDesignMode("mobile")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all active:scale-95 cursor-pointer ${
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all active:scale-95 cursor-pointer ${
                             designMode === "mobile"
-                              ? "bg-[#242738] text-white shadow-sm border border-white/15"
+                              ? "bg-white/15 text-white shadow-sm border border-white/10"
                               : "text-zinc-400 hover:text-white"
                           }`}
                         >
@@ -1764,7 +1756,7 @@ function IndexContent() {
                     </div>
 
                     {/* Right side: Search Toggle, Live Voice, Mic, and Send */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       {/* Web search toggle */}
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -1773,12 +1765,12 @@ function IndexContent() {
                             onClick={() => setWebSearchEnabled(!webSearchEnabled)}
                             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border ${
                               webSearchEnabled
-                                ? "text-[#38BDF8] bg-[#38BDF8]/20 border-[#38BDF8]/40 shadow-sm"
-                                : "text-zinc-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border-white/10"
+                                ? "text-[#38BDF8] bg-[#38BDF8]/15 border-[#38BDF8]/30 shadow-sm"
+                                : "text-zinc-300 hover:text-white bg-white/[0.05] hover:bg-white/[0.10] border-white/[0.08]"
                             }`}
                             aria-label="Toggle Web Search"
                           >
-                            <Globe className="w-4 h-4" />
+                            <Globe className="w-3.5 h-3.5" />
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="top">
@@ -1792,10 +1784,10 @@ function IndexContent() {
                           <button
                             type="button"
                             onClick={() => setIsVoiceAssistantOpen(true)}
-                            className="w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/25 text-emerald-400"
+                            className="w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border bg-white/[0.05] hover:bg-white/[0.10] border-white/[0.08] text-emerald-400"
                             aria-label="Real-time Voice Chat"
                           >
-                            <Radio className="w-4 h-4 text-emerald-400" />
+                            <Radio className="w-3.5 h-3.5 text-emerald-400" />
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="top">Real-Time Talking Assistant</TooltipContent>
@@ -1810,11 +1802,11 @@ function IndexContent() {
                             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border ${
                               isListening
                                 ? "bg-rose-500/20 text-rose-400 border-rose-500/40 shadow-sm"
-                                : "bg-white/[0.06] hover:bg-white/[0.12] border-white/10 text-zinc-300 hover:text-white"
+                                : "bg-white/[0.05] hover:bg-white/[0.10] border-white/[0.08] text-zinc-300 hover:text-white"
                             }`}
                             aria-label="Voice input"
                           >
-                            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                            {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="top">
@@ -1829,13 +1821,13 @@ function IndexContent() {
                         onClick={() => sendMessage()}
                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 ${
                           inputValue.trim() || attachments.length > 0
-                            ? "bg-white text-zinc-950 font-bold hover:bg-zinc-100 shadow-md cursor-pointer border border-white/20"
-                            : "bg-white/[0.07] text-zinc-600 border border-white/5 cursor-not-allowed"
+                            ? "bg-white text-zinc-950 font-semibold hover:bg-zinc-100 shadow-sm cursor-pointer border border-white/20"
+                            : "bg-white/[0.06] text-zinc-600 border border-white/5 cursor-not-allowed"
                         }`}
                         title="Send to Lexa AI"
                         aria-label="Send to Lexa AI"
                       >
-                        <ArrowUp className="w-4 h-4 font-bold" />
+                        <ArrowUp className="w-3.5 h-3.5 font-bold" />
                       </button>
                     </div>
                   </div>
@@ -1853,10 +1845,10 @@ function IndexContent() {
                       key={idx}
                       onClick={() => sendMessage(s.text)}
                       disabled={isStreaming}
-                      className="flex items-center gap-2 bg-[#141724]/80 hover:bg-[#1f2235] border border-white/10 hover:border-white/20 rounded-full px-3.5 py-1.5 text-xs text-zinc-200 transition-all shadow-sm active:scale-95 cursor-pointer"
+                      className="flex items-center gap-2 bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.06] hover:border-white/[0.15] rounded-full px-3.5 py-1.5 text-xs text-zinc-300 hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" />
-                      <span className="truncate max-w-[280px] sm:max-w-none">{s.text}</span>
+                      <Sparkles className="w-3 h-3 text-[#38BDF8]" />
+                      <span className="truncate max-w-[280px] sm:max-w-none font-normal">{s.text}</span>
                     </button>
                   ))}
                 </motion.div>
