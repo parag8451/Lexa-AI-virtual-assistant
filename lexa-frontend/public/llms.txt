@@ -1,0 +1,21 @@
+﻿# Lexa AI
+
+## Product
+Lexa AI is an intelligent AI assistant for professionals, combining advanced AI models, web search, voice, image and video tools in one powerful workspace.
+
+## Features
+- Real-time web search with verified citations.
+- Voice interactions with lightning-fast speech recognition.
+- Image & video generation using DALL-E 3 and cinematic models.
+- Advanced code generation for multiple programming languages.
+- Persistent memory across conversations.
+- Multi-model support including GPT-5, Gemini 2.5 Pro, Claude 4, and Lexa Ultra.
+
+## Audience
+Professionals, creators, developers, and researchers seeking a centralized AI productivity workspace.
+
+## Important Pages
+- Home: https://lexa-ai.com/
+- Features & Pricing: https://lexa-ai.com/
+- Chat Application: https://lexa-ai.com/chat
+- Authentication: https://lexa-ai.com/auth

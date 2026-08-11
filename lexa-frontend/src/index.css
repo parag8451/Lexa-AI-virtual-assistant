@@ -8,6 +8,9 @@
 @tailwind components;
 @tailwind utilities;
 
+.lexa-loader { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #6366f1; border-top-color: transparent; animation: lexa-spin 1s linear infinite; }
+@keyframes lexa-spin { to { transform: rotate(360deg); } }
+
 /* ══════════════════════════════════════════════════════════════════════════════
    LEXA AI — ULTRA PREMIUM DESIGN SYSTEM v3.0
    Cinematic-quality, Figma-level fidelity

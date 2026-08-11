@@ -19,19 +19,28 @@ gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 /* ─── Data ─── */
 const FEATURES = [
-  { icon: MessageSquare, title: "Smart Conversations", description: "Context-aware AI that remembers your preferences and adapts to your style." },
-  { icon: Globe, title: "Real-time Web Search", description: "Access live information with verified citations and up-to-date answers." },
-  { icon: Mic, title: "Voice Interactions", description: "Natural voice interactions with lightning-fast speech recognition." },
-  { icon: Brain, title: "Persistent Memory", description: "An AI that learns your interests for deeply personalized, continuous conversations." },
-  { icon: Image, title: "Image & Video Generation", description: "Create stunning visuals with DALL-E 3 and cinematic videos seamlessly." },
-  { icon: Code2, title: "Advanced Code Generation", description: "Write, debug, and explain complex code across dozens of programming languages." },
+  { icon: MessageSquare, title: "Smart AI Conversations", description: "Context-aware AI virtual assistant that remembers your preferences, adapts to your writing style, and handles complex reasoning tasks seamlessly." },
+  { icon: Globe, title: "Real-time Web Search", description: "Access live information with verified citations. Lexa AI browses the web to give you up-to-date answers for research and fact-checking." },
+  { icon: Mic, title: "Voice AI Interactions", description: "Natural voice interactions with lightning-fast speech recognition. Speak to your AI assistant just like a human." },
+  { icon: Brain, title: "Persistent Memory Workspace", description: "An AI that learns your interests for deeply personalized, continuous conversations across your entire productivity workspace." },
+  { icon: Image, title: "Image & Video Generation", description: "Create stunning visuals with DALL-E 3 and generate cinematic AI videos seamlessly from text prompts within your dashboard." },
+  { icon: Code2, title: "Advanced Code Generation", description: "Write, debug, and explain complex code across dozens of programming languages. A perfect AI assistant for developers." },
 ];
 
 const MODELS = [
-  { name: "GPT-5", badge: "OpenAI", color: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" },
-  { name: "Gemini 2.5 Pro", badge: "Google", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" },
-  { name: "Claude 4", badge: "Anthropic", color: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" },
-  { name: "Lexa Ultra", badge: "Custom", color: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20" },
+  { name: "GPT-4o", badge: "OpenAI", color: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" },
+  { name: "Gemini 1.5 Pro", badge: "Google", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" },
+  { name: "Claude 3.5 Sonnet", badge: "Anthropic", color: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" },
+  { name: "Lexa Ultra", badge: "Custom AI", color: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20" },
+];
+
+const FAQS = [
+  { question: "What is Lexa AI?", answer: "Lexa AI is an intelligent virtual assistant designed for professionals. It combines the world's most advanced AI models, web search capabilities, and multimodal tools (voice, image, and video generation) into a single, unified workspace." },
+  { question: "Who is Lexa AI for?", answer: "Lexa AI is built for professionals, developers, creators, and researchers who need a powerful AI productivity tool to automate tasks, write code, analyze data, and generate content faster." },
+  { question: "Which AI models can I use?", answer: "With Lexa AI, you get access to multiple top-tier models including OpenAI's GPT-4o, Google's Gemini 1.5 Pro, and Anthropic's Claude 3.5 Sonnet, allowing you to choose the best intelligence for your specific task." },
+  { question: "Does Lexa AI support web search?", answer: "Yes, Lexa AI features real-time web search capabilities. It browses the internet to provide you with the most up-to-date information, complete with verified citations and source links." },
+  { question: "Can Lexa AI generate images and videos?", answer: "Absolutely. Our platform integrates advanced image generation models (like DALL-E 3) and AI video generation tools natively into your chat interface." },
+  { question: "How do I get started?", answer: "You can get started completely free by clicking 'Start Building Free'. Create an account and immediately access our powerful AI tools." }
 ];
 
 const STATS = [
@@ -92,6 +101,14 @@ export default function Landing() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const bgVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Increase background video speed
+  useEffect(() => {
+    if (bgVideoRef.current) {
+      bgVideoRef.current.playbackRate = 2.0;
+    }
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -110,15 +127,14 @@ export default function Landing() {
       { opacity: 0, y: 20 },
       { opacity: 1, y: 0, duration: 0.8, ease: "power3.out", delay: 0.2 }
     )
-    .fromTo(".hero-title-line", 
-      { opacity: 0, y: 40, rotationX: -15 },
-      { opacity: 1, y: 0, rotationX: 0, duration: 1, stagger: 0.15, ease: "power4.out" },
-      "-=0.5"
+    .to(".hero-char", 
+      { display: "inline-block", duration: 0.01, stagger: 0.08 },
+      "-=0.2"
     )
     .fromTo(".hero-subtitle", 
       { opacity: 0, y: 20 },
       { opacity: 1, y: 0, duration: 1, ease: "power3.out" },
-      "-=0.6"
+      "-=0.2"
     )
     .fromTo(".hero-ctas", 
       { opacity: 0, y: 20 },
@@ -225,7 +241,7 @@ export default function Landing() {
   }, { scope: containerRef });
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-background text-foreground overflow-x-hidden font-sans selection:bg-primary/20">
+    <main ref={containerRef} className="min-h-screen bg-background text-foreground overflow-x-hidden font-sans selection:bg-primary/20">
       
       {/* ──────── Header ──────── */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
@@ -274,18 +290,21 @@ export default function Landing() {
         {/* Background Video */}
         <div className="absolute inset-0 z-0 w-full h-full overflow-hidden">
           <video 
+            ref={bgVideoRef}
             autoPlay 
             loop 
             muted 
             playsInline
-            className="w-full h-full object-cover opacity-100 scale-105 pointer-events-none"
+            preload="metadata"
+            poster="/icon-512.png"
+            className="w-full h-full object-cover opacity-90 scale-125 blur-3xl pointer-events-none contrast-150 -translate-y-64"
           >
             <source src="/videos/animation.mp4" type="video/mp4" />
           </video>
         </div>
 
-        {/* Subtle background gradient overlay to ensure text readability */}
-        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-transparent via-background/40 to-background pointer-events-none" />
+        {/* Top and bottom fade for seamless blending */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black via-black/50 via-40% to-background pointer-events-none" />
         
         <div className="hero-content-wrapper relative z-20 max-w-4xl mx-auto text-center flex flex-col items-center">
           {/* Badge */}
@@ -298,10 +317,26 @@ export default function Landing() {
           </div>
 
           {/* Staggered Heading */}
-          <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold tracking-tighter leading-[1.05] mb-6" style={{ perspective: "1000px" }}>
-            <div className="hero-title-line origin-bottom">Think faster.</div>
-            <div className="hero-title-line origin-bottom text-muted-foreground">Work smarter.</div>
-          </h1>
+          <div className="w-full flex justify-center mb-8 px-4 md:px-10" style={{ perspective: "1000px" }}>
+            <h1 
+              className="text-6xl sm:text-7xl md:text-[6rem] lg:text-[7.5rem] text-white font-medium tracking-tight leading-[1.05] text-center"
+              style={{ fontFamily: "'Google Sans', sans-serif", minHeight: "2.2em" }}
+            >
+              <div className="hero-title-line text-[#346bf1]">
+                {"Your Intelligent".split("").map((char, i) => (
+                  <span key={`l1-${i}`} className="hero-char hidden">{char === " " ? "\u00A0" : char}</span>
+                ))}
+              </div>
+              <div className="hero-title-line flex justify-center items-center">
+                {"AI Assistant".split("").map((char, i) => (
+                  <span key={`l2-${i}`} className={`hero-char hidden ${i < 2 ? "text-[#346bf1]" : ""}`}>
+                    {char === " " ? "\u00A0" : char}
+                  </span>
+                ))}
+                <span className="inline-block w-[0.1em] h-[0.9em] bg-white ml-2 animate-pulse rounded-sm" />
+              </div>
+            </h1>
+          </div>
 
           {/* Subtitle */}
           <p className="hero-subtitle text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed font-light">
@@ -508,6 +543,24 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ──────── FAQ Section ──────── */}
+      <section id="faq" className="py-24 px-4 border-y border-border/20 bg-muted/5">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tighter mb-4">Frequently Asked Questions</h2>
+            <p className="text-muted-foreground text-lg font-light">Everything you need to know about Lexa AI.</p>
+          </div>
+          <div className="grid gap-6">
+            {FAQS.map((faq, i) => (
+              <article key={i} className="p-6 rounded-2xl bg-background border border-border/40 shadow-sm">
+                <h3 className="text-lg font-semibold mb-2 text-foreground">{faq.question}</h3>
+                <p className="text-muted-foreground font-light leading-relaxed">{faq.answer}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ──────── Final CTA ──────── */}
       <section className="py-24 px-4 pb-32">
         <div className="max-w-5xl mx-auto">
@@ -576,6 +629,6 @@ export default function Landing() {
           </div>
         </div>
       </footer>
-    </div>
+    </main>
   );
 }
