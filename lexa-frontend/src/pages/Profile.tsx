@@ -12,10 +12,17 @@ import { ArrowLeft, Camera, Loader2, Save, Sparkles, User } from "lucide-react";
 import { z } from "zod";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
+import { useSEO } from "@/hooks/useSEO";
 
 const displayNameSchema = z.string().max(100, "Display name must be less than 100 characters").optional();
 
 export default function Profile() {
+  useSEO({
+    title: "Profile",
+    description: "Manage your Lexa AI profile settings.",
+    canonicalUrl: "/profile",
+  });
+
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();

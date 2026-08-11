@@ -6,6 +6,13 @@ import { cors } from 'hono/cors'
 import { jwtMiddleware, rateLimitMiddleware, loggingMiddleware } from './middleware/auth'
 import chatRouter from './routes/chat'
 import type { AppEnv } from './types'
+import mongoose from 'mongoose';
+
+// Startup Security Checks
+if (!process.env.SUPABASE_URL || (!process.env.SUPABASE_SERVICE_KEY && !process.env.SUPABASE_ANON_KEY && !process.env.VITE_SUPABASE_PUBLISHABLE_KEY)) {
+  console.error('FATAL: Supabase environment variables are missing. Auth will fail.');
+  if (process.env.NODE_ENV === 'production') process.exit(1);
+}
 
 const app = new Hono<AppEnv>()
 
@@ -25,11 +32,15 @@ const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [
 // Middleware stack
 app.use('*', cors({
   origin: (origin) => {
-    if (!origin) return '*'
-    if (origin.includes('localhost') || origin.includes('127.0.0.1') || allowedOrigins.includes(origin)) {
-      return origin
+    if (!origin) return '*';
+    if (allowedOrigins.includes(origin)) {
+      return origin;
     }
-    return origin
+    // Only allow specific localhosts, don't wildcard match
+    if (origin === 'http://localhost:8080' || origin === 'http://localhost:5173') {
+      return origin;
+    }
+    return null; // Block unknown origins in production
   },
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
@@ -37,12 +48,27 @@ app.use('*', cors({
 
 app.use('*', loggingMiddleware)
 
-// Health check endpoint (no auth required)
-app.get('/health', (c) => c.json({
-  status: 'ok',
-  uptime: process.uptime(),
-  timestamp: new Date().toISOString()
-}))
+// Deep Health Check Endpoint (/healthz)
+app.get('/healthz', async (c) => {
+  const dbState = mongoose.connection.readyState;
+  // 1 = connected, 2 = connecting
+  const isDbHealthy = dbState === 1;
+
+  const healthData = {
+    status: isDbHealthy ? 'ok' : 'degraded',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    services: {
+      database: isDbHealthy ? 'connected' : 'disconnected',
+    },
+    memoryUsage: {
+      heapUsedMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      rssMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
+    }
+  };
+
+  return c.json(healthData, isDbHealthy ? 200 : 503);
+})
 
 // Public endpoint
 app.get('/', (c) => c.text('Lexa AI backend running'))

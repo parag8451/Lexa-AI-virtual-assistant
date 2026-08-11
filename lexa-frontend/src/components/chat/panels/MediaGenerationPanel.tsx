@@ -321,6 +321,7 @@ export function MediaGenerationPanel({ conversationId }: { conversationId?: stri
                       <img
                         src={selectedImageForEdit?.image_url || uploadedImageUrl!}
                         alt="Source"
+                        loading="lazy"
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -446,7 +447,7 @@ export function MediaGenerationPanel({ conversationId }: { conversationId?: stri
                 </Button>
                 {startingFrameUrl && (
                   <div className="w-16 h-16 rounded overflow-hidden border">
-                    <img src={startingFrameUrl} alt="Start frame" className="w-full h-full object-cover" />
+                    <img src={startingFrameUrl} alt="Start frame" loading="lazy" className="w-full h-full object-cover" />
                   </div>
                 )}
               </div>
@@ -561,6 +562,7 @@ function RecentMediaGrid({
               <img
                 src={image.image_url}
                 alt={image.prompt}
+                loading="lazy"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -624,6 +626,7 @@ function VideoGrid({
               <img
                 src={video.video_url}
                 alt={video.prompt}
+                loading="lazy"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 flex items-center justify-center">

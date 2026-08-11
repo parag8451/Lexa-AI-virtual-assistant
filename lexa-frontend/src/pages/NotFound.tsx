@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Home, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSEO } from "@/hooks/useSEO";
 
 /* ─── Glitch Text Effect ─── */
 function GlitchText({ text }: { text: string }) {
@@ -43,6 +44,11 @@ function FloatingParticle({ delay, size, x, duration }: { delay: number; size: n
 }
 
 export default function NotFound() {
+  useSEO({
+    title: "404 - Page Not Found",
+    description: "The page you are looking for does not exist.",
+  });
+
   const location = useLocation();
   const navigate = useNavigate();
 

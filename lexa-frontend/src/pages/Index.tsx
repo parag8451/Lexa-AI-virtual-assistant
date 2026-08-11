@@ -28,6 +28,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { parseFile, FileAttachment, formatFileSize } from "@/lib/fileParser";
 import { CameraScannerModal } from "@/components/chat/CameraScannerModal";
 import { RealtimeTalkingAssistant } from "@/components/chat/RealtimeTalkingAssistant";
+import { useSEO } from "@/hooks/useSEO";
 
 /* ─── Types ─── */
 interface ChatMessage {
@@ -357,6 +358,12 @@ function AttachmentTray({
 
 /* ─── Main Chat Content ─── */
 function IndexContent() {
+  useSEO({
+    title: "Chat",
+    description: "Chat with Lexa AI, your personal intelligent assistant.",
+    canonicalUrl: "/chat",
+  });
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);

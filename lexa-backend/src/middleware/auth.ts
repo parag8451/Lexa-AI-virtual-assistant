@@ -1,6 +1,8 @@
 import { Context, Next } from 'hono';
 import { createClient } from '@supabase/supabase-js';
 import type { AppEnv } from '../types';
+import Redis from 'ioredis';
+import { logger } from '../utils/logger';
 
 // JWT Middleware - Verify Supabase token
 export async function jwtMiddleware(c: Context<AppEnv>, next: Next): Promise<Response | void> {
@@ -42,8 +44,8 @@ export async function jwtMiddleware(c: Context<AppEnv>, next: Next): Promise<Res
   }
 }
 
-// Rate Limiting Middleware
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+// Rate Limiting Middleware using Redis
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
 const RATE_LIMITS = {
   free: { requests: 20, window: 60 }, // 20 requests per minute
@@ -55,31 +57,28 @@ export async function rateLimitMiddleware(c: Context<AppEnv>, next: Next): Promi
   const userId = c.get('userId');
   const ip = c.req.header('x-forwarded-for') || c.req.header('user-agent') || 'anonymous-ip';
   
-  const now = Date.now();
   const key = `ratelimit:${userId || ip}`;
   const limit = RATE_LIMITS.free; // Default to free tier
 
-  let record = rateLimitStore.get(key);
+  try {
+    const current = await redis.incr(key);
+    if (current === 1) {
+      await redis.expire(key, limit.window);
+    }
 
-  if (!record || now > record.resetTime) {
-    record = { count: 0, resetTime: now + limit.window * 1000 };
+    if (current > limit.requests) {
+      const ttl = await redis.ttl(key);
+      return c.json(
+        { error: 'Rate limit exceeded', retryAfter: ttl > 0 ? ttl : limit.window },
+        429
+      );
+    }
+
+    c.header('X-RateLimit-Limit', String(limit.requests));
+    c.header('X-RateLimit-Remaining', String(Math.max(0, limit.requests - current)));
+  } catch (err) {
+    logger.error('Redis rate limit error, bypassing limit', err);
   }
-
-  if (record.count >= limit.requests) {
-    const resetIn = Math.ceil((record.resetTime - now) / 1000);
-    return c.json(
-      { error: 'Rate limit exceeded', retryAfter: resetIn },
-      429
-    );
-  }
-
-  record.count++;
-  rateLimitStore.set(key, record);
-
-  // Add rate limit headers
-  c.header('X-RateLimit-Limit', String(limit.requests));
-  c.header('X-RateLimit-Remaining', String(limit.requests - record.count));
-  c.header('X-RateLimit-Reset', String(Math.ceil(record.resetTime / 1000)));
 
   return await next();
 }
@@ -96,15 +95,15 @@ export async function loggingMiddleware(c: Context<AppEnv>, next: Next) {
   const duration = Date.now() - startTime;
   const status = c.res.status;
 
-  // Structured logging
-  console.log(JSON.stringify({
-    timestamp: new Date().toISOString(),
+  logger.info('API Request', {
     method,
     path,
     status,
-    duration: `${duration}ms`,
+    durationMs: duration,
     userId: userId || 'anonymous',
-  }));
+  });
+  
+  logger.metric('api.latency_ms', duration, { method, path, status: String(status) });
 }
 
 // Error Handler Middleware

@@ -1,52 +1,30 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, useScroll, useTransform, useInView, useMotionValueEvent } from "framer-motion";
 import { 
   ArrowRight, MessageSquare, Globe, Mic, Brain, 
   Image, Zap, ChevronDown, Bot,
-  Sparkles, Lock, Shield, Code2, Search,
-  Check, ArrowUpRight
+  Sparkles, Lock, Code2, Search, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import Aurora from "@/components/ui/Aurora";
-import { ConstellationCanvas } from "@/components/ui/ConstellationCanvas";
-import SplitText from "@/components/ui/SplitText";
+import { useSEO } from "@/hooks/useSEO";
+
+// GSAP Imports
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 /* ─── Data ─── */
-
 const FEATURES = [
-  {
-    icon: MessageSquare,
-    title: "Smart Conversations",
-    description: "Context-aware AI that remembers your preferences and adapts to your style.",
-  },
-  {
-    icon: Globe,
-    title: "Real-time Web Search",
-    description: "Access live information with verified citations and up-to-date answers.",
-  },
-  {
-    icon: Mic,
-    title: "Voice Conversations",
-    description: "Natural voice interactions with AI-powered speech recognition.",
-  },
-  {
-    icon: Brain,
-    title: "Persistent Memory",
-    description: "An AI that learns your interests for deeply personalized responses.",
-  },
-  {
-    icon: Image,
-    title: "Image & Video Generation",
-    description: "Create stunning visuals with DALL-E 3 and cinematic videos with Veo.",
-  },
-  {
-    icon: Code2,
-    title: "Code Generation",
-    description: "Write, debug, and explain code across dozens of programming languages.",
-  },
+  { icon: MessageSquare, title: "Smart Conversations", description: "Context-aware AI that remembers your preferences and adapts to your style." },
+  { icon: Globe, title: "Real-time Web Search", description: "Access live information with verified citations and up-to-date answers." },
+  { icon: Mic, title: "Voice Interactions", description: "Natural voice interactions with lightning-fast speech recognition." },
+  { icon: Brain, title: "Persistent Memory", description: "An AI that learns your interests for deeply personalized, continuous conversations." },
+  { icon: Image, title: "Image & Video Generation", description: "Create stunning visuals with DALL-E 3 and cinematic videos seamlessly." },
+  { icon: Code2, title: "Advanced Code Generation", description: "Write, debug, and explain complex code across dozens of programming languages." },
 ];
 
 const MODELS = [
@@ -58,60 +36,16 @@ const MODELS = [
 
 const STATS = [
   { value: "5M+", label: "Messages processed" },
-  { value: "99.9%", label: "Uptime" },
-  { value: "50+", label: "AI Models" },
-  { value: "<1s", label: "Avg. response" },
+  { value: "99.9%", label: "Uptime guarantee" },
+  { value: "50+", label: "AI Models supported" },
+  { value: "<1s", label: "Average response time" },
 ];
 
 const PRICING = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "Get started with AI",
-    features: ["100 messages/day", "GPT-4o mini", "Web search", "Voice input"],
-    cta: "Start Free",
-    highlighted: false,
-  },
-  {
-    name: "Pro",
-    price: "$20",
-    period: "/month",
-    description: "For power users",
-    features: ["Unlimited messages", "All premium models", "Image & video generation", "Priority support", "Custom instructions"],
-    cta: "Upgrade to Pro",
-    highlighted: true,
-  },
-  {
-    name: "Team",
-    price: "$15",
-    period: "/user/month",
-    description: "For organizations",
-    features: ["Everything in Pro", "Shared workspaces", "Admin dashboard", "SSO & SAML", "API access"],
-    cta: "Contact Sales",
-    highlighted: false,
-  },
+  { name: "Free", price: "$0", period: "forever", description: "Get started with AI", features: ["100 messages/day", "GPT-4o mini", "Web search", "Voice input"], cta: "Start Free", highlighted: false },
+  { name: "Pro", price: "$20", period: "/month", description: "For power users", features: ["Unlimited messages", "All premium models", "Image & video generation", "Priority support", "Custom instructions"], cta: "Upgrade to Pro", highlighted: true },
+  { name: "Team", price: "$15", period: "/user/month", description: "For organizations", features: ["Everything in Pro", "Shared workspaces", "Admin dashboard", "SSO & SAML", "API access"], cta: "Contact Sales", highlighted: false },
 ];
-
-/* ─── Animation Helpers ─── */
-
-const ease = [0.22, 1, 0.36, 1] as const;
-
-function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-80px" });
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 24 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
-      transition={{ duration: 0.6, delay, ease }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 /* ─── Typing Effect for Chat Preview ─── */
 function TypingText({ text, delay = 0 }: { text: string; delay?: number }) {
@@ -148,17 +82,16 @@ function TypingText({ text, delay = 0 }: { text: string; delay?: number }) {
 }
 
 /* ─── Landing Page ─── */
-
 export default function Landing() {
+  useSEO({
+    title: "Lexa AI - The Intelligent Assistant for Professionals",
+    description: "Chat with the world's most powerful AI models. A sleek, powerful, and natural interface for everything you need.",
+    canonicalUrl: "/",
+  });
+
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { scrollYProgress } = useScroll();
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  
-  useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    setScrollProgress(latest);
-  });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -168,432 +101,462 @@ export default function Landing() {
 
   const handleGetStarted = () => navigate(isAuthenticated ? "/chat" : "/auth");
 
+  // GSAP Animations
+  useGSAP(() => {
+    // 1. Initial Load Hero Timeline
+    const tl = gsap.timeline();
+
+    tl.fromTo(".hero-badge", 
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.8, ease: "power3.out", delay: 0.2 }
+    )
+    .fromTo(".hero-title-line", 
+      { opacity: 0, y: 40, rotationX: -15 },
+      { opacity: 1, y: 0, rotationX: 0, duration: 1, stagger: 0.15, ease: "power4.out" },
+      "-=0.5"
+    )
+    .fromTo(".hero-subtitle", 
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 1, ease: "power3.out" },
+      "-=0.6"
+    )
+    .fromTo(".hero-ctas", 
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" },
+      "-=0.8"
+    )
+    .fromTo(".hero-chat-preview", 
+      { opacity: 0, y: 80, scale: 0.95 },
+      { opacity: 1, y: 0, scale: 1, duration: 1.2, ease: "expo.out" },
+      "-=0.6"
+    );
+
+    // 2. Parallax Hero Scrub
+    gsap.to(".hero-chat-preview", {
+      y: 100,
+      ease: "none",
+      scrollTrigger: {
+        trigger: ".hero-section",
+        start: "top top",
+        end: "bottom top",
+        scrub: 1,
+      }
+    });
+
+    gsap.to(".hero-content-wrapper", {
+      y: 50,
+      opacity: 0,
+      ease: "none",
+      scrollTrigger: {
+        trigger: ".hero-section",
+        start: "top top",
+        end: "bottom top",
+        scrub: true,
+      }
+    });
+
+    // 3. Reveal Stats (Staggered)
+    gsap.fromTo(".stat-item", 
+      { opacity: 0, y: 30 },
+      { 
+        opacity: 1, 
+        y: 0, 
+        duration: 0.8, 
+        stagger: 0.1, 
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: ".stats-section",
+          start: "top 85%",
+        }
+      }
+    );
+
+    // 4. Reveal Features using ScrollTrigger batch
+    ScrollTrigger.batch(".feature-card", {
+      onEnter: (elements) => {
+        gsap.fromTo(elements, 
+          { opacity: 0, y: 40 },
+          { opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: "power3.out", overwrite: true }
+        );
+      },
+      start: "top 85%",
+    });
+
+    // 5. Reveal Models
+    gsap.fromTo(".model-card", 
+      { opacity: 0, scale: 0.95, y: 20 },
+      { 
+        opacity: 1, 
+        scale: 1,
+        y: 0, 
+        duration: 0.6, 
+        stagger: 0.05, 
+        ease: "back.out(1.2)",
+        scrollTrigger: {
+          trigger: ".models-section",
+          start: "top 85%",
+        }
+      }
+    );
+
+    // 6. Pricing Cards
+    ScrollTrigger.batch(".pricing-card", {
+      onEnter: (elements) => {
+        gsap.fromTo(elements, 
+          { opacity: 0, y: 50 },
+          { opacity: 1, y: 0, duration: 0.8, stagger: 0.15, ease: "power3.out", overwrite: true }
+        );
+      },
+      start: "top 80%",
+    });
+
+    // 7. Progress Bar
+    gsap.to(".scroll-progress", {
+      width: "100%",
+      ease: "none",
+      scrollTrigger: {
+        trigger: document.body,
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 0.3,
+      }
+    });
+
+  }, { scope: containerRef });
+
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div ref={containerRef} className="min-h-screen bg-background text-foreground overflow-x-hidden font-sans selection:bg-primary/20">
       
       {/* ──────── Header ──────── */}
-      <motion.header
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease }}
-        className="fixed top-0 left-0 right-0 z-50"
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-3">
-          <div className="glass-strong rounded-2xl px-5 h-14 flex items-center justify-between shadow-sm relative overflow-hidden">
-            {/* Scroll progress bar */}
-            <motion.div
-              className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-primary via-violet-500 to-pink-500"
-              style={{ width: `${scrollProgress * 100}%` }}
-            />
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-background" />
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
+        <div className="absolute bottom-0 left-0 h-[1px] bg-primary/80 scroll-progress w-0" />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-foreground flex items-center justify-center shadow-sm">
+              <Sparkles className="w-4 h-4 text-background" />
+            </div>
+            <span className="text-xl font-bold tracking-tight">Lexa</span>
+          </div>
+
+          <nav className="hidden md:flex items-center gap-6">
+            {["Features", "Models", "Pricing"].map((item) => (
+              <button
+                key={item}
+                onClick={() => document.getElementById(item.toLowerCase())?.scrollIntoView({ behavior: 'smooth' })}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {item}
+              </button>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            {isAuthenticated ? (
+              <Button onClick={() => navigate("/chat")} className="rounded-full h-10 px-5 font-medium shadow-sm transition-transform active:scale-95">
+                Open Chat <ArrowRight className="w-4 h-4 ml-1.5" />
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => navigate("/auth")} className="hidden sm:flex rounded-full h-10 text-sm font-medium">
+                  Log in
+                </Button>
+                <Button onClick={() => navigate("/auth")} className="rounded-full h-10 px-5 font-medium shadow-sm transition-transform active:scale-95">
+                  Get Started <ArrowRight className="w-4 h-4 ml-1.5" />
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* ──────── Hero Section ──────── */}
+      <section className="hero-section relative pt-40 pb-20 px-4 flex flex-col items-center justify-center min-h-[90vh] overflow-hidden">
+        {/* Background Video */}
+        <div className="absolute inset-0 z-0 w-full h-full overflow-hidden">
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="w-full h-full object-cover opacity-100 scale-105 pointer-events-none"
+          >
+            <source src="/videos/animation.mp4" type="video/mp4" />
+          </video>
+        </div>
+
+        {/* Subtle background gradient overlay to ensure text readability */}
+        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-transparent via-background/40 to-background pointer-events-none" />
+        
+        <div className="hero-content-wrapper relative z-20 max-w-4xl mx-auto text-center flex flex-col items-center">
+          {/* Badge */}
+          <div className="hero-badge inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/50 bg-muted/30 backdrop-blur-md text-xs font-medium mb-8">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span className="text-muted-foreground">Intelligence, redefined.</span>
+          </div>
+
+          {/* Staggered Heading */}
+          <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold tracking-tighter leading-[1.05] mb-6" style={{ perspective: "1000px" }}>
+            <div className="hero-title-line origin-bottom">Think faster.</div>
+            <div className="hero-title-line origin-bottom text-muted-foreground">Work smarter.</div>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="hero-subtitle text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed font-light">
+            Lexa is your personal AI workspace. Powered by the world's most advanced models, 
+            designed with meticulous attention to detail. Seamlessly switch between writing, 
+            coding, and creating.
+          </p>
+
+          {/* CTAs */}
+          <div className="hero-ctas flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
+            <Button size="lg" onClick={handleGetStarted} className="w-full sm:w-auto h-14 px-8 text-base rounded-full font-medium shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 transition-all active:scale-95">
+              Start Building Free
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+            <Button variant="outline" size="lg" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="w-full sm:w-auto h-14 px-8 text-base rounded-full border-border/60 hover:bg-muted/50 transition-colors">
+              Explore Features
+            </Button>
+          </div>
+        </div>
+
+        {/* Chat Preview (Premium design) */}
+        <div className="hero-chat-preview relative mt-20 w-full max-w-4xl mx-auto" style={{ perspective: "1200px" }}>
+          {/* Subtle glow */}
+          <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-b from-primary/10 via-transparent to-transparent blur-2xl opacity-50 pointer-events-none" />
+          
+          <div className="relative bg-background border border-border/40 rounded-[2rem] shadow-2xl overflow-hidden ring-1 ring-white/5">
+            {/* Minimalist Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-muted/10 backdrop-blur-md">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-border" />
+                <div className="w-3 h-3 rounded-full bg-border" />
+                <div className="w-3 h-3 rounded-full bg-border" />
               </div>
-              <span className="text-lg font-semibold tracking-tight">Lexa AI</span>
-              <span className="hidden sm:inline text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full border border-primary/20 text-primary bg-primary/5">
-                Beta
-              </span>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/40 text-xs font-medium text-muted-foreground">
+                <Lock className="w-3 h-3" /> lexa-ai.com
+              </div>
+              <div className="w-16" /> {/* spacer */}
             </div>
 
-            <nav className="hidden md:flex items-center gap-1">
-              {["Features", "Models", "Pricing"].map((item) => (
-                <button
-                  key={item}
-                  onClick={() => document.getElementById(item.toLowerCase())?.scrollIntoView({ behavior: 'smooth' })}
-                  className="px-3.5 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-lg"
-                >
-                  {item}
-                </button>
-              ))}
-            </nav>
+            {/* Chat Body */}
+            <div className="p-6 md:p-8 space-y-6 bg-gradient-to-b from-muted/5 to-background min-h-[340px]">
+              {/* User message */}
+              <div className="flex justify-end">
+                <div className="max-w-[80%] px-5 py-3.5 rounded-3xl rounded-tr-sm bg-muted text-foreground text-[15px] font-medium shadow-sm border border-border/40">
+                  <TypingText text="Generate a React component for a highly animated data dashboard using GSAP." delay={1.5} />
+                </div>
+              </div>
 
-            <div className="flex items-center gap-2">
-              {isAuthenticated ? (
-                <Button onClick={() => navigate("/chat")} size="sm" className="rounded-lg h-9 px-4 font-medium">
-                  Open Chat <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                </Button>
-              ) : (
-                <>
-                  <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="hidden sm:flex rounded-lg h-9 text-sm">
-                    Log in
-                  </Button>
-                  <Button size="sm" onClick={() => navigate("/auth")} className="rounded-lg h-9 px-4 font-medium">
-                    Get Started <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                  </Button>
-                </>
-              )}
+              {/* AI response */}
+              <div className="flex gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-foreground flex items-center justify-center shrink-0 shadow-md">
+                  <Bot className="w-5 h-5 text-background" />
+                </div>
+                <div className="space-y-3 flex-1 pt-1">
+                  <div className="text-[15px] leading-relaxed text-muted-foreground">
+                    <p className="mb-3 text-foreground font-medium">I can help with that. Here is a sophisticated, GSAP-powered dashboard layout with staggering entrance animations.</p>
+                    
+                    {/* Fake Code Block */}
+                    <div className="rounded-xl bg-[#0d1117] border border-white/10 overflow-hidden mt-3 shadow-inner">
+                      <div className="flex items-center px-4 py-2 border-b border-white/10 bg-black/40 text-xs font-mono text-zinc-400">
+                        Dashboard.tsx
+                      </div>
+                      <div className="p-4 font-mono text-xs text-zinc-300 space-y-1">
+                        <div><span className="text-pink-400">import</span> {'{'} useGSAP {'}'} <span className="text-pink-400">from</span> <span className="text-green-300">"@gsap/react"</span>;</div>
+                        <div><span className="text-pink-400">import</span> gsap <span className="text-pink-400">from</span> <span className="text-green-300">"gsap"</span>;</div>
+                        <br/>
+                        <div><span className="text-pink-400">export default function</span> <span className="text-blue-300">Dashboard</span>() {'{'}</div>
+                        <div className="pl-4 text-zinc-500">{"// GSAP timeline logic goes here"}</div>
+                        <div>{'}'}</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground pt-2">
+                    <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-primary" /> 0.8s</span>
+                    <span className="flex items-center gap-1.5"><Code2 className="w-3.5 h-3.5" /> React / GSAP</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </motion.header>
 
-      {/* ──────── Hero ──────── */}
-      <section className="relative pt-36 pb-24 px-4 overflow-hidden">
-        {/* Subtle ambient background */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0, opacity: 0.7 }}>
-          <Aurora 
-            colorStops={["#7cff67","#B497CF","#5227FF"]}
-            blend={0.5}
-            amplitude={1.0}
-            speed={1}
-          />
+        {/* Scroll down indicator */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2">
+          <ChevronDown className="w-6 h-6 text-muted-foreground/30 animate-bounce" />
         </div>
-        <ConstellationCanvas 
-          particleColor="rgba(168, 85, 247, 0.45)"
-          lineColor="rgba(139, 92, 246, 0.15)"
-          particleCount={55}
-          maxDistance={130}
-        />
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full bg-primary/[0.04] blur-[120px]" />
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-violet-500/[0.03] blur-[100px]" />
-        </div>
-
-        <motion.div style={{ opacity: heroOpacity }} className="relative z-10 max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.1, ease }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-card/60 backdrop-blur-sm text-sm mb-8"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-            </span>
-            <span className="text-muted-foreground">Now powered by</span>
-            <span className="font-medium text-foreground">GPT-5, Gemini 2.5 & Claude 4</span>
-          </motion.div>
-
-          {/* Heading */}
-          <SplitText
-            text="Your AI assistant for everything"
-            tag="h1"
-            className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.05] mb-6"
-            delay={50}
-            duration={1.25}
-            ease="power3.out"
-            splitType="chars"
-            from={{ opacity: 0, y: 40 }}
-            to={{ opacity: 1, y: 0 }}
-            threshold={0.1}
-            rootMargin="-100px"
-            textAlign="center"
-          />
-
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.35, ease }}
-            className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
-          >
-            Chat with the world's most powerful AI models. Search the web, generate images, 
-            write code, and more — all with persistent memory that makes every conversation smarter.
-          </motion.p>
-
-          {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.45, ease }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6"
-          >
-            <Button size="lg" onClick={handleGetStarted} className="h-12 px-8 text-base rounded-xl font-medium shadow-lg shadow-primary/20">
-              Start for Free
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-            <Button variant="outline" size="lg" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="h-12 px-8 text-base rounded-xl">
-              See Features
-            </Button>
-          </motion.div>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="text-xs text-muted-foreground"
-          >
-            No credit card required · Free plan available
-          </motion.p>
-
-          {/* Chat Preview */}
-          <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.9, delay: 0.7, ease }}
-            className="relative mt-16 max-w-3xl mx-auto"
-          >
-            {/* Glow behind card */}
-            <div className="absolute -inset-px rounded-2xl bg-gradient-to-b from-primary/20 via-transparent to-violet-500/10 blur-xl opacity-60" />
-            
-            <div className="relative bg-card border border-border rounded-2xl shadow-xl overflow-hidden">
-              {/* Browser chrome */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border/60 bg-muted/30">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-400/70" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/70" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-400/70" />
-                </div>
-                <div className="flex-1 flex justify-center">
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground">
-                    <Lock className="w-3 h-3" /> chat.lexa.ai
-                  </div>
-                </div>
-              </div>
-
-              {/* Chat content */}
-              <div className="p-6 space-y-5 min-h-[280px]">
-                {/* User message */}
-                <motion.div
-                  initial={{ opacity: 0, x: 16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1.2, duration: 0.4 }}
-                  className="flex justify-end"
-                >
-                  <div className="max-w-[72%] px-4 py-2.5 rounded-2xl rounded-br-md bg-primary text-primary-foreground text-sm">
-                    <TypingText text="Explain quantum computing simply and suggest practical applications" delay={1.2} />
-                  </div>
-                </motion.div>
-
-                {/* AI response */}
-                <motion.div
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1.5, duration: 0.4 }}
-                  className="flex gap-3"
-                >
-                  <div className="w-7 h-7 rounded-full bg-foreground flex items-center justify-center shrink-0 mt-0.5">
-                    <Bot className="w-3.5 h-3.5 text-background" />
-                  </div>
-                  <div className="space-y-2 flex-1">
-                    <div className="text-sm leading-relaxed text-foreground/90">
-                      <p className="mb-2">Think of quantum computing like a <strong>maze solver</strong>. A classical computer tries one path at a time. A quantum computer explores <em>all paths simultaneously</em>.</p>
-                      <p className="text-muted-foreground text-xs">This is possible through <strong className="text-foreground">qubits</strong> — which can be both 0 and 1 at once (superposition)...</p>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
-                      <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-primary" /> 1.2s</span>
-                      <span className="flex items-center gap-1"><Search className="w-3 h-3" /> 4 sources</span>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Input mock */}
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.9 }}
-                  className="pt-2"
-                >
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-border bg-muted/20">
-                    <span className="text-sm text-muted-foreground/50 flex-1">Message Lexa...</span>
-                    <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                      <ArrowRight className="w-3.5 h-3.5 text-primary-foreground" />
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* Scroll indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2.5 }}
-          className="flex justify-center mt-16"
-        >
-          <motion.button
-            animate={{ y: [0, 6, 0] }}
-            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-            onClick={() => document.getElementById('stats')?.scrollIntoView({ behavior: 'smooth' })}
-            className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"
-          >
-            <ChevronDown className="w-5 h-5" />
-          </motion.button>
-        </motion.div>
       </section>
 
-      {/* ──────── Stats ──────── */}
-      <section id="stats" className="py-16 px-4 border-y border-border/40">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+      {/* ──────── Stats Section ──────── */}
+      <section id="stats" className="stats-section py-20 px-4 border-y border-border/20 bg-muted/10">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-4">
           {STATS.map((stat, i) => (
-            <FadeIn key={i} delay={i * 0.08} className="text-center">
-              <div className="text-3xl md:text-4xl font-bold tracking-tight mb-1">{stat.value}</div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
-            </FadeIn>
+            <div key={i} className="stat-item text-center">
+              <div className="text-4xl md:text-5xl font-bold tracking-tighter mb-2 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/60">{stat.value}</div>
+              <div className="text-sm font-medium text-muted-foreground uppercase tracking-widest">{stat.label}</div>
+            </div>
           ))}
         </div>
       </section>
 
       {/* ──────── Features ──────── */}
-      <section id="features" className="py-24 px-4">
+      <section id="features" className="py-32 px-4 relative">
         <div className="max-w-6xl mx-auto">
-          <FadeIn className="text-center mb-16">
-            <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">Features</p>
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-              Everything you need,<br />nothing you don't
+          <div className="text-center mb-24 max-w-3xl mx-auto">
+            <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6">
+              Designed for depth.<br />Built for speed.
             </h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Powerful AI capabilities designed to help you think faster, create better, and work smarter.
+            <p className="text-xl text-muted-foreground font-light leading-relaxed">
+              Every detail is meticulously crafted to stay out of your way, giving you a seamless, distraction-free environment to do your best work.
             </p>
-          </FadeIn>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {FEATURES.map((feature, i) => (
-              <FadeIn key={i} delay={i * 0.06}>
-                <div className="group p-6 rounded-xl border border-border bg-card hover:bg-accent/50 transition-all duration-200 hover:shadow-md cursor-default h-full">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
-                    <feature.icon className="w-5 h-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+              <div key={i} className="feature-card p-8 rounded-3xl border border-border/40 bg-card hover:bg-muted/30 transition-colors duration-300 h-full">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
+                  <feature.icon className="w-6 h-6 text-primary" />
                 </div>
-              </FadeIn>
+                <h3 className="text-xl font-bold tracking-tight mb-3">{feature.title}</h3>
+                <p className="text-muted-foreground leading-relaxed font-light">{feature.description}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* ──────── Models ──────── */}
-      <section id="models" className="py-24 px-4 bg-muted/30">
-        <div className="max-w-4xl mx-auto">
-          <FadeIn className="text-center mb-16">
-            <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">AI Models</p>
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-              Powered by the world's best AI
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Access multiple state-of-the-art models through a single, unified interface.
-            </p>
-          </FadeIn>
+      <section id="models" className="models-section py-32 px-4 bg-muted/20 border-y border-border/20">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tighter mb-6">
+            The world's best AI, unified.
+          </h2>
+          <p className="text-xl text-muted-foreground font-light max-w-2xl mx-auto mb-20">
+            Don't limit yourself to one provider. Instantly switch between the most capable models on the planet.
+          </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {MODELS.map((model, i) => (
-              <FadeIn key={i} delay={i * 0.08}>
-                <div className="p-4 rounded-xl border border-border bg-card text-center hover:shadow-md transition-all duration-200 cursor-default">
-                  <span className={cn("inline-block text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full border mb-3", model.color)}>
-                    {model.badge}
-                  </span>
-                  <h3 className="font-semibold text-sm">{model.name}</h3>
-                </div>
-              </FadeIn>
+              <div key={i} className="model-card p-6 rounded-3xl border border-border/40 bg-background shadow-sm hover:shadow-md transition-shadow">
+                <span className={cn("inline-block text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border mb-4", model.color)}>
+                  {model.badge}
+                </span>
+                <h3 className="font-bold text-lg tracking-tight">{model.name}</h3>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* ──────── Pricing ──────── */}
-      <section id="pricing" className="py-24 px-4">
-        <div className="max-w-5xl mx-auto">
-          <FadeIn className="text-center mb-16">
-            <p className="text-sm font-medium text-primary mb-3 uppercase tracking-wider">Pricing</p>
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-              Simple, transparent pricing
+      <section id="pricing" className="py-32 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-24">
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tighter mb-6">
+              Simple, transparent pricing.
             </h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Start free, upgrade when you need more.
+            <p className="text-xl text-muted-foreground font-light max-w-xl mx-auto">
+              Start completely free. Upgrade when you need the power of premium models.
             </p>
-          </FadeIn>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {PRICING.map((plan, i) => (
-              <FadeIn key={i} delay={i * 0.08}>
-                <motion.div 
-                  whileHover={{ y: -4, rotateX: 2, rotateY: -1 }}
-                  transition={{ duration: 0.3 }}
-                  style={{ perspective: 1000 }}
-                  className={cn(
-                    "relative p-6 rounded-xl border h-full flex flex-col transition-shadow duration-300",
-                    plan.highlighted 
-                      ? "border-primary bg-primary/[0.03] shadow-lg shadow-primary/5 hover:shadow-xl hover:shadow-primary/10" 
-                      : "border-border bg-card hover:shadow-lg hover:border-border/60"
-                  )}>
-                  {plan.highlighted && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[11px] font-medium uppercase tracking-wider px-3 py-0.5 rounded-full bg-primary text-primary-foreground">
-                      Popular
-                    </span>
-                  )}
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-1">{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">{plan.description}</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold tracking-tight">{plan.price}</span>
-                      <span className="text-sm text-muted-foreground">{plan.period}</span>
-                    </div>
+              <div key={i} className={cn(
+                "pricing-card p-8 rounded-[2.5rem] border flex flex-col transition-all duration-300",
+                plan.highlighted 
+                  ? "border-primary/50 bg-primary/[0.02] shadow-2xl shadow-primary/10 relative" 
+                  : "border-border/40 bg-card hover:border-border"
+              )}>
+                {plan.highlighted && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full bg-primary text-primary-foreground shadow-lg">
+                    Most Popular
                   </div>
-                  <ul className="space-y-2.5 mb-8 flex-1">
-                    {plan.features.map((feature, j) => (
-                      <li key={j} className="flex items-center gap-2 text-sm">
-                        <Check className="w-4 h-4 text-primary shrink-0" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button 
-                    onClick={handleGetStarted}
-                    variant={plan.highlighted ? "default" : "outline"} 
-                    className="w-full rounded-lg h-10"
-                  >
-                    {plan.cta}
-                  </Button>
-                </motion.div>
-              </FadeIn>
+                )}
+                <div className="mb-8">
+                  <h3 className="text-2xl font-bold tracking-tight mb-2">{plan.name}</h3>
+                  <p className="text-muted-foreground font-light mb-6">{plan.description}</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-5xl font-bold tracking-tighter">{plan.price}</span>
+                    <span className="text-muted-foreground font-medium">{plan.period}</span>
+                  </div>
+                </div>
+                <ul className="space-y-4 mb-10 flex-1">
+                  {plan.features.map((feature, j) => (
+                    <li key={j} className="flex items-start gap-3">
+                      <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <Check className="w-3 h-3 text-primary" />
+                      </div>
+                      <span className="text-foreground/80">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button 
+                  onClick={handleGetStarted}
+                  variant={plan.highlighted ? "default" : "outline"} 
+                  className={cn("w-full rounded-full h-12 text-base font-medium", plan.highlighted ? "shadow-lg shadow-primary/25" : "")}
+                >
+                  {plan.cta}
+                </Button>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* ──────── Final CTA ──────── */}
-      <section className="py-24 px-4">
-        <FadeIn>
-          <div className="max-w-3xl mx-auto text-center p-12 md:p-16 rounded-2xl bg-foreground text-background relative overflow-hidden">
-            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 rounded-full bg-primary/20 blur-3xl" />
-            <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 rounded-full bg-violet-500/20 blur-3xl" />
+      <section className="py-24 px-4 pb-32">
+        <div className="max-w-5xl mx-auto">
+          <div className="relative rounded-[3rem] bg-foreground text-background p-12 md:p-20 text-center overflow-hidden">
+            {/* Subtle light effect */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+            
             <div className="relative z-10">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
-                Ready to work smarter?
+              <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6">
+                Ready to transform your workflow?
               </h2>
-              <p className="text-background/70 text-lg mb-8 max-w-lg mx-auto">
-                Join thousands of professionals using Lexa AI every day. Start for free.
+              <p className="text-background/70 text-xl font-light mb-10 max-w-2xl mx-auto">
+                Join thousands of forward-thinking professionals building the future with Lexa AI today.
               </p>
-              <Button size="lg" onClick={handleGetStarted} className="bg-background text-foreground hover:bg-background/90 h-12 px-8 rounded-xl text-base font-medium">
-                Get Started Free <ArrowRight className="w-4 h-4 ml-2" />
+              <Button size="lg" onClick={handleGetStarted} className="bg-background text-foreground hover:bg-background/90 h-14 px-10 rounded-full text-lg font-semibold shadow-2xl transition-transform active:scale-95">
+                Get Started Now <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </div>
           </div>
-        </FadeIn>
+        </div>
       </section>
 
       {/* ──────── Footer ──────── */}
-      <footer className="border-t border-border py-12 px-4">
+      <footer className="border-t border-border/40 py-16 px-4 bg-muted/10">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-            <div className="col-span-2 md:col-span-1">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-md bg-foreground flex items-center justify-center">
-                  <Sparkles className="w-3.5 h-3.5 text-background" />
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-16">
+            <div className="col-span-2">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-xl bg-foreground flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-background" />
                 </div>
-                <span className="font-semibold">Lexa AI</span>
+                <span className="font-bold tracking-tight text-xl">Lexa</span>
               </div>
-              <p className="text-sm text-muted-foreground max-w-xs">
-                The most advanced AI assistant built for professionals.
+              <p className="text-muted-foreground font-light max-w-sm leading-relaxed">
+                The most advanced, beautifully designed AI assistant built for modern professionals.
               </p>
             </div>
             {[
               { title: "Product", links: ["Features", "Models", "Pricing", "Changelog"] },
               { title: "Resources", links: ["Documentation", "API", "Blog", "Community"] },
-              { title: "Legal", links: ["Privacy", "Terms", "Security"] },
+              { title: "Legal", links: ["Privacy", "Terms", "Security", "Cookies"] },
             ].map((group) => (
               <div key={group.title}>
-                <h4 className="font-medium text-sm mb-3">{group.title}</h4>
-                <ul className="space-y-2">
+                <h4 className="font-semibold text-foreground mb-4">{group.title}</h4>
+                <ul className="space-y-3">
                   {group.links.map((link) => (
                     <li key={link}>
-                      <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors relative group">
+                      <a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
                         {link}
-                        <span className="absolute left-0 -bottom-0.5 w-0 h-px bg-foreground transition-all duration-300 group-hover:w-full" />
                       </a>
                     </li>
                   ))}
@@ -601,12 +564,12 @@ export default function Landing() {
               </div>
             ))}
           </div>
-          <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div className="border-t border-border/40 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground font-medium">
             <p>© {new Date().getFullYear()} Lexa AI. All rights reserved.</p>
-            <div className="flex items-center gap-1.5">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
               All systems operational
             </div>

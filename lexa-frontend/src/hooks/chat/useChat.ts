@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useReducer, useCallback, useRef, useEffect, useMemo } from "react";
 import { streamChat } from "@/lib/streaming";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
@@ -9,10 +9,69 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
+  isError?: boolean;
   toolCalls?: Array<{
     name: string;
     input: Record<string, unknown>;
   }>;
+}
+
+export type ChatStatus = "idle" | "isInitialLoading" | "isStreaming" | "isRetrying" | "isError";
+
+interface ChatState {
+  messages: ChatMessage[];
+  status: ChatStatus;
+  error: string | null;
+}
+
+type ChatAction =
+  | { type: "ADD_MESSAGE"; payload: ChatMessage }
+  | { type: "UPDATE_MESSAGE"; payload: { id: string; updates: Partial<ChatMessage> } }
+  | { type: "DELETE_MESSAGE"; payload: { id: string } }
+  | { type: "SET_STATUS"; payload: ChatStatus }
+  | { type: "SET_ERROR"; payload: string | null }
+  | { type: "CLEAR_MESSAGES" };
+
+function chatReducer(state: ChatState, action: ChatAction): ChatState {
+  switch (action.type) {
+    case "ADD_MESSAGE":
+      return {
+        ...state,
+        messages: [...state.messages, action.payload],
+      };
+    case "UPDATE_MESSAGE":
+      return {
+        ...state,
+        messages: state.messages.map((msg) =>
+          msg.id === action.payload.id ? { ...msg, ...action.payload.updates } : msg
+        ),
+      };
+    case "DELETE_MESSAGE":
+      return {
+        ...state,
+        messages: state.messages.filter((msg) => msg.id !== action.payload.id),
+      };
+    case "SET_STATUS":
+      return {
+        ...state,
+        status: action.payload,
+      };
+    case "SET_ERROR":
+      return {
+        ...state,
+        error: action.payload,
+        status: action.payload ? "isError" : state.status,
+      };
+    case "CLEAR_MESSAGES":
+      return {
+        ...state,
+        messages: [],
+        error: null,
+        status: "idle",
+      };
+    default:
+      return state;
+  }
 }
 
 interface UseChatOptions {
@@ -25,64 +84,70 @@ interface UseChatOptions {
 export function useChat(options: UseChatOptions = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  const [messages, setMessages] = useState<ChatMessage[]>(
-    options.initialMessages || []
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
+
+  const [state, dispatch] = useReducer(chatReducer, {
+    messages: options.initialMessages || [],
+    status: "idle",
+    error: null,
+  });
+
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Use refs for values that shouldn't trigger callback recreation
+  // Maintain stable options ref
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
-  const messagesRef = useRef(messages);
-  messagesRef.current = messages;
+  // Maintain stable messages ref for closures
+  const messagesRef = useRef(state.messages);
+  messagesRef.current = state.messages;
 
-  // Stable addMessage callback — no dependency on options object
+  // Stable addMessage callback
   const addMessage = useCallback(
     (message: Omit<ChatMessage, "id">) => {
       const newMessage: ChatMessage = {
         ...message,
-        id: crypto.randomUUID?.() || Math.random().toString(36).substr(2, 9),
+        id: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 11),
       };
 
-      setMessages((prev) => [...prev, newMessage]);
+      dispatch({ type: "ADD_MESSAGE", payload: newMessage });
       optionsRef.current.onMessageAdded?.(newMessage);
       return newMessage;
     },
     []
   );
 
-  const updateMessage = useCallback(
-    (id: string, updates: Partial<ChatMessage>) => {
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === id ? { ...msg, ...updates } : msg))
-      );
-    },
-    []
-  );
+  const updateMessage = useCallback((id: string, updates: Partial<ChatMessage>) => {
+    dispatch({ type: "UPDATE_MESSAGE", payload: { id, updates } });
+  }, []);
 
   const deleteMessage = useCallback((id: string) => {
-    setMessages((prev) => prev.filter((msg) => msg.id !== id));
+    dispatch({ type: "DELETE_MESSAGE", payload: { id } });
   }, []);
 
   const clearMessages = useCallback(() => {
-    setMessages([]);
-    setError(null);
+    dispatch({ type: "CLEAR_MESSAGES" });
   }, []);
 
+  // Resilient stream cancellation: preserves partial message output cleanly
   const stopStreaming = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
-      setIsLoading(false);
+      dispatch({ type: "SET_STATUS", payload: "idle" });
+
+      // Clean up streaming state flag on last assistant message if active
+      const currentMsgs = messagesRef.current;
+      const lastMsg = currentMsgs[currentMsgs.length - 1];
+      if (lastMsg && lastMsg.role === "assistant" && lastMsg.isStreaming) {
+        dispatch({
+          type: "UPDATE_MESSAGE",
+          payload: { id: lastMsg.id, updates: { isStreaming: false } },
+        });
+      }
     }
   }, []);
 
-  // Stable send function — uses refs for messages and options to avoid recreation
+  // Send message implementation with state machine transitions
   const send = useCallback(
     async (content: string, model?: string) => {
       if (!user) {
@@ -94,21 +159,18 @@ export function useChat(options: UseChatOptions = {}) {
         return;
       }
 
-      if (!content.trim()) {
-        return;
-      }
+      if (!content.trim()) return;
 
-      // Stop any previous streaming
       stopStreaming();
 
-      // Add user message
+      // Optimistic user message addition
       addMessage({
         role: "user",
         content,
         timestamp: new Date(),
       });
 
-      // Create assistant message placeholder
+      // Place assistant placeholder
       const assistantMessage = addMessage({
         role: "assistant",
         content: "",
@@ -116,13 +178,12 @@ export function useChat(options: UseChatOptions = {}) {
         isStreaming: true,
       });
 
-      setIsLoading(true);
-      setError(null);
+      dispatch({ type: "SET_STATUS", payload: "isStreaming" });
+      dispatch({ type: "SET_ERROR", payload: null });
 
       try {
         abortControllerRef.current = new AbortController();
 
-        // Read current messages from ref (avoids stale closure)
         const currentMessages = messagesRef.current;
         const messageHistory: ChatMessage[] = currentMessages
           .filter((m) => m.role !== "system")
@@ -131,13 +192,7 @@ export function useChat(options: UseChatOptions = {}) {
             content: m.content,
           } as ChatMessage));
 
-        messageHistory.push({
-          role: "user",
-          content,
-        } as ChatMessage);
-
         let accumulatedContent = "";
-
         const currentOptions = optionsRef.current;
 
         await streamChat({
@@ -152,71 +207,101 @@ export function useChat(options: UseChatOptions = {}) {
           },
           onDone: () => {
             updateMessage(assistantMessage.id, { isStreaming: false });
-            setIsLoading(false);
+            dispatch({ type: "SET_STATUS", payload: "idle" });
             abortControllerRef.current = null;
           },
           onError: (err) => {
-            const errorMessage =
-              err instanceof Error ? err.message : "An error occurred";
-            setError(errorMessage);
-            setIsLoading(false);
+            const errorMessage = err instanceof Error ? err.message : "An error occurred";
+            dispatch({ type: "SET_ERROR", payload: errorMessage });
+            dispatch({ type: "SET_STATUS", payload: "isError" });
+
+            updateMessage(assistantMessage.id, { isStreaming: false, isError: true });
+            abortControllerRef.current = null;
 
             toast({
-              title: "Error",
+              title: "Connection Error",
               description: errorMessage,
               variant: "destructive",
             });
-
-            updateMessage(assistantMessage.id, { isStreaming: false });
-            deleteMessage(assistantMessage.id);
-            abortControllerRef.current = null;
           },
         });
       } catch (err) {
-        // Handle aborted requests
         if (err instanceof DOMException && err.name === "AbortError") {
-          deleteMessage(assistantMessage.id);
+          // Intentional user cancellation — retain partial message content
           return;
         }
 
-        const errorMessage =
-          err instanceof Error ? err.message : "An unexpected error occurred";
-        setError(errorMessage);
-        setIsLoading(false);
-        deleteMessage(assistantMessage.id);
+        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+        dispatch({ type: "SET_ERROR", payload: errorMessage });
+        dispatch({ type: "SET_STATUS", payload: "isError" });
+        updateMessage(assistantMessage.id, { isStreaming: false, isError: true });
 
         toast({
-          title: "Error",
+          title: "Stream Exception",
           description: errorMessage,
           variant: "destructive",
         });
       }
     },
-    [user, addMessage, updateMessage, deleteMessage, stopStreaming, toast]
+    [user, addMessage, updateMessage, stopStreaming, toast]
   );
 
-  // Cleanup on unmount
+  // Non-destructive retry function
+  const retryLastMessage = useCallback(
+    async (model?: string) => {
+      const currentMsgs = messagesRef.current;
+      if (currentMsgs.length === 0) return;
+
+      let lastUserMsgIndex = -1;
+      for (let i = currentMsgs.length - 1; i >= 0; i--) {
+        if (currentMsgs[i].role === "user") {
+          lastUserMsgIndex = i;
+          break;
+        }
+      }
+
+      if (lastUserMsgIndex === -1) return;
+
+      const lastUserContent = currentMsgs[lastUserMsgIndex].content;
+
+      // Remove previous failed assistant message if existing
+      if (currentMsgs.length > lastUserMsgIndex + 1) {
+        const nextMsg = currentMsgs[lastUserMsgIndex + 1];
+        if (nextMsg.role === "assistant") {
+          deleteMessage(nextMsg.id);
+        }
+      }
+
+      dispatch({ type: "SET_STATUS", payload: "isRetrying" });
+      await send(lastUserContent, model);
+    },
+    [deleteMessage, send]
+  );
+
+  // Auto cleanup on unmount
   useEffect(() => {
     return () => {
       stopStreaming();
     };
   }, [stopStreaming]);
 
-  // Memoize the return object to prevent object reference changes
-  const returnValue = useMemo(
+  // Derived state indicators
+  const isLoading = state.status === "isInitialLoading" || state.status === "isStreaming" || state.status === "isRetrying";
+
+  return useMemo(
     () => ({
-      messages,
+      messages: state.messages,
+      status: state.status,
       isLoading,
-      error,
+      error: state.error,
       addMessage,
       updateMessage,
       deleteMessage,
       clearMessages,
       send,
+      retryLastMessage,
       stopStreaming,
     }),
-    [messages, isLoading, error, addMessage, updateMessage, deleteMessage, clearMessages, send, stopStreaming]
+    [state.messages, state.status, isLoading, state.error, addMessage, updateMessage, deleteMessage, clearMessages, send, retryLastMessage, stopStreaming]
   );
-
-  return returnValue;
 }

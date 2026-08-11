@@ -7,10 +7,17 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Sparkles, Loader2, Check, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
+import { useSEO } from "@/hooks/useSEO";
 
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
 
 export default function ResetPassword() {
+  useSEO({
+    title: "Reset Password",
+    description: "Reset your Lexa AI account password.",
+    canonicalUrl: "/reset-password",
+  });
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

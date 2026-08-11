@@ -5,7 +5,15 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { FeatureGrid } from "@/components/auth/FeatureGrid";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { MobileHeader } from "@/components/auth/MobileHeader";
+import { useSEO } from "@/hooks/useSEO";
+
 export default function Auth() {
+  useSEO({
+    title: "Sign In",
+    description: "Sign in or create an account to start chatting with Lexa AI.",
+    canonicalUrl: "/auth",
+  });
+
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   useEffect(() => {

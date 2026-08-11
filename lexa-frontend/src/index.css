@@ -1464,3 +1464,14 @@ select:focus-visible {
   background: hsl(var(--primary) / 0.3);
   color: hsl(var(--foreground));
 }
+
+b {
+  font-family: Google Sans, sans-serif;
+  font-size: 54px;
+  font-weight: 900;
+  line-height: 66px;
+  text-align: center;
+  color: #4ed48f;
+  background-color: rgba(0, 0, 0, 0);
+  padding: 0px 2px 0px 2px;
+}

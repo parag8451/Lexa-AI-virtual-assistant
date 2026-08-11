@@ -37,5 +37,6 @@ export default defineConfig({
     },
     // Increase chunk size warning limit since we have heavy 3D deps
     chunkSizeWarningLimit: 800,
+    sourcemap: false,
   },
 });

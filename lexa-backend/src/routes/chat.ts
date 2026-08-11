@@ -211,6 +211,8 @@ chatRouter.post('/chat', async (c) => {
 
             try {
               while (true) {
+                if (c.req.raw.signal.aborted) break;
+                
                 const { done, value } = await sourceReader.read();
                 if (done) break;
 

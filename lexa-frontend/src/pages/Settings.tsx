@@ -17,8 +17,15 @@ import { LanguageTab } from "./settings/tabs/LanguageTab";
 import { AccessibilityTab } from "./settings/tabs/AccessibilityTab";
 import { AboutTab } from "./settings/tabs/AboutTab";
 import { DangerZoneTab } from "./settings/tabs/DangerZoneTab";
+import { useSEO } from "@/hooks/useSEO";
 
 export default function Settings() {
+  useSEO({
+    title: "Settings",
+    description: "Configure your Lexa AI preferences, appearance, and models.",
+    canonicalUrl: "/settings",
+  });
+
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [searchParams] = useSearchParams();
