@@ -1,0 +1,135 @@
+.fluid-atmosphere {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #020205; /* Deep black background */
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Base glowing fields */
+.fluid-layer {
+  position: absolute;
+  filter: blur(100px); /* Extreme blur for soft liquid edges */
+  opacity: 0.6;
+  will-change: transform, border-radius;
+  transform-origin: center center;
+}
+
+/* Layer 1: Deep Indigo Wave */
+.fluid-layer-1 {
+  width: 150vw;
+  height: 100vh;
+  top: 10vh;
+  left: -25vw;
+  background: linear-gradient(135deg, rgba(67, 56, 202, 0.4) 0%, rgba(67, 56, 202, 0) 100%);
+  animation: liquid-wave-1 25s ease-in-out infinite alternate;
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+}
+
+/* Layer 2: Electric Cyan Wave */
+.fluid-layer-2 {
+  width: 160vw;
+  height: 90vh;
+  bottom: -20vh;
+  right: -30vw;
+  background: linear-gradient(225deg, rgba(6, 182, 212, 0.3) 0%, rgba(6, 182, 212, 0) 100%);
+  animation: liquid-wave-2 30s ease-in-out infinite alternate-reverse;
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+}
+
+/* Layer 3: Vibrant Violet Flow */
+.fluid-layer-3 {
+  width: 140vw;
+  height: 110vh;
+  top: -10vh;
+  left: -20vw;
+  background: linear-gradient(45deg, rgba(139, 92, 246, 0.25) 0%, rgba(139, 92, 246, 0) 100%);
+  animation: liquid-wave-3 28s ease-in-out infinite alternate;
+  border-radius: 50% 50% 40% 60% / 40% 60% 50% 50%;
+}
+
+/* Layer 4: Deep Blue Core Undercurrent */
+.fluid-layer-4 {
+  width: 180vw;
+  height: 120vh;
+  bottom: -30vh;
+  left: -40vw;
+  background: linear-gradient(to top, rgba(30, 58, 138, 0.5) 0%, rgba(30, 58, 138, 0) 80%);
+  animation: liquid-wave-4 35s linear infinite alternate;
+  border-radius: 45% 55% 65% 35% / 55% 45% 60% 40%;
+}
+
+/* Liquid Wave Animations */
+@keyframes liquid-wave-1 {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  }
+  50% {
+    transform: translate3d(5vw, -5vh, 0) rotate(2deg);
+    border-radius: 60% 40% 30% 70% / 50% 60% 40% 50%;
+  }
+  100% {
+    transform: translate3d(-5vw, 5vh, 0) rotate(-2deg);
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  }
+}
+
+@keyframes liquid-wave-2 {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  50% {
+    transform: translate3d(-8vw, 8vh, 0) rotate(-3deg);
+    border-radius: 30% 70% 60% 40% / 40% 60% 30% 70%;
+  }
+  100% {
+    transform: translate3d(8vw, -8vh, 0) rotate(3deg);
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+}
+
+@keyframes liquid-wave-3 {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    border-radius: 50% 50% 40% 60% / 40% 60% 50% 50%;
+  }
+  50% {
+    transform: translate3d(6vw, 6vh, 0) rotate(4deg);
+    border-radius: 40% 60% 50% 50% / 50% 40% 60% 50%;
+  }
+  100% {
+    transform: translate3d(-6vw, -6vh, 0) rotate(-4deg);
+    border-radius: 50% 50% 40% 60% / 40% 60% 50% 50%;
+  }
+}
+
+@keyframes liquid-wave-4 {
+  0% {
+    transform: translate3d(0, 5vh, 0) rotate(0deg);
+    border-radius: 45% 55% 65% 35% / 55% 45% 60% 40%;
+  }
+  50% {
+    transform: translate3d(10vw, -5vh, 0) rotate(1deg);
+    border-radius: 55% 45% 35% 65% / 40% 60% 45% 55%;
+  }
+  100% {
+    transform: translate3d(-5vw, 5vh, 0) rotate(-1deg);
+    border-radius: 45% 55% 65% 35% / 55% 45% 60% 40%;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .fluid-layer-1,
+  .fluid-layer-2,
+  .fluid-layer-3,
+  .fluid-layer-4 {
+    animation: none;
+    transform: none;
+  }
+}

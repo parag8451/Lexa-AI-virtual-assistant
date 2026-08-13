@@ -31,7 +31,7 @@ const MessageBubbleComponent = ({
   // Memoize computed styles to prevent unnecessary recalculations
   const bubbleClasses = useMemo(() => {
     return cn(
-      "max-w-2xl px-4 py-3 rounded-lg text-sm leading-relaxed break-words",
+      "max-w-2xl px-6 py-4 rounded-lg text-sm leading-relaxed break-words",
       isUser
         ? "bg-blue-600 text-white rounded-br-none"
         : "bg-slate-800 text-slate-100 rounded-bl-none"
@@ -40,7 +40,7 @@ const MessageBubbleComponent = ({
 
   const containerClasses = useMemo(() => {
     return cn(
-      "flex gap-3 mb-4 animate-in fade-in slide-in-from-bottom-2",
+      "flex gap-9 mb-4 animate-in fade-in slide-in-from-bottom-2" ,
       isUser ? "flex-row-reverse" : "flex-row"
     );
   }, [isUser]);

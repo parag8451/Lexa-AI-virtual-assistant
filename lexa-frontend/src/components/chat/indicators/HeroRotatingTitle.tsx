@@ -106,13 +106,13 @@ export function HeroRotatingTitle({
 
   return (
     <div
-      className={`w-full max-w-4xl min-h-[3.2em] sm:min-h-[2.6em] flex items-center justify-center mb-2 select-none ${className}`}
+      className={`w-full max-w-4xl min-h-[1.2em] flex items-center justify-center select-none ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       aria-label={currentSentence}
     >
       <h1
-        className={`text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-white leading-[1.2] text-center transition-all duration-300 ${
+        className={`text-4xl md:text-6xl font-medium tracking-tight text-white leading-[1.2] text-center transition-all duration-300 ${
           isFading
             ? "opacity-0 -translate-y-1 blur-sm"
             : "opacity-100 translate-y-0 blur-0"

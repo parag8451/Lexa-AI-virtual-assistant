@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Plus, Sliders, X, Image, FileText, Mic, ChevronDown } from "lucide-react";
+import { Send, Plus, Sliders, X, Image, FileText, Mic, ChevronDown, ArrowUp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import BorderGlow from "@/components/ui/BorderGlow";
 import { VoiceButton } from "@/components/chat/voice/VoiceButton";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
@@ -182,15 +183,24 @@ export function ChatInput({
           </div>
         )}
 
-        {/* Main Input Container - Premium dark rounded box */}
-        <div className={cn(
-          "relative rounded-2xl overflow-hidden",
-          "glass-card",
-          "focus-within:border-primary/30 focus-within:shadow-lg focus-within:shadow-primary/5",
-          "transition-all duration-300"
-        )}>
+        {/* Main Input Container - Ultra Premium Glass Box with BorderGlow */}
+        <BorderGlow 
+          glowColor="217 91 60" // Primary blue glow
+          glowIntensity={1.5}
+          borderRadius={28}
+          className="w-full relative z-30"
+          animated={true}
+        >
+          <div className={cn(
+            "relative rounded-[28px] overflow-hidden",
+            "bg-[#1A1D24]/70 backdrop-blur-3xl",
+            "border border-white/[0.08]",
+            "shadow-2xl shadow-black/40",
+            "focus-within:bg-[#1A1D24]/85 focus-within:border-white/[0.12]",
+            "transition-all duration-300"
+          )}>
           {/* Gradient accent line at top on focus */}
-          <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-primary/0 to-transparent transition-all duration-300 group-focus-within:via-primary/40" />
+          <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent transition-all duration-500 group-focus-within:via-white/20" />
 
           {/* Top section - Input area */}
           <div className="p-4 pb-2">
@@ -199,13 +209,13 @@ export function ChatInput({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={placeholder}
+              placeholder="What responsive web experience shall we design?"
               disabled={isLoading || disabled}
               className={cn(
-                "w-full min-h-[24px] max-h-[200px] bg-transparent border-0 resize-none",
+                "w-full min-h-[48px] max-h-[200px] bg-transparent border-0 resize-none",
                 "focus-visible:ring-0 focus-visible:ring-offset-0",
-                "placeholder:text-muted-foreground/50 text-foreground text-base",
-                "p-0"
+                "placeholder:text-white/40 text-white/90 text-[15px] leading-relaxed",
+                "p-2 px-3 mt-2 font-medium tracking-wide"
               )}
               rows={1}
             />
@@ -214,7 +224,7 @@ export function ChatInput({
           {/* Bottom toolbar */}
           <div className="flex items-center justify-between px-3 pb-3">
             {/* Left side - Actions */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3 pl-2">
               {/* Add/Attach button */}
               <input
                 ref={fileInputRef}
@@ -230,51 +240,78 @@ export function ChatInput({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                    className="h-9 w-9 rounded-full text-white/50 hover:text-white/90 hover:bg-white/5 transition-all"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isLoading || disabled}
                   >
-                    <Plus className="h-5 w-5" />
+                    <Plus className="h-5 w-5 stroke-[1.5]" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Attach files</TooltipContent>
               </Tooltip>
 
-              {/* Tools button */}
+              {/* Segmented Control (App / Web) styled from reference image */}
+              <div className="flex items-center bg-[#2A2D35]/80 rounded-full p-1 border border-white/5 shadow-sm">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-4 rounded-full text-white/50 hover:text-white/90 font-medium text-[13px] gap-1.5 transition-all"
+                  disabled={isLoading || disabled}
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  App
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "h-7 px-4 rounded-full font-medium text-[13px] gap-1.5 transition-all",
+                    webSearchEnabled 
+                      ? "bg-primary/20 text-primary hover:bg-primary/30" 
+                      : "bg-[#3A3E4A] text-white/90 hover:bg-[#444855] shadow-sm"
+                  )}
+                  onClick={onToggleWebSearch}
+                  disabled={isLoading || disabled}
+                >
+                  <Sliders className="h-3.5 w-3.5" />
+                  Web
+                </Button>
+              </div>
+            </div>
+
+            {/* Right side - Model selector & Voice */}
+            <div className="flex items-center gap-1.5 pr-2">
+              {/* Tools button (styled like Color Palette icon in reference) */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-8 px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 gap-1.5 transition-all",
-                      webSearchEnabled && "text-primary bg-primary/10 hover:bg-primary/15"
-                    )}
+                    size="icon"
+                    className="h-9 w-9 rounded-full text-white/50 hover:text-white/90 hover:bg-white/5 transition-all"
                     onClick={onToggleWebSearch}
                     disabled={isLoading || disabled}
                   >
-                    <Sliders className="h-4 w-4" />
-                    <span className="text-sm font-medium">Tools</span>
+                    <Sliders className="h-[18px] w-[18px]" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Toggle web search</TooltipContent>
+                <TooltipContent>Tools</TooltipContent>
               </Tooltip>
-            </div>
 
-            {/* Right side - Model selector & Voice */}
-            <div className="flex items-center gap-2">
               {/* Model Tier Selector */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-3 rounded-lg bg-muted/40 hover:bg-muted/60 text-foreground gap-1.5 transition-all border border-border/20"
+                    className="h-9 px-4 rounded-full bg-[#2A2D35]/80 hover:bg-[#343842] text-white/90 gap-2 transition-all border border-white/5 shadow-sm"
                     disabled={isLoading || disabled}
                   >
-                    <span className="font-medium">{MODEL_TIERS[selectedTier].label}</span>
-                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Sparkles className="h-[14px] w-[14px] text-white/70" />
+                    <span className="font-semibold text-[13px] tracking-wide">3 Flash</span>
+                    <ChevronDown className="h-3.5 w-3.5 text-white/50 ml-0.5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 glass-strong border-border/30 shadow-xl">
@@ -314,15 +351,15 @@ export function ChatInput({
                       variant="ghost"
                       size="icon"
                       className={cn(
-                        "h-8 w-8 rounded-lg transition-all",
+                        "h-9 w-9 rounded-full transition-all",
                         isRecording
-                          ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 shadow-sm shadow-red-500/20"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                          : "text-white/50 hover:text-white/90 hover:bg-white/5"
                       )}
                       onClick={isRecording ? handleVoiceStop : onStartRecording}
                       disabled={isLoading || disabled || isTranscribing}
                     >
-                      <Mic className={cn("h-5 w-5", isRecording && "animate-pulse")} />
+                      <Mic className={cn("h-[18px] w-[18px]", isRecording && "animate-pulse")} />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -338,14 +375,15 @@ export function ChatInput({
                     <Button
                       type="button"
                       size="icon"
+                      variant="ghost"
                       className={cn(
-                        "h-8 w-8 rounded-lg transition-all",
-                        "gradient-primary text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                        "h-9 w-9 rounded-full transition-all",
+                        "text-white/50 hover:text-white/90 hover:bg-white/5"
                       )}
                       onClick={handleSubmit}
                       disabled={isLoading || disabled}
                     >
-                      <Send className="h-4 w-4" />
+                      <ArrowUp className="h-[20px] w-[20px]" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Send message</TooltipContent>
@@ -354,6 +392,7 @@ export function ChatInput({
             </div>
           </div>
         </div>
+        </BorderGlow>
       </div>
     </TooltipProvider>
   );

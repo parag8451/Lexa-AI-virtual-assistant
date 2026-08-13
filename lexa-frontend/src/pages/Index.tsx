@@ -7,13 +7,14 @@ import {
   Volume2, VolumeX, Download, Trash2, Globe, CheckCircle2,
   Cpu, Zap, Wand2, Smartphone, Code2, Paperclip, MessageSquare,
   History, Search, Edit2, X, Clock, PanelLeftClose, Camera, FileText,
-  FileCode, Eye, Radio, ExternalLink
+  FileCode, Eye, Radio, Terminal, Layout, Image as ImageIcon, HelpCircle, Bot
 } from "lucide-react";
 import { ErrorBoundary } from "react-error-boundary";
 import "@/components/chat/CustomChatUI.css";
-import StitchWaveBackground from "@/components/chat/StitchWaveBackground";
+import Grainient from "@/components/effects/Grainient";
 import { HeroRotatingTitle } from "@/components/chat/HeroRotatingTitle";
 import { SafeMarkdown } from "@/components/chat/SafeMarkdown";
+import { RadiantPromptInput } from "@/components/chat/RadiantPromptInput";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -152,17 +153,9 @@ function MessageBubble({
     >
       {message.role === "ai" && (
         <div className="avatar ai shrink-0 mt-0.5">
-          <svg className="lexa-star" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id={`starGrad-${message.id}`} x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#38bdf8" />
-                <stop offset="50%" stopColor="#818cf8" />
-                <stop offset="100%" stopColor="#c084fc" />
-              </linearGradient>
-            </defs>
-            <path d="M14 2 C14 8.5 19.5 14 14 14 C19.5 14 14 19.5 14 26 C14 19.5 8.5 14 14 14 C8.5 14 14 8.5 14 2Z" fill={`url(#starGrad-${message.id})`} />
-            <path d="M2 14 C8.5 14 14 8.5 14 14 C14 8.5 19.5 14 26 14 C19.5 14 14 19.5 14 14 C14 19.5 8.5 14 2 14Z" fill={`url(#starGrad-${message.id})`} opacity="0.6" />
-          </svg>
+          <div className="w-7 h-7 rounded-full bg-zinc-800/80 border border-zinc-700 flex items-center justify-center shadow-sm">
+            <Bot className="w-4 h-4 text-cyan-400" />
+          </div>
         </div>
       )}
 
@@ -298,61 +291,6 @@ function ScrollToBottomButton({ visible, onClick }: { visible: boolean; onClick:
         </motion.button>
       )}
     </AnimatePresence>
-  );
-}
-
-/* ─── Attachment Preview Tray Component ─── */
-function AttachmentTray({
-  attachments,
-  onRemove,
-  onPreview,
-}: {
-  attachments: FileAttachment[];
-  onRemove: (id: string) => void;
-  onPreview: (url: string) => void;
-}) {
-  if (attachments.length === 0) return null;
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 mb-2.5 p-2 bg-[#12141e]/90 border border-white/10 rounded-2xl">
-      {attachments.map((att) => (
-        <div
-          key={att.id}
-          className="relative flex items-center gap-2 p-1.5 pr-2.5 bg-white/[0.07] hover:bg-white/[0.12] border border-white/12 rounded-xl text-xs text-zinc-200 transition-colors group"
-        >
-          {att.isImage ? (
-            <img
-              src={att.dataUrl}
-              alt={att.name}
-              onClick={() => onPreview(att.dataUrl)}
-              className="w-8 h-8 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
-            />
-          ) : att.isPdf ? (
-            <div className="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
-              <FileText className="w-4 h-4" />
-            </div>
-          ) : (
-            <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-              <FileCode className="w-4 h-4" />
-            </div>
-          )}
-
-          <div className="flex flex-col min-w-0 pr-1">
-            <span className="truncate max-w-[120px] font-medium">{att.name}</span>
-            <span className="text-[10px] text-zinc-400">{formatFileSize(att.size)}</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => onRemove(att.id)}
-            className="w-4 h-4 rounded-full bg-white/10 hover:bg-rose-500/30 hover:text-rose-400 flex items-center justify-center text-zinc-400 transition-colors"
-            title="Remove attachment"
-          >
-            <X className="w-2.5 h-2.5" />
-          </button>
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -1105,7 +1043,36 @@ function IndexContent() {
   };
 
   return (
-    <div className="custom-chat-wrapper bg-[#090a0e] relative flex overflow-hidden">
+    <div className="flex h-screen bg-[#020205] text-white font-sans overflow-hidden relative">
+      
+      {/* Dynamic Wave Background */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <Grainient
+          color1="#090924"
+          color2="#040013"
+          color3="#1249ff"
+          timeSpeed={1.85}
+          colorBalance={-0.47}
+          warpStrength={0}
+          warpFrequency={3.3}
+          warpSpeed={6}
+          warpAmplitude={72}
+          blendAngle={0}
+          blendSoftness={0.4}
+          rotationAmount={120}
+          noiseScale={2}
+          grainAmount={0.1}
+          grainScale={1.7}
+          grainAnimated
+          contrast={1.75}
+          gamma={1}
+          saturation={2.5}
+          centerX={0}
+          centerY={0}
+          zoom={0.95}
+        />
+      </div>
+
       {/* Hidden File Input for Attachment */}
       <input
         type="file"
@@ -1165,127 +1132,74 @@ function IndexContent() {
         )}
       </AnimatePresence>
 
-      {/* ─── Sidebar ─── */}
-      <aside className="sidebar border-white/5 bg-[#0d0e14]/90 backdrop-blur-xl shrink-0" aria-label="Sidebar">
-        {/* Leftmost Top Brand Logo */}
-        <div
-          className="sidebar-logo cursor-pointer hover:opacity-85 transition-opacity"
-          onClick={handleNewChat}
-          title="Lexa AI - New Chat"
-        >
-          <svg className="lexa-star" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="sidebarStar" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#38bdf8" />
-                <stop offset="50%" stopColor="#818cf8" />
-                <stop offset="100%" stopColor="#c084fc" />
-              </linearGradient>
-            </defs>
-            <path d="M14 2 C14 8.5 19.5 14 14 14 C19.5 14 14 19.5 14 26 C14 19.5 8.5 14 14 14 C8.5 14 14 8.5 14 2Z" fill="url(#sidebarStar)" />
-            <path d="M2 14 C8.5 14 14 8.5 14 14 C14 8.5 19.5 14 26 14 C19.5 14 14 19.5 14 14 C14 19.5 8.5 14 2 14Z" fill="url(#sidebarStar)" opacity="0.6" />
-          </svg>
-        </div>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              className="sidebar-btn active hover:bg-white/10 transition-all active:scale-95"
-              onClick={handleNewChat}
-              aria-label="New chat"
-            >
-              <Plus className="w-5 h-5 text-white" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">New Chat</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => setIsCameraModalOpen(true)}
-              className="sidebar-btn hover:bg-white/10 text-zinc-400 hover:text-cyan-400 transition-all active:scale-95"
-              aria-label="Vision Scanner"
-            >
-              <Camera className="w-4 h-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Camera Scanner (OCR & Vision)</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => setIsVoiceAssistantOpen(true)}
-              className="sidebar-btn hover:bg-white/10 text-zinc-400 hover:text-emerald-400 transition-all active:scale-95"
-              aria-label="Live Voice Assistant"
-            >
-              <Radio className="w-4 h-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Real-Time Talking Assistant</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => setIsPrivateConversation((p) => !p)}
-              className={`sidebar-btn hover:bg-white/10 transition-all active:scale-95 ${
-                isPrivateConversation ? "bg-white/10 text-white" : "text-zinc-400"
-              }`}
-              aria-label="Toggle private conversation"
-            >
-              {isPrivateConversation ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            {isPrivateConversation ? "Private: conversations won't be saved" : "Public: conversations are saved"}
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              className={`sidebar-btn hover:bg-white/10 transition-all active:scale-95 ${
-                isHistoryOpen ? "bg-white/15 text-white" : "text-zinc-400"
-              }`}
-              onClick={() => setIsHistoryOpen((prev) => !prev)}
-              aria-label="Chat History"
-            >
-              <History className="w-4 h-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Chat History ({conversations.length})</TooltipContent>
-        </Tooltip>
-
-        {hasMessages && (
+      {/* ─── LEFT SIDEBAR ─── */}
+      <aside className="w-16 py-6 border-r border-white/5 bg-[#020205] flex flex-col items-center relative z-30 shrink-0">
+        
+        <div className="flex flex-col items-center gap-6 mt-4">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="sidebar-btn hover:bg-white/10 transition-all active:scale-95"
-                onClick={handleExport}
-                aria-label="Export chat"
+                onClick={handleNewChat}
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-zinc-500 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
               >
-                <Download className="w-4 h-4 text-zinc-400 hover:text-white" />
+                <Plus className="w-5 h-5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">Export Chat</TooltipContent>
+            <TooltipContent side="right">New Chat</TooltipContent>
           </Tooltip>
-        )}
 
-        <div className="sidebar-bottom mt-auto">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="settings-btn hover:bg-white/10 p-2.5 rounded-xl transition-all active:scale-95"
-                onClick={() => navigate("/settings")}
-                aria-label="Settings"
+                onClick={() => setIsVoiceAssistantOpen(true)}
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-zinc-500 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
               >
-                <Settings className="w-5 h-5 text-zinc-400 hover:text-white" />
+                <Radio className="w-5 h-5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">Settings & API Keys</TooltipContent>
+            <TooltipContent side="right">Voice Assistant</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setIsPrivateConversation((p) => !p)}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                  isPrivateConversation ? "bg-white/10 text-white" : "text-zinc-500 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {isPrivateConversation ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Privacy Mode</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setIsHistoryOpen((prev) => !prev)}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                  isHistoryOpen ? "bg-white/10 text-white" : "text-zinc-500 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <History className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Conversations</TooltipContent>
           </Tooltip>
         </div>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className="mt-auto w-10 h-10 rounded-xl flex items-center justify-center text-zinc-500 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+              onClick={() => navigate("/settings")}
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Settings</TooltipContent>
+        </Tooltip>
       </aside>
 
       {/* ─── Slide-out Conversation History Drawer ─── */}
@@ -1462,18 +1376,7 @@ function IndexContent() {
       </AnimatePresence>
 
       {/* ─── Main ─── */}
-      <main className="main relative overflow-hidden bg-transparent w-full h-full" role="main">
-        {/* Full-Screen Smooth Dynamic Wave Background */}
-        <StitchWaveBackground speed={0.75} intensity={0.75} />
-
-        {/* Upper-Half Soft Translucent Black Blend */}
-        <div
-          className="fixed inset-x-0 top-0 h-[48vh] pointer-events-none z-10"
-          style={{
-            background: "linear-gradient(to bottom, rgba(9, 10, 14, 0.40) 0%, rgba(9, 10, 14, 0.15) 50%, transparent 100%)",
-          }}
-          aria-hidden="true"
-        />
+      <main className="flex-1 flex flex-col relative z-10" role="main">
 
         {/* Cinematic power-on black fade overlay */}
         <AnimatePresence>
@@ -1487,378 +1390,145 @@ function IndexContent() {
           )}
         </AnimatePresence>
 
-        {/* ── Top Header with Stable, Prominent Leftmost Branding ── */}
-        <header className="header flex items-center justify-between px-6 py-4 relative z-20">
-          {/* Permanent & Stable LEXA AI Brand Anchor */}
-          <div
-            className="flex items-center gap-2.5 cursor-pointer select-none group"
-            onClick={handleNewChat}
-            title="Lexa AI Assistant - Home"
+        {/* ── TOP STATUS BAR ── */}
+        <header className="absolute top-0 w-full px-8 py-4 flex items-center justify-end gap-4 z-40">
+          
+          {/* Status Badge */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/5" style={{ background: 'rgba(10, 10, 12, 0.6)', backdropFilter: 'blur(20px)' }}>
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+            <span className="text-[11px] text-zinc-300">LEXA AI 2.0 | Live Talking AI</span>
+            <Radio className="w-3.5 h-3.5 text-emerald-500" />
+          </div>
+
+          {/* Scan/OCR Button */}
+          <button 
+            onClick={() => setIsCameraModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] text-zinc-300 hover:bg-white/10 transition-colors border border-transparent"
+            style={{ background: 'rgba(10, 10, 12, 0.6)', backdropFilter: 'blur(20px)' }}
           >
-            {/* High-Precision Modern Emblem */}
-            <div className="w-8 h-8 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center backdrop-blur-md shadow-sm group-hover:border-white/20 transition-all">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" fill="#38BDF8" fillOpacity="0.9" />
-              </svg>
-            </div>
+            <Camera className="w-3.5 h-3.5" />
+            <span>Scan / OCR</span>
+          </button>
 
-            {/* Stable Branding Text */}
-            <div className="flex items-center gap-2">
-              <span className="text-[15px] font-semibold tracking-tight text-white font-sans">
-                LEXA AI
-              </span>
-              <span className="text-[10px] font-medium tracking-wide text-zinc-300 border border-white/10 bg-white/[0.05] px-2 py-0.5 rounded-full flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                2.0
-              </span>
-            </div>
-          </div>
-
-          {/* Header Action Controls */}
-          <div className="flex items-center gap-2">
-            {/* Live Voice Assistant Launch Button */}
-            <button
-              onClick={() => setIsVoiceAssistantOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/15 text-zinc-300 hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
-            >
-              <Radio className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">Live Talking AI</span>
-            </button>
-
-            {/* Camera Scanner Button */}
-            <button
-              onClick={() => setIsCameraModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/15 text-zinc-300 hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
-            >
-              <Camera className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden sm:inline">Scan / OCR</span>
-            </button>
-
-            {/* Model selector dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className="flex items-center gap-2 bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/15 text-zinc-200 px-3.5 py-1.5 rounded-full text-xs font-medium backdrop-blur-md transition-all shadow-sm active:scale-95 cursor-pointer"
-                >
-                  <currentModelInfo.icon className="w-3.5 h-3.5 text-[#38BDF8]" />
-                  <span>{currentModelInfo.name}</span>
-                  <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 bg-[#14151e]/95 backdrop-blur-xl border border-white/10 text-white p-2 shadow-2xl z-50 rounded-2xl">
-                <DropdownMenuLabel className="text-xs text-zinc-400 uppercase tracking-wider px-2 py-1">
-                  Select AI Model
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-white/10" />
-                {AVAILABLE_MODELS.map((model) => {
-                  const Icon = model.icon;
-                  const isSelected = selectedModel === model.id;
-                  return (
-                    <DropdownMenuItem
-                      key={model.id}
-                      onClick={() => setSelectedModel(model.id)}
-                      className={`flex items-start gap-2.5 p-2 rounded-xl cursor-pointer transition-colors ${
-                        isSelected ? "bg-[#38BDF8]/15 text-white" : "hover:bg-white/10"
-                      }`}
-                    >
-                      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? "text-[#38BDF8]" : "text-zinc-400"}`} />
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold">{model.name}</span>
-                          <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-white/10 text-zinc-300 font-medium">
-                            {model.badge}
-                          </span>
-                        </div>
-                        <span className="text-[11px] text-zinc-400 truncate">{model.desc}</span>
+          {/* Model Selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] text-zinc-300 hover:bg-white/10 transition-colors border border-transparent"
+                style={{ background: 'rgba(10, 10, 12, 0.6)', backdropFilter: 'blur(20px)' }}
+              >
+                <Zap className="w-3.5 h-3.5 text-indigo-400" />
+                <span>{currentModelInfo.name}</span>
+                <ChevronDown className="w-3.5 h-3.5 opacity-70 ml-0.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 bg-[#14151e]/95 backdrop-blur-xl border border-white/10 text-white p-2 shadow-2xl z-50 rounded-2xl">
+              <DropdownMenuLabel className="text-xs text-zinc-400 uppercase tracking-wider px-2 py-1">
+                Select AI Model
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-white/10" />
+              {AVAILABLE_MODELS.map((model) => {
+                const Icon = model.icon;
+                const isSelected = selectedModel === model.id;
+                return (
+                  <DropdownMenuItem
+                    key={model.id}
+                    onClick={() => setSelectedModel(model.id)}
+                    className={`flex items-start gap-2.5 p-2 rounded-xl cursor-pointer transition-colors ${
+                      isSelected ? "bg-[#38BDF8]/15 text-white" : "hover:bg-white/10"
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? "text-[#38BDF8]" : "text-zinc-400"}`} />
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold">{model.name}</span>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-white/10 text-zinc-300 font-medium">
+                          {model.badge}
+                        </span>
                       </div>
-                      {isSelected && <CheckCircle2 className="w-4 h-4 text-[#38BDF8] shrink-0 mt-0.5" />}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                      <span className="text-[11px] text-zinc-400 truncate">{model.desc}</span>
+                    </div>
+                    {isSelected && <CheckCircle2 className="w-4 h-4 text-[#38BDF8] shrink-0 mt-0.5" />}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            {/* Web Search toggle */}
+          {/* Sign In / New Button */}
+          {hasMessages ? (
             <button
-              onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-              className={`hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 cursor-pointer ${
-                webSearchEnabled
-                  ? "bg-[#38BDF8]/15 text-[#38BDF8] border-[#38BDF8]/30 shadow-sm"
-                  : "bg-white/[0.05] text-zinc-400 border-white/[0.08] hover:text-white"
-              }`}
+              onClick={handleNewChat}
+              className="ml-2 px-4 py-1.5 bg-white text-black rounded-full text-[11px] font-bold hover:bg-zinc-200 transition-colors"
             >
-              <Globe className="w-3.5 h-3.5" />
-              <span>Web Search</span>
+              New Chat
             </button>
-
-            {/* Top Action Button */}
-            {hasMessages ? (
-              <button
-                onClick={handleNewChat}
-                className="flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-100 px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>New</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate("/auth")}
-                className="bg-white text-zinc-950 hover:bg-zinc-100 px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
-              >
-                Sign In
-              </button>
-            )}
-          </div>
+          ) : (
+            <button
+              onClick={() => navigate("/auth")}
+              className="ml-2 px-4 py-1.5 bg-white text-black rounded-full text-[11px] font-bold hover:bg-zinc-200 transition-colors"
+            >
+              Sign In
+            </button>
+          )}
         </header>
 
-        {/* Chat Area */}
-        <div
-          className={`chat-area relative z-10 ${hasMessages ? "has-messages" : "flex flex-col items-center justify-center"}`}
-          id="chatArea"
+        {/* Main scrollable area */}
+        <div 
+          className="flex-1 overflow-y-auto scroll-smooth pb-4 px-6 relative z-10 custom-scrollbar flex flex-col" 
           ref={chatAreaRef}
+          id="chatArea"
           onScroll={handleScroll}
           aria-live="polite"
         >
-          {/* Welcome Hero & Floating Input Card */}
           <AnimatePresence mode="wait">
             {!hasMessages && (
               <motion.div
-                key="welcome-hero"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
+                key="empty-state"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0, transition: { duration: 0.4 } }}
                 exit={{ opacity: 0, y: -16, transition: { duration: 0.2 } }}
-                className="max-w-3xl mx-auto w-full px-4 py-6 flex flex-col items-center justify-center text-center my-auto"
+                className="w-full py-6 flex flex-col items-center justify-center text-center my-auto shrink-0 gap-[76px]"
               >
-                {/* Hero Rotating Tagline Carousel */}
-                <HeroRotatingTitle pauseDurationMs={10000} typingSpeedMs={50} />
+                {/* Animated Typing Title */}
+                <HeroRotatingTitle />
 
-                {/* Hero Subtitle */}
-                <motion.p
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.15 }}
-                  className="text-sm text-zinc-400 max-w-lg mb-8 font-normal leading-relaxed tracking-normal"
-                >
-                  Multimodal intelligence for live vision OCR, documents, code synthesis, and voice
-                </motion.p>
+                  {/* RADIANT INPUT AND SUGGESTION PILLS */}
+                  <div className="w-full max-w-3xl animate-in fade-in slide-in-from-bottom-8 duration-700 mx-auto">
+                    <RadiantPromptInput 
+                      value={inputValue}
+                      onChange={handleInputChange}
+                      onSubmit={() => sendMessage()}
+                      disabled={isStreaming}
+                      placeholder={getPlaceholder()}
+                      designMode={designMode}
+                      setDesignMode={setDesignMode}
+                      webSearchEnabled={webSearchEnabled}
+                      setWebSearchEnabled={setWebSearchEnabled}
+                      isListening={isListening}
+                      toggleSpeechRecognition={toggleSpeechRecognition}
+                      setIsVoiceAssistantOpen={setIsVoiceAssistantOpen}
+                      attachments={attachments}
+                      onAttachmentClick={() => fileInputRef.current?.click()}
+                      onRemoveAttachment={removeAttachment}
+                      onPreviewAttachment={(url) => setPreviewImageUrl(url)}
+                    />
 
-                {/* ── Central Floating Realistic Card ── */}
-                <div
-                  className={`w-full max-w-2xl rounded-3xl p-4 sm:p-5 text-left transition-all duration-200 ${
-                    inputFocused
-                      ? "border-cyan-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_0_1px_rgba(56,189,248,0.3)]"
-                      : "border-white/[0.09] hover:border-white/[0.15] shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
-                  }`}
-                  style={{
-                    background: "rgba(14, 16, 25, 0.82)",
-                    backdropFilter: "blur(24px) saturate(180%)",
-                    WebkitBackdropFilter: "blur(24px) saturate(180%)",
-                    borderWidth: "1px",
-                    borderStyle: "solid",
-                  }}
-                >
-                  {/* Attachment Tray */}
-                  <AttachmentTray
-                    attachments={attachments}
-                    onRemove={removeAttachment}
-                    onPreview={(url) => setPreviewImageUrl(url)}
-                  />
-
-                  <textarea
-                    ref={inputRef}
-                    rows={2}
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeydown}
-                    onFocus={() => setInputFocused(true)}
-                    onBlur={() => setInputFocused(false)}
-                    placeholder={getPlaceholder()}
-                    className="w-full bg-transparent text-white placeholder-zinc-500 text-base resize-none outline-none focus:outline-none font-normal"
-                    disabled={isStreaming}
-                  />
-
-                  {/* Card Bottom Toolbar */}
-                  <div className="flex items-center justify-between pt-3 border-t border-white/[0.08] mt-2">
-                    {/* Left side: Attachments + Camera + Mode Switcher */}
-                    <div className="flex items-center gap-1.5">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/15 text-zinc-300 hover:text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm"
-                            aria-label="Upload File / Document / PDF"
-                          >
-                            <Paperclip className="w-3.5 h-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">Attach image, PDF, or code</TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => setIsCameraModalOpen(true)}
-                            className="w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] hover:border-white/15 text-zinc-300 hover:text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm"
-                            aria-label="Camera OCR Scanner"
-                          >
-                            <Camera className="w-3.5 h-3.5 text-cyan-400" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">Camera scanner (OCR & docs)</TooltipContent>
-                      </Tooltip>
-
-                      {/* Segmented Mode Switcher */}
-                      <div className="hidden sm:flex items-center p-0.5 rounded-full bg-black/40 border border-white/[0.06] text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setDesignMode("assistant")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all active:scale-95 cursor-pointer ${
-                            designMode === "assistant"
-                              ? "bg-white/15 text-white shadow-sm border border-white/10"
-                              : "text-zinc-400 hover:text-white"
-                          }`}
+                    {/* SUGGESTION PILLS */}
+                    <div className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[11px] text-zinc-500 font-medium">
+                      {suggestionsMap[designMode].map((s, idx) => (
+                        <button 
+                          key={idx}
+                          onClick={() => sendMessage(s.text)}
+                          disabled={isStreaming}
+                          className="flex items-center gap-1.5 hover:text-indigo-400 transition-colors cursor-pointer"
                         >
-                          <Sparkles className="w-3 h-3 text-[#38BDF8]" />
-                          <span>Assistant</span>
+                          <Sparkles className="text-[10px] w-3 h-3" />
+                          {s.text}
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setDesignMode("code")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all active:scale-95 cursor-pointer ${
-                            designMode === "code"
-                              ? "bg-white/15 text-white shadow-sm border border-white/10"
-                              : "text-zinc-400 hover:text-white"
-                          }`}
-                        >
-                          <Code2 className="w-3 h-3 text-[#818CF8]" />
-                          <span>Code</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDesignMode("web")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all active:scale-95 cursor-pointer ${
-                            designMode === "web"
-                              ? "bg-white/15 text-white shadow-sm border border-white/10"
-                              : "text-zinc-400 hover:text-white"
-                          }`}
-                        >
-                          <Globe className="w-3 h-3 text-[#34D399]" />
-                          <span>Web</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDesignMode("mobile")}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all active:scale-95 cursor-pointer ${
-                            designMode === "mobile"
-                              ? "bg-white/15 text-white shadow-sm border border-white/10"
-                              : "text-zinc-400 hover:text-white"
-                          }`}
-                        >
-                          <Smartphone className="w-3 h-3 text-[#F472B6]" />
-                          <span>App</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Right side: Search Toggle, Live Voice, Mic, and Send */}
-                    <div className="flex items-center gap-1.5">
-                      {/* Web search toggle */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border ${
-                              webSearchEnabled
-                                ? "text-[#38BDF8] bg-[#38BDF8]/15 border-[#38BDF8]/30 shadow-sm"
-                                : "text-zinc-300 hover:text-white bg-white/[0.05] hover:bg-white/[0.10] border-white/[0.08]"
-                            }`}
-                            aria-label="Toggle Web Search"
-                          >
-                            <Globe className="w-3.5 h-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          {webSearchEnabled ? "Web Search Enabled" : "Enable Web Search"}
-                        </TooltipContent>
-                      </Tooltip>
-
-                      {/* Live Voice Assistant Button */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => setIsVoiceAssistantOpen(true)}
-                            className="w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border bg-white/[0.05] hover:bg-white/[0.10] border-white/[0.08] text-emerald-400"
-                            aria-label="Real-time Voice Chat"
-                          >
-                            <Radio className="w-3.5 h-3.5 text-emerald-400" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">Real-Time Talking Assistant</TooltipContent>
-                      </Tooltip>
-
-                      {/* Voice / Mic */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={toggleSpeechRecognition}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer border ${
-                              isListening
-                                ? "bg-rose-500/20 text-rose-400 border-rose-500/40 shadow-sm"
-                                : "bg-white/[0.05] hover:bg-white/[0.10] border-white/[0.08] text-zinc-300 hover:text-white"
-                            }`}
-                            aria-label="Voice input"
-                          >
-                            {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          {isListening ? "Stop listening" : "Voice Prompt"}
-                        </TooltipContent>
-                      </Tooltip>
-
-                      {/* Realistic Send / Arrow Button */}
-                      <button
-                        type="button"
-                        disabled={(!inputValue.trim() && attachments.length === 0) || isStreaming}
-                        onClick={() => sendMessage()}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 ${
-                          inputValue.trim() || attachments.length > 0
-                            ? "bg-white text-zinc-950 font-semibold hover:bg-zinc-100 shadow-sm cursor-pointer border border-white/20"
-                            : "bg-white/[0.06] text-zinc-600 border border-white/5 cursor-not-allowed"
-                        }`}
-                        title="Send to Lexa AI"
-                        aria-label="Send to Lexa AI"
-                      >
-                        <ArrowUp className="w-3.5 h-3.5 font-bold" />
-                      </button>
+                      ))}
                     </div>
                   </div>
-                </div>
-
-                {/* ── Suggestion Chips Row ── */}
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="flex flex-wrap items-center justify-center gap-2 max-w-3xl mt-4"
-                >
-                  {suggestionsMap[designMode].map((s, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => sendMessage(s.text)}
-                      disabled={isStreaming}
-                      className="flex items-center gap-2 bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.06] hover:border-white/[0.15] rounded-full px-3.5 py-1.5 text-xs text-zinc-300 hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
-                    >
-                      <Sparkles className="w-3 h-3 text-[#38BDF8]" />
-                      <span className="truncate max-w-[280px] sm:max-w-none font-normal">{s.text}</span>
-                    </button>
-                  ))}
-                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1890,119 +1560,44 @@ function IndexContent() {
 
         {/* Bottom Input Section (Active when conversation has messages) */}
         {hasMessages && (
-          <div className="input-section relative z-20">
-            <div className={`input-glow-wrapper ${inputFocused ? "focused" : ""}`}>
-              {/* Attachment Tray above bottom input */}
-              <AttachmentTray
+          <div className="w-full px-6 mb-4 flex flex-col items-center relative z-20">
+            {/* RADIANT INPUT COMPONENT */}
+            <div className="w-full max-w-3xl animate-in fade-in slide-in-from-bottom-8 duration-700 mx-auto">
+              <RadiantPromptInput 
+                value={inputValue}
+                onChange={handleInputChange}
+                onSubmit={() => sendMessage()}
+                disabled={isStreaming}
+                placeholder={getPlaceholder()}
+                designMode={designMode}
+                setDesignMode={setDesignMode}
+                webSearchEnabled={webSearchEnabled}
+                setWebSearchEnabled={setWebSearchEnabled}
+                isListening={isListening}
+                toggleSpeechRecognition={toggleSpeechRecognition}
+                setIsVoiceAssistantOpen={setIsVoiceAssistantOpen}
                 attachments={attachments}
-                onRemove={removeAttachment}
-                onPreview={(url) => setPreviewImageUrl(url)}
+                onAttachmentClick={() => fileInputRef.current?.click()}
+                onRemoveAttachment={removeAttachment}
+                onPreviewAttachment={(url) => setPreviewImageUrl(url)}
               />
-
-              <div className="input-wrapper">
-                {/* Left Action Buttons in bottom bar */}
-                <div className="flex items-center gap-1 pl-1">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors active:scale-95"
-                        title="Attach file / document"
-                      >
-                        <Paperclip className="w-4 h-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">Attach file</TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => setIsCameraModalOpen(true)}
-                        className="p-1.5 rounded-lg text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors active:scale-95"
-                        title="Camera Scanner"
-                      >
-                        <Camera className="w-4 h-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">Camera scanner (OCR & docs)</TooltipContent>
-                  </Tooltip>
-                </div>
-
-                <textarea
-                  ref={inputRef}
-                  className="chat-input placeholder-zinc-500 text-white"
-                  placeholder={
-                    isListening
-                      ? "Listening... speak now..."
-                      : isStreaming
-                      ? "Lexa is thinking..."
-                      : attachments.length > 0
-                      ? `Ask about ${attachments.length} attached file(s)...`
-                      : "Ask Lexa AI anything..."
-                  }
-                  rows={1}
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeydown}
-                  onFocus={() => setInputFocused(true)}
-                  onBlur={() => setInputFocused(false)}
-                  disabled={isStreaming}
-                  aria-label="Chat input message"
-                />
-
-                <div className="input-right flex items-center gap-1 pr-1">
-                  {/* Live Talking Button */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => setIsVoiceAssistantOpen(true)}
-                        className="p-1.5 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors active:scale-95"
-                        title="Live Voice Assistant"
-                      >
-                        <Radio className="w-4 h-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">Real-Time Talking Assistant</TooltipContent>
-                  </Tooltip>
-
-                  <AnimatePresence mode="wait">
-                    {inputValue.trim() || attachments.length > 0 ? (
-                      <button
-                        key="send"
-                        className="send-btn visible"
-                        onClick={() => sendMessage()}
-                        disabled={isStreaming}
-                        title="Send message"
-                        aria-label="Send message"
-                      >
-                        <ArrowUp className="w-4 h-4 font-bold" />
-                      </button>
-                    ) : (
-                      <button
-                        key="mic"
-                        onClick={toggleSpeechRecognition}
-                        className={`mic-btn ${
-                          isListening ? "text-rose-400 bg-rose-500/20 border-rose-500/30" : ""
-                        }`}
-                        title={isListening ? "Stop listening" : "Voice input"}
-                        aria-label="Voice input"
-                      >
-                        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                      </button>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
             </div>
-            <p className="disclaimer text-zinc-500 text-[11px] text-center mt-2">
+            
+            <p className="w-full text-zinc-500 text-[11px] text-center mt-3">
               Lexa AI can make mistakes. Verify critical code and documents.
             </p>
           </div>
         )}
+
+        {/* Floating Help Button */}
+        <button 
+          className="fixed bottom-8 right-8 w-12 h-12 rounded-full flex items-center justify-center border border-white/10 text-white hover:bg-white/10 transition-colors cursor-pointer z-50 shadow-2xl"
+          style={{ background: 'rgba(10, 10, 12, 0.8)', backdropFilter: 'blur(10px)' }}
+          title="Help"
+        >
+          <HelpCircle className="w-5 h-5" />
+        </button>
+
       </main>
     </div>
   );

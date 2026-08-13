@@ -57,7 +57,6 @@ export function RealtimeTalkingAssistant({
   const { toast } = useToast();
 
   const activeGeminiKey =
-    import.meta.env.VITE_GEMINI_API_KEY ||
     localStorage.getItem("lexa_gemini_key") ||
     "";
 

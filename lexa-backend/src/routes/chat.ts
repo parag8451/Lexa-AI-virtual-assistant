@@ -69,7 +69,16 @@ chatRouter.post('/chat', async (c) => {
 
   try {
     const body = await c.req.json();
-    const { messages, attachments = [], model: requestedModel } = chatRequestSchema.parse(body);
+    const { messages, attachments = [], model: requestedModel, webSearch, mode } = chatRequestSchema.parse(body);
+
+    const modeInstruction = mode === 'code'
+      ? '\n\n- Mode: Code Specialist. Provide production-ready, clean, well-typed code.'
+      : mode === 'web'
+      ? '\n\n- Mode: Web Search & Knowledge Specialist. Incorporate web search findings accurately.'
+      : mode === 'mobile'
+      ? '\n\n- Mode: Mobile & App Specialist. Focus on mobile UI/UX, responsive layouts, and cross-platform apps.'
+      : '';
+    const effectiveSystemInstruction = SYSTEM_INSTRUCTION + modeInstruction;
 
     // Get or create user if authenticated
     let user = null;
@@ -84,11 +93,21 @@ chatRouter.post('/chat', async (c) => {
         await user.save();
       }
 
-      // Check usage limits for free tier
-      if (user.tier === 'free' && user.usageCount >= 100) {
-        return c.json({
-          error: 'Daily usage limit reached. Upgrade to Pro for unlimited access.',
-        }, 429);
+      // Check usage limits & 24h reset for free tier
+      if (user.tier === 'free') {
+        const now = new Date();
+        const resetWindowMs = 24 * 60 * 60 * 1000; // 24 hours
+        const lastReset = user.usageResetAt ? new Date(user.usageResetAt).getTime() : 0;
+
+        if (now.getTime() - lastReset > resetWindowMs) {
+          user.usageCount = 0;
+          user.usageResetAt = now;
+          await user.save();
+        } else if (user.usageCount >= 100) {
+          return c.json({
+            error: 'Daily usage limit reached (100 messages/24h). Upgrade to Pro for unlimited access.',
+          }, 429);
+        }
       }
     }
 
@@ -283,19 +302,24 @@ chatRouter.post('/chat', async (c) => {
     for (const candidate of candidates) {
       try {
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${candidate}:streamGenerateContent?alt=sse&key=${geminiKey}`;
+        const geminiRequestBody: Record<string, any> = {
+          contents: geminiContents,
+          systemInstruction: {
+            parts: [{ text: effectiveSystemInstruction }],
+          },
+          generationConfig: {
+            temperature: 0.7,
+            topP: 0.95,
+          },
+        };
+        if (webSearch) {
+          geminiRequestBody.tools = [{ googleSearch: {} }];
+        }
+
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: geminiContents,
-            systemInstruction: {
-              parts: [{ text: SYSTEM_INSTRUCTION }],
-            },
-            generationConfig: {
-              temperature: 0.7,
-              topP: 0.95,
-            },
-          }),
+          body: JSON.stringify(geminiRequestBody),
         });
 
         if (res.ok && res.body) {

@@ -94,6 +94,86 @@ IMPORTANT RULES:
 
 When you need tools (web search, calculator), use them quietly and just present the result.`;
 
+// Safe math expression evaluator (no eval or dynamic code execution)
+function safeEvaluateMath(expr: string): number {
+  const sanitized = expr.replace(/\s+/g, "");
+  if (!/^[0-9+*/%^().-]+$/.test(sanitized)) {
+    throw new Error("Invalid characters in expression");
+  }
+  let pos = 0;
+
+  function parseExpression(): number {
+    let left = parseTerm();
+    while (pos < sanitized.length) {
+      const op = sanitized[pos];
+      if (op === "+" || op === "-") {
+        pos++;
+        const right = parseTerm();
+        left = op === "+" ? left + right : left - right;
+      } else {
+        break;
+      }
+    }
+    return left;
+  }
+
+  function parseTerm(): number {
+    let left = parseFactor();
+    while (pos < sanitized.length) {
+      const op = sanitized[pos];
+      if (op === "*" || op === "/" || op === "%") {
+        pos++;
+        const right = parseFactor();
+        if (op === "*") left = left * right;
+        else if (op === "/") {
+          if (right === 0) throw new Error("Division by zero");
+          left = left / right;
+        } else left = left % right;
+      } else {
+        break;
+      }
+    }
+    return left;
+  }
+
+  function parseFactor(): number {
+    if (pos < sanitized.length && sanitized[pos] === "-") {
+      pos++;
+      return -parseFactor();
+    }
+    if (pos < sanitized.length && sanitized[pos] === "+") {
+      pos++;
+      return parseFactor();
+    }
+    if (pos < sanitized.length && sanitized[pos] === "(") {
+      pos++;
+      const val = parseExpression();
+      if (pos >= sanitized.length || sanitized[pos] !== ")") {
+        throw new Error("Missing closing parenthesis");
+      }
+      pos++;
+      return val;
+    }
+    const start = pos;
+    while (pos < sanitized.length && /[0-9.]/.test(sanitized[pos])) {
+      pos++;
+    }
+    if (start === pos) {
+      throw new Error("Unexpected character");
+    }
+    const numStr = sanitized.slice(start, pos);
+    const num = Number(numStr);
+    if (isNaN(num)) throw new Error("Invalid number");
+    return num;
+  }
+
+  const result = parseExpression();
+  if (pos < sanitized.length) {
+    throw new Error("Unexpected trailing characters");
+  }
+  return result;
+}
+
 // Tool execution functions
 async function executeTool(name: string, input: Record<string, unknown>): Promise<string> {
   switch (name) {
@@ -109,11 +189,10 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
     case "calculator": {
       try {
         const expr = input.expression as string;
-        // Simple calculator - only allow safe expressions
-        const result = Function('"use strict"; return (' + expr + ')')();
+        const result = safeEvaluateMath(expr);
         return JSON.stringify({ result, expression: expr });
-      } catch (err) {
-        return JSON.stringify({ error: "Invalid expression", expression: input.expression });
+      } catch (err: any) {
+        return JSON.stringify({ error: err.message || "Invalid expression", expression: input.expression });
       }
     }
     

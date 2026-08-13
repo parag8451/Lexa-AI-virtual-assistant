@@ -118,126 +118,88 @@ void main() {
   vec2 mouseNorm = uMouse / uResolution.xy;
   float mouseDist = distance(uv, mouseNorm);
   float mouseWave = exp(-mouseDist * 3.5) * 0.05;
-
   // ── Upper Half Deep Black Fade & Smooth Blend ──
-  // Creates an ultra-smooth, elegant fade into pure black in the top half (uv.y 0.38 -> 0.95)
   float upperHalfFade = smoothstep(0.95, 0.36, uv.y);
   float topBlackScrim = smoothstep(0.42, 0.94, uv.y);
-  // topSmoothFade is used to fade waves and dots toward the top — declare early so other blocks can reference it
   float topSmoothFade = smoothstep(0.30, 0.92, uv.y);
 
-  // ── Full-Screen Smooth Wave Geometry ──
-  float xNormalized = (uv.x - 0.5) * 2.0;
-  float baseArch = 0.26 + 0.40 * (xNormalized * xNormalized); 
+  // ── Stitch-like Side Waves Geometry ──
+  // We want waves that rise on the left and right sides, leaving the center dark.
+  float xNormalized = (uv.x - 0.5) * 2.0; // -1 to 1
+  float centerDist = abs(xNormalized);
+  
+  // Arch that is low in the center and rises sharply at the edges
+  float baseArch = 0.1 + 0.6 * pow(centerDist, 2.5);
 
-  // Organic motion waves
-  float waveNoise1 = snoise(vec2(uv.x * 1.8 + t * 0.25, t * 0.2)) * 0.14;
-  float waveNoise2 = snoise(vec2(uv.x * 3.6 - t * 0.28, uv.y * 1.4)) * 0.06;
-  float primaryWaveY = baseArch + waveNoise1 + waveNoise2 + mouseWave;
-
-  // Layer 1: Primary Ribbon — increased brightness & crisp luminous core
+  // Layer 1: Left/Right Sweeping Wave
+  float waveNoise1 = snoise(vec2(uv.x * 3.0 + t * 0.15, uv.y * 2.0 - t * 0.2)) * 0.15;
+  float primaryWaveY = baseArch + waveNoise1;
   float dist1 = abs(uv.y - primaryWaveY);
-  float glow1 = exp(-dist1 * 4.8) * 1.35 * onOffBreathing;
-  float softCore1 = exp(-dist1 * 14.0) * 0.80 * onOffBreathing;
+  
+  // Strong glow, but sharply attenuated in the center
+  float glow1 = exp(-dist1 * 8.0) * 1.5 * onOffBreathing;
+  float softCore1 = pow(max(1.0 - dist1 * 4.0, 0.0), 2.5);
 
-  // Layer 2: Secondary Echo Wave
-  float waveNoise3 = snoise(vec2(uv.x * 2.4 - t * 0.18, t * 0.25 + 1.2)) * 0.14;
-  float secondaryWaveY = baseArch - 0.08 + waveNoise3;
+  // Layer 2: Deeper, wider wave for depth
+  float waveNoise2 = snoise(vec2(uv.x * 2.0 - t * 0.1, uv.y * 1.5 + t * 0.15)) * 0.2;
+  float secondaryWaveY = baseArch - 0.1 + waveNoise2;
   float dist2 = abs(uv.y - secondaryWaveY);
-  float glow2 = exp(-dist2 * 4.2) * 0.80 * (1.15 - onOffBreathing * 0.25);
-  float softCore2 = exp(-dist2 * 12.0) * 0.40 * (1.15 - onOffBreathing * 0.25);
+  float glow2 = exp(-dist2 * 6.0) * 1.2 * onOffBreathing;
+  float softCore2 = pow(max(1.0 - dist2 * 3.0, 0.0), 2.0);
 
-  // Layer 3: Deep Atmospheric Ambient Fill
-  float waveNoise4 = snoise(vec2(uv.x * 1.2 + t * 0.12, uv.y * 1.0 - t * 0.08)) * 0.20;
-  float ambientWaveY = baseArch + 0.04 + waveNoise4;
-  float dist3 = abs(uv.y - ambientWaveY);
-  float ambientGlow = exp(-dist3 * 2.4) * 0.65 * blackFadeWave;
+  // Layer 3: Subtle atmospheric fill at the very bottom corners
+  float ambientGlow = exp(-length(uv - vec2(0.0, 0.0)) * 3.0) + exp(-length(uv - vec2(1.0, 0.0)) * 3.0);
+  ambientGlow *= 0.4 * onOffBreathing;
 
-  // Horizontal Color Gradient
-  float colorGradient = smoothstep(0.0, 1.0, uv.x + 0.15 * sin(t * 0.6 + uv.y * 1.8));
+  // Horizontal Color Gradient (Cyan to Violet)
+  float colorGradient = smoothstep(0.0, 1.0, uv.x + 0.2 * sin(t * 0.5));
   vec3 ribbonColorA = mix(electricCyan, deepBlue, colorGradient);
   vec3 ribbonColorB = mix(neonViolet, magentaPink, 1.0 - colorGradient);
-  vec3 mainRibbonColor = mix(ribbonColorA, ribbonColorB, smoothstep(primaryWaveY - 0.18, primaryWaveY + 0.18, uv.y));
+  vec3 mainRibbonColor = mix(ribbonColorA, ribbonColorB, smoothstep(primaryWaveY - 0.2, primaryWaveY + 0.2, uv.y));
 
-  // Center column readability attenuation (makes center chat area softer while edges remain vibrant)
-  float centerDist = abs(uv.x - 0.5);
-  float centerSoftening = mix(0.72, 1.0, smoothstep(0.05, 0.48, centerDist));
-
-  // Volumetric Lighting Composition with Upper-Half Fade Blend
-  float totalIntensity = uIntensity * powerOn * blackFadeWave * centerSoftening * upperHalfFade;
-
-  // Start with blended deep background that transitions into deep black at the top
-  vec3 finalColor = mix(bgColor, deepBlack, topBlackScrim * 0.85);
-
-  // Add luminous waves with enhanced brightness, but fade them smoothly into the top black area
-  // waveTopFade: 1.0 in lower areas, approaching 0.0 in the upper black fade
-  float waveTopFade = 1.0 - topSmoothFade; // topSmoothFade is 0 at lower areas, 1 near top
-  // use a steeper falloff so waves disappear cleanly into the black top
-  float waveBlend = pow(max(waveTopFade, 0.0), 1.60) * waveEnvelope; // steeper nonlinear falloff and envelope for clean on/off
-
-  // Side emphasis: boost waves near sides to create strong side ribbons like the reference
-  float sideStrength = smoothstep(0.20, 0.48, centerDist); // 0 near center, 1 near edges
-  float sideBoost = 1.0 + sideStrength * 0.85; // up to +85% at edges
-
-  finalColor += mainRibbonColor * glow1 * totalIntensity * waveBlend * sideBoost;
-  finalColor += coreWhiteGlow * softCore1 * 0.36 * totalIntensity * waveBlend * sideBoost;
-
-  finalColor += mix(deepBlue, neonViolet, colorGradient) * glow2 * 0.80 * totalIntensity * waveBlend * sideBoost;
-  finalColor += coreWhiteGlow * softCore2 * 0.28 * totalIntensity * waveBlend * sideBoost;
-
-  finalColor += mix(neonViolet, deepBlue, 0.5) * ambientGlow * 0.90 * totalIntensity * waveBlend * sideBoost;
-
-  // ── Corner & Edge Ambient Fill ──
-  float cornerBL = smoothstep(0.7, 0.0, length(uv - vec2(0.0, 0.0)));
-  float cornerBR = smoothstep(0.7, 0.0, length(uv - vec2(1.0, 0.0)));
-  float cornerTL = smoothstep(0.6, 0.0, length(uv - vec2(0.0, 1.0)));
-  float cornerTR = smoothstep(0.6, 0.0, length(uv - vec2(1.0, 1.0)));
+  // Center Masking: Force the center to be completely dark
+  float centerMask = smoothstep(0.1, 0.7, centerDist);
   
-  finalColor += deepBlue * cornerBL * 0.14 * totalIntensity * waveEnvelope;
-  finalColor += neonViolet * cornerBR * 0.12 * totalIntensity * waveEnvelope;
-  finalColor += deepBlue * cornerTL * 0.04 * totalIntensity * waveEnvelope;
-  finalColor += neonViolet * cornerTR * 0.04 * totalIntensity * waveEnvelope;
+  // Total intensity incorporates the center mask
+  float totalIntensity = uIntensity * powerOn * blackFadeWave * centerMask * upperHalfFade;
 
-  // Bottom subtle ambient reflection
-  float bottomAmbient = smoothstep(0.45, 0.0, uv.y) * 0.18;
-  finalColor += deepBlue * bottomAmbient * totalIntensity * waveEnvelope;
+  // Start with deep black background
+  vec3 finalColor = mix(bgColor, deepBlack, 0.95); 
+
+  // Add luminous waves
+  finalColor += mainRibbonColor * glow1 * totalIntensity;
+  finalColor += coreWhiteGlow * softCore1 * 0.4 * totalIntensity;
+
+  finalColor += mix(deepBlue, neonViolet, colorGradient) * glow2 * 0.8 * totalIntensity;
+  finalColor += coreWhiteGlow * softCore2 * 0.3 * totalIntensity;
+
+  finalColor += mix(neonViolet, deepBlue, 0.5) * ambientGlow * totalIntensity;
 
   // ── Upper Fade Smooth Blend into Pitch Black ──
-  // Mix to deep black at the top using the previously-declared topSmoothFade
   finalColor = mix(finalColor, deepBlack, topSmoothFade * 1.0);
 
-  // ── Tech Dot Matrix Across Entire Canvas & Upper Black Fade ──
+  // ── Tech Dot Matrix Across Entire Canvas ──
   float gridSize = 28.0;
   vec2 gridCoord = gl_FragCoord.xy;
   vec2 gridOffset = mod(gridCoord, gridSize) - vec2(gridSize * 0.5);
   float dotDistance = length(gridOffset);
-  // Keep original dot radius so only the top area is emphasized
   float dotRadius = 1.1;
-  
   float dotShape = smoothstep(dotRadius + 0.4, dotRadius - 0.4, dotDistance);
   
-  // Coordinate-based subtle twinkle
+  // Subtle twinkle
   float cellId = floor(gridCoord.x / gridSize) * 37.0 + floor(gridCoord.y / gridSize) * 91.0;
   float twinkle = 0.5 + 0.5 * sin(t * 1.8 + cellId);
   
-  // Illumination from waves
-  float totalIllumination = clamp((glow1 + glow2 * 0.6 + ambientGlow * 0.4), 0.0, 1.0);
-  
-  // Base brightness on black fade vs waves (original values)
-  float baseBrightness = mix(0.18 + 0.14 * twinkle, 0.38 + 0.20 * twinkle, totalIllumination);
+  // Dots are slightly brighter where the waves are, but always visible
+  float totalIllumination = clamp((glow1 + glow2) * centerMask, 0.0, 1.0);
+  float baseBrightness = mix(0.15 + 0.1 * twinkle, 0.4 + 0.2 * twinkle, totalIllumination);
+  float dotBrightness = baseBrightness * powerOn * onOffBreathing;
 
-  // Dot envelope: ensure dots stay visible when waves are off and get extra visibility in the top black area.
-  // - When waves are on (waveEnvelope ~1): dotEnvelope ≈ 1.0 (normal)
-  // - When waves are off (waveEnvelope ~0): dotEnvelope ≈ 0.7 in lower areas and boosted near the top
-  float dotEnvelope = (0.7 + 0.3 * waveEnvelope) + topSmoothFade * (0.6 * (1.0 - waveEnvelope) + 0.25 * waveEnvelope);
-  float dotBrightness = baseBrightness * powerOn * onOffBreathing * dotEnvelope;
-
-  // Dot tint: original top tint, mixed with wave tint using topSmoothFade
+  // Dot tint
   vec3 dotTintTop = vec3(0.60, 0.75, 0.95);
   vec3 dotTintWaves = mix(vec3(0.35, 0.75, 1.00), vec3(0.75, 0.45, 1.00), totalIllumination);
   vec3 dotTint = mix(dotTintWaves, dotTintTop, topSmoothFade);
   
-  // Add crisp dot matrix
   finalColor += dotTint * dotShape * dotBrightness;
 
   gl_FragColor = vec4(clamp(finalColor, 0.0, 1.0), 1.0);

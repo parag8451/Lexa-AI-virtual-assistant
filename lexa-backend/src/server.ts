@@ -5,6 +5,7 @@ import { serve } from '@hono/node-server'
 import { cors } from 'hono/cors'
 import { jwtMiddleware, rateLimitMiddleware, loggingMiddleware } from './middleware/auth'
 import chatRouter from './routes/chat'
+import contactRouter from './routes/contact'
 import type { AppEnv } from './types'
 import mongoose from 'mongoose';
 
@@ -73,7 +74,10 @@ app.get('/healthz', async (c) => {
 // Public endpoint
 app.get('/', (c) => c.text('Lexa AI backend running'))
 
-// Apply JWT middleware to API routes
+// Public contact route
+app.route('/api', contactRouter)
+
+// Apply JWT middleware to authenticated API routes
 app.use('/api/*', jwtMiddleware)
 
 // Apply rate limiting to chat endpoint

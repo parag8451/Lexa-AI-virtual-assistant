@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { 
-  ArrowRight, MessageSquare, Globe, Mic, Brain, 
+import { useNavigate, Link } from "react-router-dom";
+import {
+  ArrowRight, MessageSquare, Globe, Mic, Brain,
   Image, Zap, ChevronDown, Bot,
-  Sparkles, Lock, Code2, Search, Check
+  Sparkles, Lock, Code2, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,12 +60,12 @@ const PRICING = [
 function TypingText({ text, delay = 0 }: { text: string; delay?: number }) {
   const [displayText, setDisplayText] = useState("");
   const [started, setStarted] = useState(false);
-  
+
   useEffect(() => {
     const timer = setTimeout(() => setStarted(true), delay * 1000);
     return () => clearTimeout(timer);
   }, [delay]);
-  
+
   useEffect(() => {
     if (!started) return;
     let i = 0;
@@ -79,7 +79,7 @@ function TypingText({ text, delay = 0 }: { text: string; delay?: number }) {
     }, 30);
     return () => clearInterval(interval);
   }, [started, text]);
-  
+
   return (
     <span>
       {displayText}
@@ -103,10 +103,22 @@ export default function Landing() {
   const containerRef = useRef<HTMLDivElement>(null);
   const bgVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Increase background video speed
+  // Background video speed and horizontal pan animation
   useEffect(() => {
     if (bgVideoRef.current) {
-      bgVideoRef.current.playbackRate = 2.0;
+      bgVideoRef.current.playbackRate = 3.5;
+
+      // Horizontal linear movement
+      gsap.fromTo(bgVideoRef.current,
+        { x: "-12vw" },
+        { x: "12vw", duration: 10, ease: "none", yoyo: true, repeat: -1 }
+      );
+
+      // Vertical sinusoidal bob to create a perfect flowing wave path (exactly 3 oscillations per sweep)
+      gsap.fromTo(bgVideoRef.current,
+        { y: "-4vh" },
+        { y: "4vh", duration: 1.8, ease: "sine.inOut", yoyo: true, repeat: -1 }
+      );
     }
   }, []);
 
@@ -123,29 +135,29 @@ export default function Landing() {
     // 1. Initial Load Hero Timeline
     const tl = gsap.timeline();
 
-    tl.fromTo(".hero-badge", 
+    tl.fromTo(".hero-badge",
       { opacity: 0, y: 20 },
       { opacity: 1, y: 0, duration: 0.8, ease: "power3.out", delay: 0.2 }
     )
-    .to(".hero-char", 
-      { display: "inline-block", duration: 0.01, stagger: 0.08 },
-      "-=0.2"
-    )
-    .fromTo(".hero-subtitle", 
-      { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 1, ease: "power3.out" },
-      "-=0.2"
-    )
-    .fromTo(".hero-ctas", 
-      { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" },
-      "-=0.8"
-    )
-    .fromTo(".hero-chat-preview", 
-      { opacity: 0, y: 80, scale: 0.95 },
-      { opacity: 1, y: 0, scale: 1, duration: 1.2, ease: "expo.out" },
-      "-=0.6"
-    );
+      .to(".hero-char",
+        { display: "inline-block", duration: 0.01, stagger: 0.08 },
+        "-=0.2"
+      )
+      .fromTo(".hero-subtitle",
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 1, ease: "power3.out" },
+        "-=0.2"
+      )
+      .fromTo(".hero-ctas",
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" },
+        "-=0.8"
+      )
+      .fromTo(".hero-chat-preview",
+        { opacity: 0, y: 80, scale: 0.95 },
+        { opacity: 1, y: 0, scale: 1, duration: 1.2, ease: "expo.out" },
+        "-=0.6"
+      );
 
     // 2. Parallax Hero Scrub
     gsap.to(".hero-chat-preview", {
@@ -172,13 +184,13 @@ export default function Landing() {
     });
 
     // 3. Reveal Stats (Staggered)
-    gsap.fromTo(".stat-item", 
+    gsap.fromTo(".stat-item",
       { opacity: 0, y: 30 },
-      { 
-        opacity: 1, 
-        y: 0, 
-        duration: 0.8, 
-        stagger: 0.1, 
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        stagger: 0.1,
         ease: "power3.out",
         scrollTrigger: {
           trigger: ".stats-section",
@@ -190,7 +202,7 @@ export default function Landing() {
     // 4. Reveal Features using ScrollTrigger batch
     ScrollTrigger.batch(".feature-card", {
       onEnter: (elements) => {
-        gsap.fromTo(elements, 
+        gsap.fromTo(elements,
           { opacity: 0, y: 40 },
           { opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: "power3.out", overwrite: true }
         );
@@ -199,14 +211,14 @@ export default function Landing() {
     });
 
     // 5. Reveal Models
-    gsap.fromTo(".model-card", 
+    gsap.fromTo(".model-card",
       { opacity: 0, scale: 0.95, y: 20 },
-      { 
-        opacity: 1, 
+      {
+        opacity: 1,
         scale: 1,
-        y: 0, 
-        duration: 0.6, 
-        stagger: 0.05, 
+        y: 0,
+        duration: 0.6,
+        stagger: 0.05,
         ease: "back.out(1.2)",
         scrollTrigger: {
           trigger: ".models-section",
@@ -218,7 +230,7 @@ export default function Landing() {
     // 6. Pricing Cards
     ScrollTrigger.batch(".pricing-card", {
       onEnter: (elements) => {
-        gsap.fromTo(elements, 
+        gsap.fromTo(elements,
           { opacity: 0, y: 50 },
           { opacity: 1, y: 0, duration: 0.8, stagger: 0.15, ease: "power3.out", overwrite: true }
         );
@@ -242,7 +254,7 @@ export default function Landing() {
 
   return (
     <main ref={containerRef} className="min-h-screen bg-background text-foreground overflow-x-hidden font-sans selection:bg-primary/20">
-      
+
       {/* ──────── Header ──────── */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
         <div className="absolute bottom-0 left-0 h-[1px] bg-primary/80 scroll-progress w-0" />
@@ -289,23 +301,26 @@ export default function Landing() {
       <section className="hero-section relative pt-40 pb-20 px-4 flex flex-col items-center justify-center min-h-[90vh] overflow-hidden">
         {/* Background Video */}
         <div className="absolute inset-0 z-0 w-full h-full overflow-hidden">
-          <video 
+          <video
             ref={bgVideoRef}
-            autoPlay 
-            loop 
-            muted 
+            autoPlay
+            loop
+            muted
             playsInline
             preload="metadata"
             poster="/icon-512.png"
-            className="w-full h-full object-cover opacity-90 scale-125 blur-3xl pointer-events-none contrast-150 -translate-y-64"
+            className="w-full h-full object-cover opacity-60 scale-x-[1.75] scale-y-[1.3] blur-[60px] pointer-events-none contrast-125 mix-blend-screen"
           >
             <source src="/videos/animation.mp4" type="video/mp4" />
           </video>
         </div>
 
-        {/* Top and bottom fade for seamless blending */}
-        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black via-black/50 via-40% to-background pointer-events-none" />
-        
+        {/* Colorizer to turn the white/gray waves into pure blue gas */}
+        <div className="absolute inset-0 z-10 bg-[#346bf1] mix-blend-color opacity-60 pointer-events-none" />
+
+        {/* Top and bottom fade for seamless blending into the black background */}
+        <div className="absolute inset-0 z-20 bg-gradient-to-b from-black via-transparent via-50% to-black pointer-events-none" />
+
         <div className="hero-content-wrapper relative z-20 max-w-4xl mx-auto text-center flex flex-col items-center">
           {/* Badge */}
           <div className="hero-badge inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/50 bg-muted/30 backdrop-blur-md text-xs font-medium mb-8">
@@ -318,18 +333,18 @@ export default function Landing() {
 
           {/* Staggered Heading */}
           <div className="w-full flex justify-center mb-8 px-4 md:px-10" style={{ perspective: "1000px" }}>
-            <h1 
+            <h1
               className="text-6xl sm:text-7xl md:text-[6rem] lg:text-[7.5rem] text-white font-medium tracking-tight leading-[1.05] text-center"
               style={{ fontFamily: "'Google Sans', sans-serif", minHeight: "2.2em" }}
             >
-              <div className="hero-title-line text-[#346bf1]">
+              <div className="hero-title-line text-[#00A3FF]">
                 {"Your Intelligent".split("").map((char, i) => (
                   <span key={`l1-${i}`} className="hero-char hidden">{char === " " ? "\u00A0" : char}</span>
                 ))}
               </div>
               <div className="hero-title-line flex justify-center items-center">
                 {"AI Assistant".split("").map((char, i) => (
-                  <span key={`l2-${i}`} className={`hero-char hidden ${i < 2 ? "text-[#346bf1]" : ""}`}>
+                  <span key={`l2-${i}`} className={`hero-char hidden ${i < 2 ? "text-[#00A3FF]" : ""}`}>
                     {char === " " ? "\u00A0" : char}
                   </span>
                 ))}
@@ -340,8 +355,8 @@ export default function Landing() {
 
           {/* Subtitle */}
           <p className="hero-subtitle text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed font-light">
-            Lexa is your personal AI workspace. Powered by the world's most advanced models, 
-            designed with meticulous attention to detail. Seamlessly switch between writing, 
+            Lexa is your personal AI workspace. Powered by the world's most advanced models,
+            designed with meticulous attention to detail. Seamlessly switch between writing,
             coding, and creating.
           </p>
 
@@ -361,7 +376,7 @@ export default function Landing() {
         <div className="hero-chat-preview relative mt-20 w-full max-w-4xl mx-auto" style={{ perspective: "1200px" }}>
           {/* Subtle glow */}
           <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-b from-primary/10 via-transparent to-transparent blur-2xl opacity-50 pointer-events-none" />
-          
+
           <div className="relative bg-background border border-border/40 rounded-[2rem] shadow-2xl overflow-hidden ring-1 ring-white/5">
             {/* Minimalist Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-muted/10 backdrop-blur-md">
@@ -393,7 +408,7 @@ export default function Landing() {
                 <div className="space-y-3 flex-1 pt-1">
                   <div className="text-[15px] leading-relaxed text-muted-foreground">
                     <p className="mb-3 text-foreground font-medium">I can help with that. Here is a sophisticated, GSAP-powered dashboard layout with staggering entrance animations.</p>
-                    
+
                     {/* Fake Code Block */}
                     <div className="rounded-xl bg-[#0d1117] border border-white/10 overflow-hidden mt-3 shadow-inner">
                       <div className="flex items-center px-4 py-2 border-b border-white/10 bg-black/40 text-xs font-mono text-zinc-400">
@@ -402,14 +417,14 @@ export default function Landing() {
                       <div className="p-4 font-mono text-xs text-zinc-300 space-y-1">
                         <div><span className="text-pink-400">import</span> {'{'} useGSAP {'}'} <span className="text-pink-400">from</span> <span className="text-green-300">"@gsap/react"</span>;</div>
                         <div><span className="text-pink-400">import</span> gsap <span className="text-pink-400">from</span> <span className="text-green-300">"gsap"</span>;</div>
-                        <br/>
+                        <br />
                         <div><span className="text-pink-400">export default function</span> <span className="text-blue-300">Dashboard</span>() {'{'}</div>
                         <div className="pl-4 text-zinc-500">{"// GSAP timeline logic goes here"}</div>
                         <div>{'}'}</div>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground pt-2">
                     <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-primary" /> 0.8s</span>
                     <span className="flex items-center gap-1.5"><Code2 className="w-3.5 h-3.5" /> React / GSAP</span>
@@ -503,8 +518,8 @@ export default function Landing() {
             {PRICING.map((plan, i) => (
               <div key={i} className={cn(
                 "pricing-card p-8 rounded-[2.5rem] border flex flex-col transition-all duration-300",
-                plan.highlighted 
-                  ? "border-primary/50 bg-primary/[0.02] shadow-2xl shadow-primary/10 relative" 
+                plan.highlighted
+                  ? "border-primary/50 bg-primary/[0.02] shadow-2xl shadow-primary/10 relative"
                   : "border-border/40 bg-card hover:border-border"
               )}>
                 {plan.highlighted && (
@@ -530,9 +545,9 @@ export default function Landing() {
                     </li>
                   ))}
                 </ul>
-                <Button 
+                <Button
                   onClick={handleGetStarted}
-                  variant={plan.highlighted ? "default" : "outline"} 
+                  variant={plan.highlighted ? "default" : "outline"}
                   className={cn("w-full rounded-full h-12 text-base font-medium", plan.highlighted ? "shadow-lg shadow-primary/25" : "")}
                 >
                   {plan.cta}
@@ -567,7 +582,7 @@ export default function Landing() {
           <div className="relative rounded-[3rem] bg-foreground text-background p-12 md:p-20 text-center overflow-hidden">
             {/* Subtle light effect */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
-            
+
             <div className="relative z-10">
               <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6">
                 Ready to transform your workflow?
@@ -594,32 +609,67 @@ export default function Landing() {
                 </div>
                 <span className="font-bold tracking-tight text-xl">Lexa</span>
               </div>
-              <p className="text-muted-foreground font-light max-w-sm leading-relaxed">
+              <p className="text-muted-foreground font-light max-w-sm leading-relaxed text-sm">
                 The most advanced, beautifully designed AI assistant built for modern professionals.
               </p>
             </div>
-            {[
-              { title: "Product", links: ["Features", "Models", "Pricing", "Changelog"] },
-              { title: "Resources", links: ["Documentation", "API", "Blog", "Community"] },
-              { title: "Legal", links: ["Privacy", "Terms", "Security", "Cookies"] },
-            ].map((group) => (
-              <div key={group.title}>
-                <h4 className="font-semibold text-foreground mb-4">{group.title}</h4>
-                <ul className="space-y-3">
-                  {group.links.map((link) => (
-                    <li key={link}>
-                      <a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-                        {link}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+
+            <div>
+              <h4 className="font-semibold text-foreground mb-4 text-sm">Product</h4>
+              <ul className="space-y-3">
+                <li>
+                  <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <a href="#models" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+                    Models
+                  </a>
+                </li>
+                <li>
+                  <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+                    Pricing
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-foreground mb-4 text-sm">Company</h4>
+              <ul className="space-y-3">
+                <li>
+                  <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+                    Contact
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-foreground mb-4 text-sm">Legal</h4>
+              <ul className="space-y-3">
+                <li>
+                  <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+                    Terms & Conditions
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
           <div className="border-t border-border/40 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground font-medium">
             <p>© {new Date().getFullYear()} Lexa AI. All rights reserved.</p>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />

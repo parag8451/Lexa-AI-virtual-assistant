@@ -17,14 +17,14 @@ export function IntegrationsTab() {
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
 
   const [geminiKey, setGeminiKey] = useState<KeyState>({
-    value: localStorage.getItem("lexa_gemini_key") || import.meta.env.VITE_GEMINI_API_KEY || "",
-    isSaved: Boolean(localStorage.getItem("lexa_gemini_key") || import.meta.env.VITE_GEMINI_API_KEY),
+    value: localStorage.getItem("lexa_gemini_key") || "",
+    isSaved: Boolean(localStorage.getItem("lexa_gemini_key")),
     status: "untested",
   });
 
   const [openaiKey, setOpenaiKey] = useState<KeyState>({
-    value: localStorage.getItem("lexa_openai_key") || import.meta.env.VITE_OPENAI_API_KEY || "",
-    isSaved: Boolean(localStorage.getItem("lexa_openai_key") || import.meta.env.VITE_OPENAI_API_KEY),
+    value: localStorage.getItem("lexa_openai_key") || "",
+    isSaved: Boolean(localStorage.getItem("lexa_openai_key")),
     status: "untested",
   });
 

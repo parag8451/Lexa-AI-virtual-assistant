@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { FeatureGrid } from "@/components/auth/FeatureGrid";
@@ -42,7 +42,10 @@ export default function Auth() {
           <AuthForm loading={loading} setLoading={setLoading} />
           {/* Footer */}
           <p className="text-center text-xs text-muted-foreground mt-6">
-            By continuing, you agree to Lexa AI's Terms of Service and Privacy Policy
+            By continuing, you agree to Lexa AI's{" "}
+            <Link to="/terms" className="underline hover:text-foreground transition-colors">Terms of Service</Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="underline hover:text-foreground transition-colors">Privacy Policy</Link>
           </p>
         </div>} />;
 }

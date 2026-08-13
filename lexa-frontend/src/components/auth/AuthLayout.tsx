@@ -100,11 +100,11 @@ export function AuthLayout({ leftPanel, rightPanel }: AuthLayoutProps) {
       {/* ─── Minimalist Footer ─── */}
       <footer className="w-full py-6 text-center text-xs text-muted-foreground/80 border-t border-border/10 z-10">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>© 2026 Lexa AI. Built for the next era of intelligent interaction.</p>
+          <p>© {new Date().getFullYear()} Lexa AI. Built for the next era of intelligent interaction.</p>
           <div className="flex items-center gap-5">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-foreground transition-colors">System Status</a>
+            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+            <Link to="/contact" className="hover:text-foreground transition-colors">Contact Support</Link>
           </div>
         </div>
       </footer>

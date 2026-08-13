@@ -1,5 +1,5 @@
 import { useReducer, useCallback, useRef, useEffect, useMemo } from "react";
-import { streamChat } from "@/lib/streaming";
+import { streamChatResponse } from "@/services/chatService";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
 
@@ -195,11 +195,9 @@ export function useChat(options: UseChatOptions = {}) {
         let accumulatedContent = "";
         const currentOptions = optionsRef.current;
 
-        await streamChat({
-          messages: messageHistory,
-          model: model || "lexa-balanced",
-          systemPrompt: currentOptions.systemPrompt,
-          memoryContext: currentOptions.memoryContext,
+        await streamChatResponse({
+          messages: messageHistory.map((m) => ({ role: m.role, content: m.content })),
+          model: model || "gemini-3.5-flash",
           signal: abortControllerRef.current.signal,
           onDelta: (delta) => {
             accumulatedContent += delta;
