@@ -30,9 +30,9 @@ interface StoredConversation {
 const STORAGE_KEY = "lexa_saved_conversations_v3";
 
 const AVAILABLE_MODELS = [
-  { id: "gemini-3.5-flash", name: "Lexa Fast", badge: "Fast", desc: "Low-latency multimodal assistant with live vision", icon: Zap },
-  { id: "gemini-3-flash-preview", name: "Lexa Balanced", badge: "Balanced", desc: "Balanced intelligence for general reasoning", icon: Cpu },
-  { id: "gemini-3.1-pro-preview", name: "Lexa Pro", badge: "Pro", desc: "Deep reasoning, documents, and complex code", icon: Sparkles },
+  { id: "gemini-1.5-flash", name: "Lexa Fast", badge: "Fast", desc: "Low-latency multimodal assistant with live vision", icon: Zap },
+  { id: "gemini-1.5-flash-8b", name: "Lexa Balanced", badge: "Balanced", desc: "Balanced intelligence for general reasoning", icon: Cpu },
+  { id: "gemini-1.5-pro", name: "Lexa Pro", badge: "Pro", desc: "Deep reasoning, documents, and complex code", icon: Sparkles },
 ];
 
 function groupConversations(convs: StoredConversation[]) {
