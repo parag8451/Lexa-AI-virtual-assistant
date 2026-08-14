@@ -3,6 +3,7 @@
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap");
+@import url('https://fonts.cdnfonts.com/css/google-sans');
 
 @tailwind base;
 @tailwind components;
@@ -607,7 +608,7 @@
     --chart-5: 215 19% 34%;
 
     /* Typography */
-    --font-sans: 'Google Sans Pro', 'Google Sans', 'Product Sans', 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Google Sans Display', 'Google Sans Pro', 'Google Sans', 'Product Sans', 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-serif: 'Lora', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
     --font-mono: 'JetBrains Mono', 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
@@ -1477,4 +1478,65 @@ b {
   color: #4ed48f;
   background-color: rgba(0, 0, 0, 0);
   padding: 0px 2px 0px 2px;
+}
+
+/* ═══════════════════════════════════════════
+   § AI MARKDOWN TYPOGRAPHY & LAYOUT
+   ═══════════════════════════════════════════ */
+
+.ai-markdown {
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.ai-markdown p {
+  max-width: 820px;
+  margin-bottom: 16px;
+}
+
+.ai-markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-markdown h1 {
+  font-size: 26px;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  max-width: 820px;
+}
+
+.ai-markdown h2 {
+  font-size: 22px;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  max-width: 820px;
+}
+
+.ai-markdown h3 {
+  font-size: 18px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  max-width: 820px;
+}
+
+.ai-markdown ul,
+.ai-markdown ol {
+  margin-bottom: 16px;
+  max-width: 820px;
+}
+
+.ai-markdown li {
+  margin-bottom: 8px;
+}
+
+.ai-markdown pre,
+.ai-markdown .code-block-wrapper,
+.ai-markdown table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.ai-markdown img {
+  max-width: 100%;
+  height: auto;
 }

@@ -8,5 +8,6 @@ export type AppEnv = {
   Variables: {
     user: SupabaseUser;
     userId: string;
+    userTier: 'free' | 'pro' | 'enterprise';
   };
 };

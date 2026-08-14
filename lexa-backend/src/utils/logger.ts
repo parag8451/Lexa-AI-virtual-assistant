@@ -2,6 +2,9 @@
   info: (msg: string, context: Record<string, unknown> = {}) => {
     console.log(JSON.stringify({ level: 'INFO', timestamp: new Date().toISOString(), message: msg, ...context }));
   },
+  warn: (msg: string, context: Record<string, unknown> = {}) => {
+    console.warn(JSON.stringify({ level: 'WARN', timestamp: new Date().toISOString(), message: msg, ...context }));
+  },
   error: (msg: string, err?: unknown, context: Record<string, unknown> = {}) => {
     console.error(JSON.stringify({ level: 'ERROR', timestamp: new Date().toISOString(), message: msg, error: err instanceof Error ? err.message : String(err), ...context }));
   },

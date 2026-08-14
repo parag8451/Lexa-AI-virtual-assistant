@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 import { 
-  Sparkles, Bot, User, CheckCircle2, ShieldCheck, 
+   Bot, User, CheckCircle2, ShieldCheck, 
   Cpu, ArrowUp, Activity, Zap, MessageSquare, Terminal, Mic
 } from "lucide-react";
 
@@ -119,7 +120,7 @@ export function FeatureGrid() {
                 {/* AI Assistant Message */}
                 <div className="flex gap-2.5">
                   <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center shrink-0 shadow-sm">
-                    <Sparkles className="w-3.5 h-3.5 text-white" />
+                    <LogoIcon className="w-3.5 h-3.5 text-white" />
                   </div>
                   <div className="bg-white/70 dark:bg-zinc-800/70 backdrop-blur-md rounded-2xl rounded-tl-none border border-white/80 dark:border-white/10 px-3.5 py-2 text-xs space-y-1.5 max-w-[85%] text-foreground shadow-sm">
                     <p className="font-semibold text-[11px] text-indigo-400 flex items-center gap-1">

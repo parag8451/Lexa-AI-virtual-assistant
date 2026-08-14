@@ -126,6 +126,7 @@ export default {
   		},
   		fontFamily: {
   			sans: [
+  				'Google Sans Display',
   				'Plus Jakarta Sans',
   				'Inter',
   				'ui-sans-serif',

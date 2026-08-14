@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Sparkles } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { LogoIcon } from "@/components/ui/LogoIcon";
 
 export function PricingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -20,9 +22,7 @@ export function PricingHeader() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500 group-hover:bg-indigo-500/20 transition-colors">
-            <Sparkles className="h-5 w-5" />
-          </div>
+          <LogoIcon className="h-5 w-5 rounded-md" />
           <span className="font-bold text-lg tracking-tight">Lexa</span>
         </Link>
 

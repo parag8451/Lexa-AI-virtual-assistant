@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Brain, Settings, Sparkles, ChevronRight, X, 
+  Brain, Settings, ChevronRight, X, 
   Plus, Trash2, Edit2, Save, Power, Star, Clock, Tag,
   Heart, Search, Play, Loader2
 } from "lucide-react";
@@ -35,6 +35,7 @@ import { useMemories, Memory, MemoryType } from "@/hooks/useMemories";
 import { useCustomInstructions, CustomInstruction } from "@/hooks/useCustomInstructions";
 import { useSmartTemplates, SmartTemplate, TEMPLATE_CATEGORIES } from "@/hooks/useSmartTemplates";
 import { formatDistanceToNow } from "date-fns";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 interface PersonalizationHubProps {
   onUseTemplate?: (content: string) => void;
@@ -497,7 +498,7 @@ function TemplatesPanelContent({ onBack, onUseTemplate }: { onBack: () => void; 
         </Button>
         <div className="flex-1">
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-amber-500" />
+            <LogoIcon className="h-5 w-5 text-amber-500" />
             Smart Templates
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -585,7 +586,7 @@ function TemplatesPanelContent({ onBack, onUseTemplate }: { onBack: () => void; 
               </div>
             ) : filteredTemplates.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <LogoIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p className="font-medium">No templates found</p>
               </div>
             ) : (
@@ -602,7 +603,7 @@ function TemplatesPanelContent({ onBack, onUseTemplate }: { onBack: () => void; 
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shrink-0">
-                        <Sparkles className="h-5 w-5 text-white" />
+                        <LogoIcon className="h-5 w-5 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -654,7 +655,7 @@ export function PersonalizationHub({ onUseTemplate }: PersonalizationHubProps) {
     <Sheet open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) setActivePanel("hub"); }}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-2 h-9 px-3 rounded-xl">
-          <Sparkles className="h-4 w-4 text-primary" />
+          <LogoIcon className="h-4 w-4 text-primary" />
           <span className="hidden sm:inline">Personalize</span>
           {totalCount > 0 && (
             <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-[10px]">
@@ -676,7 +677,7 @@ export function PersonalizationHub({ onUseTemplate }: PersonalizationHubProps) {
               <SheetHeader className="p-6 border-b bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10">
                 <SheetTitle className="flex items-center gap-2">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-white" />
+                    <LogoIcon className="h-5 w-5 text-white" />
                   </div>
                   <div>
                     <span className="text-lg">Personalization Hub</span>

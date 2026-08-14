@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { BarChart3, MessageSquare, Clock, Sparkles, TrendingUp, Brain } from "lucide-react";
+import { BarChart3, MessageSquare, Clock, TrendingUp, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/types/chat";
 import type { Mood } from "@/hooks/useSentiment";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 interface ConversationInsightsProps {
   messages: Message[];
@@ -126,7 +127,7 @@ export function ConversationInsights({ messages, overallMood, className }: Conve
       {insights.topics.length > 0 && (
         <div className="mt-4 pt-3 border-t border-border/50">
           <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
-            <Sparkles className="w-3 h-3" />
+            <LogoIcon className="w-3 h-3" />
             Topics discussed
           </p>
           <div className="flex flex-wrap gap-1">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Mic, MicOff, Volume2, VolumeX, Phone, PhoneOff, Loader2, Sparkles, User } from "lucide-react";
+import { Mic, MicOff, Volume2, VolumeX, Phone, PhoneOff, Loader2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LogoIcon } from "@/components/ui/LogoIcon";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRealtimeVoice } from "@/hooks/useRealtimeVoice";
@@ -85,9 +86,9 @@ export function RealtimeVoiceChat({ isActive, onClose }: RealtimeVoiceChatProps)
             <motion.div
               animate={{ scale: isSpeaking ? [1, 1.1, 1] : 1 }}
               transition={{ duration: 0.5, repeat: isSpeaking ? Infinity : 0 }}
-              className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-2xl glow-blue"
+              className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center shadow-2xl"
             >
-              <Sparkles className="h-10 w-10 text-white" />
+              <LogoIcon className="h-10 w-10 rounded-xl" />
             </motion.div>
             <h2 className="text-2xl font-bold gradient-text">Real-Time Voice Chat</h2>
             <p className="text-muted-foreground mt-1">
@@ -190,7 +191,7 @@ export function RealtimeVoiceChat({ isActive, onClose }: RealtimeVoiceChatProps)
                   )}>
                     {msg.role === "user" 
                       ? <User className="h-4 w-4 text-white" />
-                      : <Sparkles className="h-4 w-4 text-white" />
+                      : <LogoIcon className="h-4 w-4 rounded" />
                     }
                   </div>
                   <div className={cn(

@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Download, FileText, FileCode, Check, Sparkles } from "lucide-react";
+import { Download, FileText, FileCode, Check } from "lucide-react";
 import type { Message } from "@/types/chat";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

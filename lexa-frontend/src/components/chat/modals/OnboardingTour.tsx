@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Sparkles, 
+   
   MessageSquare, 
   Globe, 
   Mic, 
@@ -28,7 +28,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     id: "welcome",
     title: "Welcome to Lexa AI",
     description: "Your emotionally intelligent AI companion that truly understands you. Let's take a quick tour of what you can do!",
-    icon: Sparkles,
+    icon: 
     gradient: "from-violet-500 to-purple-600",
   },
   {

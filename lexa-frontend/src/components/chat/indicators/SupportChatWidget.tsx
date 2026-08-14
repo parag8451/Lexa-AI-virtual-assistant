@@ -2,12 +2,13 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   MessageCircle, X, Send, HelpCircle, Book, Mail, 
-  ExternalLink, ChevronRight, Sparkles
+  ExternalLink, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 interface Message {
   id: string;
@@ -150,7 +151,7 @@ export function SupportChatWidget() {
             <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
+                  <LogoIcon className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Lexa Support</h3>

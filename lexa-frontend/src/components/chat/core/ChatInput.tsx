@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Plus, Sliders, X, Image, FileText, Mic, ChevronDown, ArrowUp, Sparkles } from "lucide-react";
+import { Send, Plus, Sliders, X, Image, FileText, Mic, ChevronDown, ArrowUp } from "lucide-react";
+import { LogoIcon } from "@/components/ui/LogoIcon";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -309,7 +310,7 @@ export function ChatInput({
                     className="h-9 px-4 rounded-full bg-[#2A2D35]/80 hover:bg-[#343842] text-white/90 gap-2 transition-all border border-white/5 shadow-sm"
                     disabled={isLoading || disabled}
                   >
-                    <Sparkles className="h-[14px] w-[14px] text-white/70" />
+                    <LogoIcon className="h-4 w-4 rounded-sm opacity-80" />
                     <span className="font-semibold text-[13px] tracking-wide">3 Flash</span>
                     <ChevronDown className="h-3.5 w-3.5 text-white/50 ml-0.5" />
                   </Button>

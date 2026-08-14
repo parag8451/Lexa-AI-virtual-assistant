@@ -112,13 +112,21 @@ export function HeroRotatingTitle({
       aria-label={currentSentence}
     >
       <h1
-        className={`text-4xl md:text-6xl font-medium tracking-tight text-white leading-[1.2] text-center transition-all duration-300 ${
+        className={`m-0 transition-all duration-300 ${
           isFading
             ? "opacity-0 -translate-y-1 blur-sm"
             : "opacity-100 translate-y-0 blur-0"
         }`}
+        style={{
+          fontFamily: "'Google Sans Display', sans-serif",
+          fontSize: "clamp(36px, 6vw, 92.032px)",
+          lineHeight: "1.1",
+          textAlign: "center",
+          color: "#ffffff",
+          backgroundColor: "rgba(0, 0, 0, 0)",
+        }}
       >
-        <span className="bg-gradient-to-b from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent font-semibold">
+        <span className="font-medium">
           {displayedText}
         </span>
         <motion.span

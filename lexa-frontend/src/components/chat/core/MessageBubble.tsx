@@ -28,20 +28,20 @@ const MessageBubbleComponent = ({
 }: MessageBubbleProps) => {
   const isUser = message.role === "user";
 
-  // Memoize computed styles to prevent unnecessary recalculations
+  // Gemini-style styling
   const bubbleClasses = useMemo(() => {
     return cn(
-      "max-w-2xl px-6 py-4 rounded-lg text-sm leading-relaxed break-words",
+      "text-[15px] leading-relaxed break-words",
       isUser
-        ? "bg-blue-600 text-white rounded-br-none"
-        : "bg-slate-800 text-slate-100 rounded-bl-none"
+        ? "bg-[#1e1e24] text-white px-6 py-3.5 rounded-[24px] max-w-3xl ml-auto" // User: Dark gray bubble, right aligned
+        : "bg-transparent text-slate-100 py-2 w-full" // AI: Transparent background, full width
     );
   }, [isUser]);
 
   const containerClasses = useMemo(() => {
     return cn(
-      "flex gap-9 mb-4 animate-in fade-in slide-in-from-bottom-2" ,
-      isUser ? "flex-row-reverse" : "flex-row"
+      "flex w-full mb-6 animate-in fade-in slide-in-from-bottom-2 gap-4",
+      isUser ? "justify-end" : "justify-start"
     );
   }, [isUser]);
 
@@ -61,20 +61,17 @@ const MessageBubbleComponent = ({
       layout
       key={contentKey}
     >
-      {/* Avatar */}
-      <div
-        className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1",
-          isUser ? "bg-blue-600" : "bg-gradient-to-br from-purple-500 to-pink-500"
-        )}
-      >
-        <span className="text-xs font-bold text-white">
-          {isUser ? "U" : "L"}
-        </span>
-      </div>
+      {/* AI Avatar only */}
+      {!isUser && (
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-1.5 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500"
+        >
+          <span className="text-[10px] font-bold text-white">✦</span>
+        </div>
+      )}
 
       {/* Message bubble */}
-      <div className="flex-1 flex flex-col gap-2">
+      <div className={cn("flex flex-col gap-2", isUser ? "max-w-[85%]" : "flex-1")}>
         <div className={bubbleClasses}>
           {/* Content with proper text rendering */}
           <div className="whitespace-pre-wrap">
@@ -99,7 +96,7 @@ const MessageBubbleComponent = ({
 
         {/* Timestamp (optional) */}
         {message.timestamp && (
-          <div className="text-xs text-slate-500 px-2">
+          <div className={cn("text-[11px] text-zinc-500 px-2", isUser && "text-right")}>
             {new Date(message.timestamp).toLocaleTimeString()}
           </div>
         )}

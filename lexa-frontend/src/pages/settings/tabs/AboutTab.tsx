@@ -1,5 +1,6 @@
 import { Sparkles, ExternalLink, BookOpen, Bug, Shield, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 export function AboutTab() {
   return (
@@ -14,7 +15,7 @@ export function AboutTab() {
         <section className="flex flex-col items-center justify-center py-8 px-4 rounded-xl border border-border/40 bg-muted/10 text-center space-y-4">
           <div className="relative">
             <div className="w-16 h-16 rounded-2xl gradient-aurora flex items-center justify-center shadow-lg">
-              <Sparkles className="w-8 h-8 text-white" />
+              <LogoIcon className="w-8 h-8 text-white" />
             </div>
           </div>
           <div>

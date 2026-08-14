@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Mic, MicOff, Volume2, VolumeX, PhoneOff, Sparkles, MessageSquare,
+  Mic, MicOff, Volume2, VolumeX, PhoneOff, MessageSquare,
   Settings2, Pause, Play, ChevronDown, Check, Loader2, RotateCcw,
   Radio, Shield, Wifi, Captions, Maximize2, Minimize2, User, PhoneCall
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Card } from "@/components/ui/card";
+import { LogoIcon } from "@/components/ui/LogoIcon";
 import Strands from "@/components/effects/Strands";
 import {
   DropdownMenu,
@@ -596,7 +598,7 @@ export function RealtimeTalkingAssistant({
                     <p className="text-cyan-300 italic font-medium">"{interimText}"</p>
                   ) : status === "thinking" ? (
                     <p className="text-purple-300 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 animate-spin" /> Formulating response...
+                      <LogoIcon className="w-3.5 h-3.5 animate-pulse rounded-sm" /> Formulating response...
                     </p>
                   ) : latestMessage ? (
                     <p className="text-zinc-200">

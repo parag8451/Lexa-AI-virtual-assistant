@@ -11,6 +11,7 @@ export default defineConfig({
       overlay: false,
     },
   },
+  assetsInclude: ['**/*.glb'],
   plugins: [react()],
   resolve: {
     alias: {

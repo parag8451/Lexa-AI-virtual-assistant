@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Paperclip, Sparkles, Code2, Terminal, Globe, Layout, Radio, Mic, MicOff, ArrowUp } from "lucide-react";
+import { Paperclip, Code2, Terminal, Globe, Layout, Radio, Mic, MicOff, ArrowUp } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AttachmentTray } from "./AttachmentTray";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 export interface RadiantPromptInputProps {
   value: string;
@@ -65,12 +66,15 @@ export function RadiantPromptInput({
   }, [value]);
 
   return (
-    <div className={`relative radiant-input-wrapper rounded-2xl bg-[#0a0a0c]/80 group ${inputFocused ? "focused" : ""}`}>
+    <div 
+      className={`relative radiant-input-wrapper rounded-2xl bg-black/50 backdrop-blur-2xl shadow-2xl group ${inputFocused ? "focused" : ""} flex flex-col`}
+      style={{ width: '760px', maxWidth: '100%', height: '228px', margin: '0 auto' }}
+    >
       {/* Animated Border */}
       <div className="radiant-input-border rounded-2xl"></div>
       
       {/* Input Content */}
-      <div className="relative z-10 flex flex-col p-4 text-left">
+      <div className="relative z-10 flex flex-col p-4 text-left h-full">
         
         {/* Label */}
         <div className="text-xs text-zinc-500 px-2 mb-4">Ask Lexa</div>
@@ -83,14 +87,14 @@ export function RadiantPromptInput({
         />
         
         {/* Input Row */}
-        <div className="flex items-end gap-3">
+        <div className="flex items-start gap-3 flex-1 overflow-hidden">
           {/* Attachment Button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button 
                 type="button" 
                 onClick={onAttachmentClick}
-                className="flex items-center justify-center w-8 h-8 rounded-lg text-zinc-500 hover:text-white transition-colors mb-1.5 cursor-pointer"
+                className="flex items-center justify-center w-8 h-8 rounded-lg text-zinc-500 hover:text-white transition-colors mt-1 cursor-pointer"
               >
                 <Paperclip className="text-lg w-5 h-5" />
               </button>
@@ -99,10 +103,9 @@ export function RadiantPromptInput({
           </Tooltip>
           
           {/* Text Input */}
-          <div className="flex-1 min-h-[40px] flex items-center">
+          <div className="flex-1 h-full flex items-start">
             <textarea 
               ref={inputRef}
-              rows={1}
               value={value}
               onChange={onChange}
               onKeyDown={handleKeydown}
@@ -110,8 +113,7 @@ export function RadiantPromptInput({
               onBlur={() => setInputFocused(false)}
               placeholder={placeholder}
               disabled={disabled}
-              className="w-full bg-transparent border-none outline-none text-zinc-200 placeholder:text-zinc-600 text-base md:text-lg font-light tracking-wide resize-none py-1.5"
-              style={{ minHeight: '40px' }}
+              className="w-full h-full bg-transparent border-none outline-none text-zinc-200 placeholder:text-zinc-400/80 text-xl md:text-[22px] font-normal tracking-normal resize-none py-1.5 custom-scrollbar leading-relaxed"
             />
           </div>
         </div>
@@ -126,7 +128,7 @@ export function RadiantPromptInput({
               onClick={() => setDesignMode("assistant")}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors whitespace-nowrap cursor-pointer ${designMode === "assistant" ? "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10" : "text-zinc-500 hover:text-white"}`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <LogoIcon className="w-3.5 h-3.5 text-indigo-400" />
               Assistant
             </button>
             <button 

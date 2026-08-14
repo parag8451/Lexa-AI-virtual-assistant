@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Camera, X, RefreshCw, Sparkles, FileText, Check, AlertCircle,
+  Camera, X, RefreshCw, FileText, Check, AlertCircle,
   ScanLine, HelpCircle, BookOpen, Languages, Calculator, Eye, Sliders
 } from "lucide-react";
 import { FileAttachment, createAttachmentFromCanvas } from "@/lib/fileParser";
 import { useToast } from "@/hooks/use-toast";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 interface CameraScannerModalProps {
   isOpen: boolean;
@@ -356,7 +357,7 @@ export function CameraScannerModal({
                     onClick={() => handleSend()}
                     className="absolute right-1.5 top-1.5 bottom-1.5 px-3.5 bg-white text-black hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
                   >
-                    <Sparkles className="w-3 h-3 text-cyan-600" />
+                    <LogoIcon className="w-3 h-3 text-cyan-600" />
                     Ask Lexa
                   </button>
                 </div>

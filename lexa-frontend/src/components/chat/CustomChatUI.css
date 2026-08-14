@@ -837,13 +837,17 @@
 .radiant-input-wrapper::before {
   content: '';
   position: absolute;
-  inset: -1px;
-  border-radius: inherit;
+  inset: -12px;
+  padding: 12px;
+  border-radius: 28px;
   background: var(--gradient);
   z-index: -1;
-  filter: blur(20px);
+  filter: blur(15px);
   opacity: 0.25;
   transition: opacity 0.4s ease;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
 }
 
 /* Enhanced glow on focus */

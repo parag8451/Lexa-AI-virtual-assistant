@@ -6,14 +6,19 @@ import {
   Sparkles, Lock, Code2, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
+import { MagneticButton } from "@/components/ui/magnetic-button";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useSEO } from "@/hooks/useSEO";
+import Lanyard from "@/components/ui/Lanyard";
+import { HeroTypingText } from "@/components/ui/HeroTypingText";
 
 // GSAP Imports
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -139,10 +144,6 @@ export default function Landing() {
       { opacity: 0, y: 20 },
       { opacity: 1, y: 0, duration: 0.8, ease: "power3.out", delay: 0.2 }
     )
-      .to(".hero-char",
-        { display: "inline-block", duration: 0.01, stagger: 0.08 },
-        "-=0.2"
-      )
       .fromTo(".hero-subtitle",
         { opacity: 0, y: 20 },
         { opacity: 1, y: 0, duration: 1, ease: "power3.out" },
@@ -260,9 +261,7 @@ export default function Landing() {
         <div className="absolute bottom-0 left-0 h-[1px] bg-primary/80 scroll-progress w-0" />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-foreground flex items-center justify-center shadow-sm">
-              <Sparkles className="w-4 h-4 text-background" />
-            </div>
+            <LogoIcon className="w-8 h-8 rounded-xl" />
             <span className="text-xl font-bold tracking-tight">Lexa</span>
           </div>
 
@@ -280,17 +279,21 @@ export default function Landing() {
 
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
-              <Button onClick={() => navigate("/chat")} className="rounded-full h-10 px-5 font-medium shadow-sm transition-transform active:scale-95">
-                Open Chat <ArrowRight className="w-4 h-4 ml-1.5" />
-              </Button>
+              <MagneticButton strength={20}>
+                <InteractiveHoverButton onClick={() => navigate("/chat")} className="rounded-full h-10 px-5 font-medium shadow-sm transition-transform active:scale-95">
+                  Open Chat <ArrowRight className="w-4 h-4 ml-1.5" />
+                </InteractiveHoverButton>
+              </MagneticButton>
             ) : (
               <>
                 <Button variant="ghost" onClick={() => navigate("/auth")} className="hidden sm:flex rounded-full h-10 text-sm font-medium">
                   Log in
                 </Button>
-                <Button onClick={() => navigate("/auth")} className="rounded-full h-10 px-5 font-medium shadow-sm transition-transform active:scale-95">
-                  Get Started <ArrowRight className="w-4 h-4 ml-1.5" />
-                </Button>
+                <MagneticButton strength={20}>
+                  <InteractiveHoverButton onClick={() => navigate("/auth")} className="rounded-full h-10 px-5 font-medium shadow-sm transition-transform active:scale-95">
+                    Get Started <ArrowRight className="w-4 h-4 ml-1.5" />
+                  </InteractiveHoverButton>
+                </MagneticButton>
               </>
             )}
           </div>
@@ -333,24 +336,7 @@ export default function Landing() {
 
           {/* Staggered Heading */}
           <div className="w-full flex justify-center mb-8 px-4 md:px-10" style={{ perspective: "1000px" }}>
-            <h1
-              className="text-6xl sm:text-7xl md:text-[6rem] lg:text-[7.5rem] text-white font-medium tracking-tight leading-[1.05] text-center"
-              style={{ fontFamily: "'Google Sans', sans-serif", minHeight: "2.2em" }}
-            >
-              <div className="hero-title-line text-[#00A3FF]">
-                {"Your Intelligent".split("").map((char, i) => (
-                  <span key={`l1-${i}`} className="hero-char hidden">{char === " " ? "\u00A0" : char}</span>
-                ))}
-              </div>
-              <div className="hero-title-line flex justify-center items-center">
-                {"AI Assistant".split("").map((char, i) => (
-                  <span key={`l2-${i}`} className={`hero-char hidden ${i < 2 ? "text-[#00A3FF]" : ""}`}>
-                    {char === " " ? "\u00A0" : char}
-                  </span>
-                ))}
-                <span className="inline-block w-[0.1em] h-[0.9em] bg-white ml-2 animate-pulse rounded-sm" />
-              </div>
-            </h1>
+            <HeroTypingText />
           </div>
 
           {/* Subtitle */}
@@ -362,13 +348,15 @@ export default function Landing() {
 
           {/* CTAs */}
           <div className="hero-ctas flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-            <Button size="lg" onClick={handleGetStarted} className="w-full sm:w-auto h-14 px-8 text-base rounded-full font-medium shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 transition-all active:scale-95">
-              Start Building Free
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <Button variant="outline" size="lg" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="w-full sm:w-auto h-14 px-8 text-base rounded-full border-border/60 hover:bg-muted/50 transition-colors">
+            <MagneticButton strength={30}>
+              <InteractiveHoverButton size="lg" onClick={handleGetStarted} className="w-full sm:w-auto h-14 px-8 text-base rounded-full font-medium shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 transition-all active:scale-95">
+                Start Building Free
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </InteractiveHoverButton>
+            </MagneticButton>
+            <InteractiveHoverButton variant="outline" size="lg" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="w-full sm:w-auto h-14 px-8 text-base rounded-full border-border/60 hover:bg-muted/50 transition-colors">
               Explore Features
-            </Button>
+            </InteractiveHoverButton>
           </div>
         </div>
 
@@ -545,13 +533,13 @@ export default function Landing() {
                     </li>
                   ))}
                 </ul>
-                <Button
+                <InteractiveHoverButton
                   onClick={handleGetStarted}
                   variant={plan.highlighted ? "default" : "outline"}
                   className={cn("w-full rounded-full h-12 text-base font-medium", plan.highlighted ? "shadow-lg shadow-primary/25" : "")}
                 >
                   {plan.cta}
-                </Button>
+                </InteractiveHoverButton>
               </div>
             ))}
           </div>
@@ -590,9 +578,11 @@ export default function Landing() {
               <p className="text-background/70 text-xl font-light mb-10 max-w-2xl mx-auto">
                 Join thousands of forward-thinking professionals building the future with Lexa AI today.
               </p>
-              <Button size="lg" onClick={handleGetStarted} className="bg-background text-foreground hover:bg-background/90 h-14 px-10 rounded-full text-lg font-semibold shadow-2xl transition-transform active:scale-95">
-                Get Started Now <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
+              <MagneticButton strength={40}>
+                <InteractiveHoverButton size="lg" onClick={handleGetStarted} className="bg-background text-foreground hover:bg-background/90 h-14 px-10 rounded-full text-lg font-semibold shadow-2xl transition-transform active:scale-95">
+                  Get Started Now <ArrowRight className="w-5 h-5 ml-2" />
+                </InteractiveHoverButton>
+              </MagneticButton>
             </div>
           </div>
         </div>
@@ -604,9 +594,7 @@ export default function Landing() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-16">
             <div className="col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-foreground flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-background" />
-                </div>
+                <LogoIcon className="w-8 h-8 rounded-xl" />
                 <span className="font-bold tracking-tight text-xl">Lexa</span>
               </div>
               <p className="text-muted-foreground font-light max-w-sm leading-relaxed text-sm">

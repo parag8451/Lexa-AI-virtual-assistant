@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Briefcase, Heart, Palette, Sparkles, Check } from "lucide-react";
+import { Briefcase, Heart, Palette, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -45,7 +45,7 @@ const PERSONALITIES = [
     id: "empathetic" as PersonalityType,
     label: "Empathetic",
     description: "Supportive, validating, understanding",
-    icon: Sparkles,
+    icon: 
     color: "text-amber-500",
     bgColor: "bg-amber-500/10",
   },

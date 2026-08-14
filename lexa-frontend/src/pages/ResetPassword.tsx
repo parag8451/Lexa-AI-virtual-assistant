@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Lock, Sparkles, Loader2, Check, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 import { useSEO } from "@/hooks/useSEO";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
 
@@ -117,7 +118,7 @@ export default function ResetPassword() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-primary mb-4 glow-blue">
-            <Sparkles className="w-8 h-8 text-white" />
+            <LogoIcon className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold gradient-text">Lexa AI</h1>
           <p className="text-sm text-muted-foreground mt-1">Reset your password</p>

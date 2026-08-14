@@ -13,6 +13,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import "@/components/chat/CustomChatUI.css";
 import Grainient from "@/components/effects/Grainient";
 import { HeroRotatingTitle } from "@/components/chat/HeroRotatingTitle";
+import { PersonalizedGreeting } from "@/components/chat/indicators/PersonalizedGreeting";
 import { SafeMarkdown } from "@/components/chat/SafeMarkdown";
 import { RadiantPromptInput } from "@/components/chat/RadiantPromptInput";
 import { useToast } from "@/hooks/use-toast";
@@ -85,10 +86,9 @@ function groupConversations(convs: StoredConversation[]) {
 }
 
 const AVAILABLE_MODELS = [
-  { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash", badge: "Fast", desc: "Low-latency multimodal assistant with live vision", icon: Zap },
-  { id: "gemini-3-flash-preview", name: "Gemini 3 Flash", badge: "Balanced", desc: "Balanced intelligence for general reasoning", icon: Cpu },
-  { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", badge: "Pro", desc: "Deep reasoning, documents, and complex code", icon: Sparkles },
-  { id: "gpt-4o", name: "GPT-4o", badge: "OpenAI", desc: "Multimodal GPT-4o with high accuracy", icon: Wand2 },
+  { id: "gemini-3.5-flash", name: "Lexa Fast", badge: "Fast", desc: "Low-latency multimodal assistant with live vision", icon: Zap },
+  { id: "gemini-3-flash-preview", name: "Lexa Balanced", badge: "Balanced", desc: "Balanced intelligence for general reasoning", icon: Cpu },
+  { id: "gemini-3.1-pro-preview", name: "Lexa Pro", badge: "Pro", desc: "Deep reasoning, documents, and complex code", icon: Sparkles },
 ];
 
 /* ─── Helper: Unique ID generator ─── */
@@ -149,18 +149,11 @@ function MessageBubble({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-      className={`message ${message.role === "user" ? "user" : "ai"}`}
+      className={`flex w-full ${message.role === "user" ? "justify-end mb-8" : "justify-start gap-4 mb-12"}`}
     >
-      {message.role === "ai" && (
-        <div className="avatar ai shrink-0 mt-0.5">
-          <div className="w-7 h-7 rounded-full bg-zinc-800/80 border border-zinc-700 flex items-center justify-center shadow-sm">
-            <Bot className="w-4 h-4 text-cyan-400" />
-          </div>
-        </div>
-      )}
-
-      <div className="message-body flex-1 min-w-0">
-        {/* Render Attachments in User Bubble */}
+      {/* Message Content Container */}
+      <div className={`flex flex-col gap-2 ${message.role === "user" ? "max-w-[75%]" : "flex-1 max-w-[95%]"}`}>
+        {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {message.attachments.map((att) => (
@@ -197,7 +190,11 @@ function MessageBubble({
           </div>
         )}
 
-        <div className="bubble text-sm sm:text-base leading-relaxed">
+        {/* Message Bubble/Content */}
+        <div className={`text-[15px] leading-relaxed break-words ${message.role === "user"
+          ? "bg-[#1e1e24] text-white px-6 py-3.5 rounded-[24px] ml-auto w-fit max-w-full"
+          : "bg-transparent text-zinc-100 py-1 w-full"
+          }`}>
           {message.role === "user" ? (
             <p className="whitespace-pre-wrap">{message.content}</p>
           ) : (
@@ -210,63 +207,45 @@ function MessageBubble({
           )}
         </div>
 
-        {/* Message Actions */}
+        {/* AI Actions */}
         {message.role === "ai" && !message.isStreaming && (
-          <div className="message-actions flex items-center gap-1 mt-2 text-zinc-400">
+          <div className="flex items-center gap-1 mt-1 text-zinc-400 opacity-80 hover:opacity-100 transition-opacity">
             <button
               onClick={handleCopy}
-              className="action-btn hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors active:scale-95"
-              title={copied ? "Copied" : "Copy response"}
-              aria-label="Copy response"
+              className="p-1.5 hover:text-white hover:bg-white/10 rounded-lg transition-colors active:scale-95"
+              title={copied ? "Copied" : "Copy"}
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
-
             {onSpeak && (
               <button
                 onClick={() => onSpeak(message.content, message.id)}
-                className={`action-btn p-1.5 rounded-lg transition-colors active:scale-95 ${
-                  isSpeaking ? "text-cyan-400 bg-cyan-500/15 border border-cyan-500/30" : "hover:text-white hover:bg-white/10"
-                }`}
+                className={`p-1.5 rounded-lg transition-colors active:scale-95 ${isSpeaking ? "text-cyan-400 bg-cyan-500/15 border border-cyan-500/30" : "hover:text-white hover:bg-white/10"
+                  }`}
                 title={isSpeaking ? "Stop speaking" : "Read aloud"}
-                aria-label="Read aloud"
               >
                 {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
               </button>
             )}
-
             <button
               onClick={() => setReaction(reaction === "up" ? null : "up")}
-              className={`action-btn p-1.5 rounded-lg transition-colors active:scale-95 ${
-                reaction === "up" ? "text-emerald-400 bg-emerald-500/15" : "hover:text-white hover:bg-white/10"
-              }`}
+              className={`p-1.5 rounded-lg transition-colors active:scale-95 ${reaction === "up" ? "text-emerald-400 bg-emerald-500/15" : "hover:text-white hover:bg-white/10"
+                }`}
               title="Good response"
-              aria-label="Good response"
             >
               <ThumbsUp className="w-3.5 h-3.5" />
             </button>
-
             <button
               onClick={() => setReaction(reaction === "down" ? null : "down")}
-              className={`action-btn p-1.5 rounded-lg transition-colors active:scale-95 ${
-                reaction === "down" ? "text-rose-400 bg-rose-500/15" : "hover:text-white hover:bg-white/10"
-              }`}
+              className={`p-1.5 rounded-lg transition-colors active:scale-95 ${reaction === "down" ? "text-rose-400 bg-rose-500/15" : "hover:text-white hover:bg-white/10"
+                }`}
               title="Bad response"
-              aria-label="Bad response"
             >
               <ThumbsDown className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
       </div>
-
-      {message.role === "user" && (
-        <div className="avatar user shrink-0 mt-0.5">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500 to-blue-500 flex items-center justify-center text-xs font-semibold text-white shadow-sm">
-            U
-          </div>
-        </div>
-      )}
     </motion.div>
   );
 }
@@ -311,10 +290,13 @@ function IndexContent() {
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [isUserScrolledUp, setIsUserScrolledUp] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [designMode, setDesignMode] = useState<"assistant" | "code" | "web" | "mobile">("assistant");
   const [pageReady, setPageReady] = useState(false);
   const [isPrivateConversation, setIsPrivateConversation] = useState(false);
+  const [userName, setUserName] = useState<string | undefined>(undefined);
+  const [greetingPhase, setGreetingPhase] = useState<"greeting" | "quotes">("greeting");
 
   // Modals
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
@@ -325,7 +307,7 @@ function IndexContent() {
   useEffect(() => {
     try {
       (window as any).__LEXA_PRIVATE_MODE = isPrivateConversation === true;
-    } catch (e) {}
+    } catch (e) { }
   }, [isPrivateConversation]);
 
   // Endpoint for chat backend
@@ -366,12 +348,20 @@ function IndexContent() {
     }
   }, []);
 
-  /* Sync with Supabase on mount if user is logged in */
+  /* Sync with Supabase on mount if user is logged in & handle Greeting */
   useEffect(() => {
     async function syncSupabaseConversations() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return;
+
+        // Extract user name
+        const name = session.user.user_metadata?.first_name
+          || session.user.user_metadata?.name
+          || session.user.email?.split("@")[0]
+          || undefined;
+        if (name) setUserName(name);
+
         const { data, error } = await supabase
           .from("conversations")
           .select("*")
@@ -392,7 +382,7 @@ function IndexContent() {
             const merged = Array.from(map.values()).sort((a, b) => b.updatedAt - a.updatedAt);
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-            } catch {}
+            } catch { }
             return merged;
           });
         }
@@ -401,6 +391,12 @@ function IndexContent() {
       }
     }
     syncSupabaseConversations();
+
+    const greetingTimer = setTimeout(() => {
+      setGreetingPhase("quotes");
+    }, 7000);
+
+    return () => clearTimeout(greetingTimer);
   }, []);
 
   /* Cinematic page fade-in */
@@ -410,24 +406,26 @@ function IndexContent() {
   }, []);
 
   /* Auto-scroll to bottom */
-  const scrollToBottom = useCallback((smooth = true) => {
-    if (chatAreaRef.current) {
+  const scrollToBottom = useCallback((force = false, smooth = true) => {
+    if (chatAreaRef.current && (!isUserScrolledUp || force)) {
       chatAreaRef.current.scrollTo({
         top: chatAreaRef.current.scrollHeight,
         behavior: smooth ? "smooth" : "auto",
       });
     }
-  }, []);
+  }, [isUserScrolledUp]);
 
   useEffect(() => {
-    scrollToBottom();
+    scrollToBottom(false, false);
   }, [messages, scrollToBottom]);
 
   /* Scroll event listener */
   const handleScroll = () => {
     if (!chatAreaRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = chatAreaRef.current;
-    setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 150);
+    const isUp = scrollHeight - scrollTop - clientHeight > 150;
+    setShowScrollBtn(isUp);
+    setIsUserScrolledUp(isUp);
   };
 
   /* Speech recognition setup */
@@ -708,16 +706,16 @@ function IndexContent() {
       const updated = conversations.map((c) =>
         c.id === activeConvId
           ? {
-              ...c,
-              updatedAt: Date.now(),
-              messages: nextMessages.map((m) => ({
-                id: m.id,
-                role: m.role,
-                content: m.content,
-                attachments: m.attachments,
-                timestamp: m.timestamp.toISOString(),
-              })),
-            }
+            ...c,
+            updatedAt: Date.now(),
+            messages: nextMessages.map((m) => ({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+              attachments: m.attachments,
+              timestamp: m.timestamp.toISOString(),
+            })),
+          }
           : c
       );
       if (!isPrivateConversation) persistConversations(updated);
@@ -814,7 +812,7 @@ function IndexContent() {
                       : msg
                   )
                 );
-              } catch (e) {}
+              } catch (e) { }
             }
           }
         }
@@ -897,7 +895,7 @@ function IndexContent() {
                         )
                       );
                     }
-                  } catch {}
+                  } catch { }
                 }
               }
             }
@@ -941,21 +939,21 @@ function IndexContent() {
           const updated = prevConvs.map((c) =>
             c.id === activeConvId
               ? {
-                  ...c,
-                  updatedAt: Date.now(),
-                  messages: allFinalMessages.map((m) => ({
-                    id: m.id,
-                    role: m.role,
-                    content: m.content,
-                    attachments: m.attachments,
-                    timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
-                  })),
-                }
+                ...c,
+                updatedAt: Date.now(),
+                messages: allFinalMessages.map((m) => ({
+                  id: m.id,
+                  role: m.role,
+                  content: m.content,
+                  attachments: m.attachments,
+                  timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
+                })),
+              }
               : c
           );
           try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-          } catch {}
+          } catch { }
           return updated;
         });
       }
@@ -1002,29 +1000,6 @@ function IndexContent() {
   );
   const groupedHistory = groupConversations(filteredConversations);
 
-  /* Categorized Suggestions */
-  const suggestionsMap = {
-    assistant: [
-      { emoji: "📷", text: "Scan and transcribe a document or handwritten page" },
-      { emoji: "⚡", text: "Explain quantum computing algorithms in plain English" },
-      { emoji: "🚀", text: "Help me draft a high-impact technical launch strategy" },
-    ],
-    code: [
-      { emoji: "💻", text: "Write a high-performance LRU cache in TypeScript with O(1) ops" },
-      { emoji: "⚡", text: "Architect a scalable microservices auth service with JWT" },
-      { emoji: "🔍", text: "Optimize a complex SQL aggregation query with indexing" },
-    ],
-    web: [
-      { emoji: "✨", text: "Create a modern glassmorphism dark-mode UI in React & Tailwind" },
-      { emoji: "🌐", text: "Build an interactive charts dashboard with real-time SSE streaming" },
-      { emoji: "🎨", text: "Design an accessible navigation drawer with smooth spring physics" },
-    ],
-    mobile: [
-      { emoji: "📱", text: "Design an animated onboarding carousel for a fitness mobile app" },
-      { emoji: "⚡", text: "Create an offline-first SQLite sync flow for React Native" },
-      { emoji: "🎯", text: "Build a swipeable card stack gesture component for iOS" },
-    ],
-  };
 
   const getPlaceholder = () => {
     if (attachments.length > 0) {
@@ -1044,7 +1019,7 @@ function IndexContent() {
 
   return (
     <div className="flex h-screen bg-[#020205] text-white font-sans overflow-hidden relative">
-      
+
       {/* Dynamic Wave Background */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <Grainient
@@ -1134,7 +1109,7 @@ function IndexContent() {
 
       {/* ─── LEFT SIDEBAR ─── */}
       <aside className="w-16 py-6 border-r border-white/5 bg-[#020205] flex flex-col items-center relative z-30 shrink-0">
-        
+
         <div className="flex flex-col items-center gap-6 mt-4">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1164,9 +1139,8 @@ function IndexContent() {
             <TooltipTrigger asChild>
               <button
                 onClick={() => setIsPrivateConversation((p) => !p)}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-                  isPrivateConversation ? "bg-white/10 text-white" : "text-zinc-500 hover:bg-white/10 hover:text-white"
-                }`}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${isPrivateConversation ? "bg-white/10 text-white" : "text-zinc-500 hover:bg-white/10 hover:text-white"
+                  }`}
               >
                 {isPrivateConversation ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
               </button>
@@ -1178,9 +1152,8 @@ function IndexContent() {
             <TooltipTrigger asChild>
               <button
                 onClick={() => setIsHistoryOpen((prev) => !prev)}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-                  isHistoryOpen ? "bg-white/10 text-white" : "text-zinc-500 hover:bg-white/10 hover:text-white"
-                }`}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${isHistoryOpen ? "bg-white/10 text-white" : "text-zinc-500 hover:bg-white/10 hover:text-white"
+                  }`}
               >
                 <History className="w-5 h-5" />
               </button>
@@ -1288,17 +1261,15 @@ function IndexContent() {
                           <div
                             key={conv.id}
                             onClick={() => handleSelectConversation(conv)}
-                            className={`group relative flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition-all ${
-                              isActive
-                                ? "bg-[#38bdf8]/15 border border-[#38bdf8]/30 text-white font-medium shadow-sm"
-                                : "hover:bg-white/5 text-zinc-300 border border-transparent hover:border-white/5"
-                            }`}
+                            className={`group relative flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition-all ${isActive
+                              ? "bg-[#38bdf8]/15 border border-[#38bdf8]/30 text-white font-medium shadow-sm"
+                              : "hover:bg-white/5 text-zinc-300 border border-transparent hover:border-white/5"
+                              }`}
                           >
                             <div className="flex items-center gap-2 min-w-0 flex-1 mr-1">
                               <MessageSquare
-                                className={`w-3.5 h-3.5 shrink-0 ${
-                                  isActive ? "text-[#38bdf8]" : "text-zinc-500 group-hover:text-zinc-300"
-                                }`}
+                                className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-[#38bdf8]" : "text-zinc-500 group-hover:text-zinc-300"
+                                  }`}
                               />
                               {isEditing ? (
                                 <form
@@ -1392,68 +1363,8 @@ function IndexContent() {
 
         {/* ── TOP STATUS BAR ── */}
         <header className="absolute top-0 w-full px-8 py-4 flex items-center justify-end gap-4 z-40">
-          
-          {/* Status Badge */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/5" style={{ background: 'rgba(10, 10, 12, 0.6)', backdropFilter: 'blur(20px)' }}>
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
-            <span className="text-[11px] text-zinc-300">LEXA AI 2.0 | Live Talking AI</span>
-            <Radio className="w-3.5 h-3.5 text-emerald-500" />
-          </div>
 
-          {/* Scan/OCR Button */}
-          <button 
-            onClick={() => setIsCameraModalOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] text-zinc-300 hover:bg-white/10 transition-colors border border-transparent"
-            style={{ background: 'rgba(10, 10, 12, 0.6)', backdropFilter: 'blur(20px)' }}
-          >
-            <Camera className="w-3.5 h-3.5" />
-            <span>Scan / OCR</span>
-          </button>
 
-          {/* Model Selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button 
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] text-zinc-300 hover:bg-white/10 transition-colors border border-transparent"
-                style={{ background: 'rgba(10, 10, 12, 0.6)', backdropFilter: 'blur(20px)' }}
-              >
-                <Zap className="w-3.5 h-3.5 text-indigo-400" />
-                <span>{currentModelInfo.name}</span>
-                <ChevronDown className="w-3.5 h-3.5 opacity-70 ml-0.5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 bg-[#14151e]/95 backdrop-blur-xl border border-white/10 text-white p-2 shadow-2xl z-50 rounded-2xl">
-              <DropdownMenuLabel className="text-xs text-zinc-400 uppercase tracking-wider px-2 py-1">
-                Select AI Model
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-white/10" />
-              {AVAILABLE_MODELS.map((model) => {
-                const Icon = model.icon;
-                const isSelected = selectedModel === model.id;
-                return (
-                  <DropdownMenuItem
-                    key={model.id}
-                    onClick={() => setSelectedModel(model.id)}
-                    className={`flex items-start gap-2.5 p-2 rounded-xl cursor-pointer transition-colors ${
-                      isSelected ? "bg-[#38BDF8]/15 text-white" : "hover:bg-white/10"
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? "text-[#38BDF8]" : "text-zinc-400"}`} />
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold">{model.name}</span>
-                        <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-white/10 text-zinc-300 font-medium">
-                          {model.badge}
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-zinc-400 truncate">{model.desc}</span>
-                    </div>
-                    {isSelected && <CheckCircle2 className="w-4 h-4 text-[#38BDF8] shrink-0 mt-0.5" />}
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           {/* Sign In / New Button */}
           {hasMessages ? (
@@ -1474,8 +1385,8 @@ function IndexContent() {
         </header>
 
         {/* Main scrollable area */}
-        <div 
-          className="flex-1 overflow-y-auto scroll-smooth pb-4 px-6 relative z-10 custom-scrollbar flex flex-col" 
+        <div
+          className="flex-1 overflow-y-auto scroll-smooth pt-16 pb-[160px] px-6 relative z-10 custom-scrollbar flex flex-col"
           ref={chatAreaRef}
           id="chatArea"
           onScroll={handleScroll}
@@ -1488,54 +1399,29 @@ function IndexContent() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0, transition: { duration: 0.4 } }}
                 exit={{ opacity: 0, y: -16, transition: { duration: 0.2 } }}
-                className="w-full py-6 flex flex-col items-center justify-center text-center my-auto shrink-0 gap-[76px]"
+                className="w-full py-6 flex flex-col items-center justify-center text-center my-auto shrink-0"
               >
-                {/* Animated Typing Title */}
-                <HeroRotatingTitle />
+                <AnimatePresence mode="wait">
+                  {greetingPhase === "greeting" ? (
+                    <motion.div key="greeting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }}>
+                      <PersonalizedGreeting userName={userName} />
+                    </motion.div>
+                  ) : (
+                    <motion.div key="quotes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }}>
+                      <HeroRotatingTitle />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                  {/* RADIANT INPUT AND SUGGESTION PILLS */}
-                  <div className="w-full max-w-3xl animate-in fade-in slide-in-from-bottom-8 duration-700 mx-auto">
-                    <RadiantPromptInput 
-                      value={inputValue}
-                      onChange={handleInputChange}
-                      onSubmit={() => sendMessage()}
-                      disabled={isStreaming}
-                      placeholder={getPlaceholder()}
-                      designMode={designMode}
-                      setDesignMode={setDesignMode}
-                      webSearchEnabled={webSearchEnabled}
-                      setWebSearchEnabled={setWebSearchEnabled}
-                      isListening={isListening}
-                      toggleSpeechRecognition={toggleSpeechRecognition}
-                      setIsVoiceAssistantOpen={setIsVoiceAssistantOpen}
-                      attachments={attachments}
-                      onAttachmentClick={() => fileInputRef.current?.click()}
-                      onRemoveAttachment={removeAttachment}
-                      onPreviewAttachment={(url) => setPreviewImageUrl(url)}
-                    />
 
-                    {/* SUGGESTION PILLS */}
-                    <div className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[11px] text-zinc-500 font-medium">
-                      {suggestionsMap[designMode].map((s, idx) => (
-                        <button 
-                          key={idx}
-                          onClick={() => sendMessage(s.text)}
-                          disabled={isStreaming}
-                          className="flex items-center gap-1.5 hover:text-indigo-400 transition-colors cursor-pointer"
-                        >
-                          <Sparkles className="text-[10px] w-3 h-3" />
-                          {s.text}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+
               </motion.div>
             )}
           </AnimatePresence>
 
           {/* Messages Flow */}
           {hasMessages && (
-            <div className="messages-container">
+            <div className="w-full max-w-[960px] mx-auto flex flex-col">
               <AnimatePresence initial={false}>
                 {messages.map((msg) => (
                   <MessageBubble
@@ -1558,39 +1444,38 @@ function IndexContent() {
           />
         </div>
 
-        {/* Bottom Input Section (Active when conversation has messages) */}
-        {hasMessages && (
-          <div className="w-full px-6 mb-4 flex flex-col items-center relative z-20">
-            {/* RADIANT INPUT COMPONENT */}
-            <div className="w-full max-w-3xl animate-in fade-in slide-in-from-bottom-8 duration-700 mx-auto">
-              <RadiantPromptInput 
-                value={inputValue}
-                onChange={handleInputChange}
-                onSubmit={() => sendMessage()}
-                disabled={isStreaming}
-                placeholder={getPlaceholder()}
-                designMode={designMode}
-                setDesignMode={setDesignMode}
-                webSearchEnabled={webSearchEnabled}
-                setWebSearchEnabled={setWebSearchEnabled}
-                isListening={isListening}
-                toggleSpeechRecognition={toggleSpeechRecognition}
-                setIsVoiceAssistantOpen={setIsVoiceAssistantOpen}
-                attachments={attachments}
-                onAttachmentClick={() => fileInputRef.current?.click()}
-                onRemoveAttachment={removeAttachment}
-                onPreviewAttachment={(url) => setPreviewImageUrl(url)}
-              />
-            </div>
-            
+        {/* Bottom Input Section (Permanently Fixed) */}
+        <div className="w-full px-6 mb-4 flex flex-col items-center relative z-20 shrink-0">
+          <div className="w-full max-w-3xl animate-in fade-in slide-in-from-bottom-8 duration-700 mx-auto">
+            <RadiantPromptInput
+              value={inputValue}
+              onChange={handleInputChange}
+              onSubmit={() => sendMessage()}
+              disabled={isStreaming}
+              placeholder={getPlaceholder()}
+              designMode={designMode}
+              setDesignMode={setDesignMode}
+              webSearchEnabled={webSearchEnabled}
+              setWebSearchEnabled={setWebSearchEnabled}
+              isListening={isListening}
+              toggleSpeechRecognition={toggleSpeechRecognition}
+              setIsVoiceAssistantOpen={setIsVoiceAssistantOpen}
+              attachments={attachments}
+              onAttachmentClick={() => fileInputRef.current?.click()}
+              onRemoveAttachment={removeAttachment}
+              onPreviewAttachment={(url) => setPreviewImageUrl(url)}
+            />
+          </div>
+
+          {hasMessages && (
             <p className="w-full text-zinc-500 text-[11px] text-center mt-3">
               Lexa AI can make mistakes. Verify critical code and documents.
             </p>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Floating Help Button */}
-        <button 
+        <button
           className="fixed bottom-8 right-8 w-12 h-12 rounded-full flex items-center justify-center border border-white/10 text-white hover:bg-white/10 transition-colors cursor-pointer z-50 shadow-2xl"
           style={{ background: 'rgba(10, 10, 12, 0.8)', backdropFilter: 'blur(10px)' }}
           title="Help"

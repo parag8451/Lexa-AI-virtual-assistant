@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Sparkles, Menu, X, ArrowRight } from "lucide-react";
+import {  Menu, X, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+
+import { LogoIcon } from "@/components/ui/LogoIcon";
 
 export function PublicNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -47,9 +49,7 @@ export function PublicNavbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-xl bg-foreground flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-            <Sparkles className="w-4 h-4 text-background" />
-          </div>
+          <LogoIcon className="w-8 h-8 rounded-xl group-hover:scale-105 transition-transform" />
           <span className="text-xl font-bold tracking-tight text-foreground">Lexa</span>
         </Link>
 

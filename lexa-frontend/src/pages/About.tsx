@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useSEO } from "@/hooks/useSEO";
 import { PublicNavbar } from "@/components/layout/PublicNavbar";
 import { PublicFooter } from "@/components/layout/PublicFooter";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 export default function About() {
   useSEO({
@@ -88,7 +89,7 @@ export default function About() {
         <section className="relative pt-24 pb-20 px-4 md:px-6 overflow-hidden border-b border-border/20 bg-gradient-to-b from-muted/20 via-background to-background">
           <div className="max-w-4xl mx-auto text-center relative z-10">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/50 bg-muted/40 backdrop-blur-md text-xs font-medium mb-6">
-              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <LogoIcon className="w-3.5 h-3.5 text-primary" />
               <span className="text-muted-foreground">The Vision Behind Lexa</span>
             </div>
 

@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Zap, Scale, Brain, Crown, Sparkles, TrendingUp } from "lucide-react";
+import { Zap, Scale, Brain, Crown, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useModelRouting, ComplexityLevel } from "@/hooks/useModelRouting";
 import { cn } from "@/lib/utils";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 interface ModelRoutingIndicatorProps {
   message: string;
@@ -108,7 +109,7 @@ export function ModelRoutingBadge({
       <Icon className={cn("h-2.5 w-2.5", config.color)} />
       <span>{config.label}</span>
       {isAutoRouting && (
-        <Sparkles className="h-2.5 w-2.5 text-primary" />
+        <LogoIcon className="h-2.5 w-2.5 text-primary" />
       )}
     </div>
   );

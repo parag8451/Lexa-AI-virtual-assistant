@@ -12,9 +12,10 @@ import {
   LogOut, 
   ChevronLeft, 
   ChevronRight,
-  Sparkles,
   Search
 } from "lucide-react";
+import { LogoIcon } from "@/components/ui/LogoIcon";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -237,9 +238,9 @@ export function ChatSidebar({
                 <motion.div
                   whileHover={{ rotate: 180, scale: 1.1 }}
                   transition={{ duration: 0.5 }}
-                  className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shrink-0 shadow-lg"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-lg overflow-hidden bg-black"
                 >
-                  <Sparkles className="w-4 h-4 text-white" />
+                  <LogoIcon className="w-full h-full" />
                 </motion.div>
                 <span className="font-bold text-foreground truncate">Lexa AI</span>
               </motion.div>

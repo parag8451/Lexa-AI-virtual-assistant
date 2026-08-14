@@ -13,6 +13,7 @@ import { z } from "zod";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useSEO } from "@/hooks/useSEO";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 const displayNameSchema = z.string().max(100, "Display name must be less than 100 characters").optional();
 
@@ -218,7 +219,7 @@ export default function Profile() {
         >
           <div className="relative">
             <div className="h-14 w-14 rounded-2xl gradient-aurora flex items-center justify-center shadow-2xl">
-              <Sparkles className="w-7 h-7 text-white animate-pulse" />
+              <LogoIcon className="w-7 h-7 text-white animate-pulse" />
             </div>
             <div className="absolute inset-0 h-14 w-14 rounded-2xl gradient-aurora blur-xl opacity-50 animate-pulse" />
           </div>
@@ -265,7 +266,7 @@ export default function Profile() {
               transition={{ duration: 0.5 }}
               className="w-9 h-9 rounded-xl gradient-aurora flex items-center justify-center shadow-lg"
             >
-              <Sparkles className="h-4 w-4 text-white" />
+              <LogoIcon className="h-4 w-4 text-white" />
             </motion.div>
             <h1 className="text-lg font-bold">Profile</h1>
           </div>

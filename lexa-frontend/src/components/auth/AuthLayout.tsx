@@ -1,8 +1,11 @@
 import { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Sparkles, ArrowUpRight, MessageSquare, Bot } from "lucide-react";
+import {  ArrowUpRight, MessageSquare, Bot } from "lucide-react";
 import { CustomCursor } from "@/components/ui/CustomCursor";
+import { Card } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { LogoIcon } from "@/components/ui/LogoIcon";
 
 interface AuthLayoutProps {
   leftPanel: ReactNode;
@@ -42,11 +45,7 @@ export function AuthLayout({ leftPanel, rightPanel }: AuthLayoutProps) {
           to="/"
           className="flex items-center gap-2.5 group transition-transform active:scale-95"
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#38BDF8] via-[#C084FC] to-[#FF5E3A] p-[1.5px] shadow-sm flex items-center justify-center">
-            <div className="w-full h-full bg-white dark:bg-zinc-900 rounded-full flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-[#FF5E3A] group-hover:rotate-12 transition-transform duration-300" />
-            </div>
-          </div>
+          <LogoIcon className="w-8 h-8 rounded-full" />
           <span className="font-extrabold text-lg tracking-tight text-foreground font-sans">
             Lexa<span className="text-[#FF5E3A] font-semibold">.ai</span>
           </span>

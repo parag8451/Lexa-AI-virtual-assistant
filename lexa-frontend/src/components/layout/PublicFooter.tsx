@@ -1,16 +1,17 @@
 import { Link } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { LogoIcon } from "@/components/ui/LogoIcon";
 
 export function PublicFooter() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="border-t border-border/40 py-16 px-4 bg-muted/10">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-16">
-          <div className="col-span-2">
-            <Link to="/" className="flex items-center gap-2 mb-4 group">
-              <div className="w-8 h-8 rounded-xl bg-foreground flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Sparkles className="w-4 h-4 text-background" />
-              </div>
+    <footer className="border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 lg:py-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 lg:gap-12">
+          {/* Brand Column */}
+          <div className="col-span-2 lg:col-span-2 space-y-6">
+            <Link to="/" className="flex items-center gap-2.5 group w-fit">
+              <LogoIcon className="w-8 h-8 rounded-xl group-hover:scale-105 transition-transform" />
               <span className="font-bold tracking-tight text-xl text-foreground">Lexa</span>
             </Link>
             <p className="text-muted-foreground font-light max-w-sm leading-relaxed text-sm">

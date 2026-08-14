@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ChevronDown, Check, Zap, Sparkles, Crown } from "lucide-react";
+import { ChevronDown, Check, Zap, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

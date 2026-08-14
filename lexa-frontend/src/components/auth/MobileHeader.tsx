@@ -1,4 +1,5 @@
-import { Sparkles, Zap, Globe, Brain } from "lucide-react";
+import { Zap, Globe, Brain } from "lucide-react";
+import { LogoIcon } from "@/components/ui/LogoIcon";
 
 export function MobileHeader() {
   return (
@@ -6,7 +7,7 @@ export function MobileHeader() {
       {/* Brand icon */}
       <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-tr from-[#38BDF8] via-[#C084FC] to-[#FF5E3A] p-[2px] mb-3 shadow-md">
         <div className="w-full h-full bg-white dark:bg-zinc-900 rounded-full flex items-center justify-center">
-          <Sparkles className="w-5 h-5 text-[#FF5E3A]" />
+          <LogoIcon className="w-5 h-5 rounded-md" />
         </div>
       </div>
 

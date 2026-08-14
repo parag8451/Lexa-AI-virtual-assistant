@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Home, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSEO } from "@/hooks/useSEO";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 /* ─── Glitch Text Effect ─── */
 function GlitchText({ text }: { text: string }) {
@@ -109,7 +110,7 @@ export default function NotFound() {
                 animate={{ rotate: -360 }}
                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
               >
-                <Sparkles className="w-10 h-10 text-white" />
+                <LogoIcon className="w-10 h-10 text-white" />
               </motion.div>
             </motion.div>
             <motion.div

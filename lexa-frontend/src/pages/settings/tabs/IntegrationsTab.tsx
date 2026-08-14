@@ -4,6 +4,7 @@ import {
   Loader2, Eye, EyeOff, Bot, Mic, Cpu, RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 interface KeyState {
   value: string;
@@ -156,7 +157,7 @@ export function IntegrationsTab() {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                <Sparkles className="w-5 h-5" />
+                <LogoIcon className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2">

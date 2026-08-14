@@ -1,6 +1,7 @@
-import { Menu, X, Globe, Download, Keyboard, MoreVertical, Sparkles } from "lucide-react";
+import { Menu, X, Globe, Download, Keyboard, MoreVertical } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { LogoIcon } from "@/components/ui/LogoIcon";
 import { ModelSelector } from "./ModelSelector";
 import { PersonalitySelector, getPersonalityPrompt } from "./PersonalitySelector";
 import { SearchModelSelector } from "./SearchModelSelector";
@@ -171,7 +172,7 @@ export function ChatHeader({
                   className="flex items-center justify-between rounded-lg"
                 >
                   <span className="flex items-center">
-                    <Sparkles className="h-4 w-4 mr-2" />
+                    <LogoIcon className="h-4 w-4 mr-2" />
                     Auto Model Routing
                   </span>
                   <span className={cn(

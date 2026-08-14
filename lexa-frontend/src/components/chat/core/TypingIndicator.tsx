@@ -1,13 +1,15 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Brain, Lightbulb, Search, Code } from "lucide-react";
+import { Brain, Lightbulb, Search, Code } from "lucide-react";
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { LogoIcon } from "@/components/ui/LogoIcon";
 
 const THINKING_PHRASES = [
   { text: "Thinking...", icon: Brain },
   { text: "Analyzing your request...", icon: Search },
   { text: "Generating ideas...", icon: Lightbulb },
   { text: "Crafting response...", icon: Code },
-  { text: "Almost there...", icon: Sparkles },
+  { text: "Almost there...", icon: null },
 ];
 
 export function TypingIndicator() {
@@ -43,7 +45,7 @@ export function TypingIndicator() {
           }}
           className="shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600 flex items-center justify-center shadow-lg shadow-violet-500/30"
         >
-          <Sparkles className="h-6 w-6 text-white" />
+          <LogoIcon className="h-6 w-6 rounded-md" />
         </motion.div>
 
         <div className="flex-1 min-w-0 space-y-3">

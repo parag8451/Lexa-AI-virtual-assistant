@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { Sparkles, Twitter, Github, Linkedin } from "lucide-react";
+import { Twitter, Github, Linkedin } from "lucide-react";
+import { LogoIcon } from "@/components/ui/LogoIcon";
 
 export function PricingFooter() {
   return (
@@ -8,9 +9,7 @@ export function PricingFooter() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-16">
           <div className="col-span-2 lg:col-span-2">
             <Link to="/" className="flex items-center gap-2 group mb-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500">
-                <Sparkles className="h-5 w-5" />
-              </div>
+              <LogoIcon className="h-5 w-5 rounded-md" />
               <span className="font-bold text-lg tracking-tight text-white">Lexa AI</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs mb-6">

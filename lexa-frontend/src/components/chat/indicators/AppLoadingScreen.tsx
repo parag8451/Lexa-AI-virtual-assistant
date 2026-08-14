@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { LogoIcon } from "@/components/ui/LogoIcon";
 
 export function AppLoadingScreen() {
   return (
@@ -50,12 +50,10 @@ export function AppLoadingScreen() {
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               className="relative h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-2xl"
             >
-              <motion.div
-                animate={{ rotate: -360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              >
-                <Sparkles className="h-10 w-10 text-white drop-shadow-lg" />
-              </motion.div>
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent z-10" />
+              <div className="relative z-20 flex items-center justify-center w-full h-full p-2">
+                <LogoIcon className="w-full h-full text-white drop-shadow-lg" />
+              </div>
             </motion.div>
           </motion.div>
 

@@ -5,13 +5,11 @@ import type { AppEnv } from '../types';
 
 const chatRouter = new Hono<AppEnv>();
 
-// Candidate active Gemini models ordered by speed, capability, and availability
-const MODEL_CASCADE = [
-  'gemini-3.5-flash',
-  'gemini-3-flash-preview',
-  'gemini-3.1-flash-lite',
-  'gemini-flash-latest',
-];
+// Model cascade from environment (comma-separated, ordered by preference)
+const MODEL_CASCADE = (process.env.GEMINI_MODEL_CASCADE || 'gemini-3.5-flash,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-flash-latest')
+  .split(',')
+  .map(m => m.trim())
+  .filter(Boolean);
 
 // Request validation schema with multimodal attachments
 const chatRequestSchema = z.object({

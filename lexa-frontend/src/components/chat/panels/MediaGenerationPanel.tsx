@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ImageIcon,
-  Sparkles,
   Download,
   Trash2,
   Loader2,
@@ -30,6 +29,7 @@ import {
 import { useImageGeneration, GeneratedImage, ImageSize, ImageQuality, ImageStyle } from "@/hooks/useImageGeneration";
 import { useVideoGeneration, GeneratedVideo, VideoAspectRatio, VideoDuration } from "@/hooks/useVideoGeneration";
 import { cn } from "@/lib/utils";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 const SIZE_OPTIONS: { value: ImageSize; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { value: "1024x1024", label: "Square", icon: Square },
@@ -151,7 +151,7 @@ export function MediaGenerationPanel({ conversationId }: { conversationId?: stri
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <LogoIcon className="h-5 w-5 text-primary" />
             AI Media Studio
           </DialogTitle>
         </DialogHeader>
@@ -255,7 +255,7 @@ export function MediaGenerationPanel({ conversationId }: { conversationId?: stri
                     </>
                   ) : (
                     <>
-                      <Sparkles className="h-4 w-4" />
+                      <LogoIcon className="h-4 w-4" />
                       Generate
                     </>
                   )}

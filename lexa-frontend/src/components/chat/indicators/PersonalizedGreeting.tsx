@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface PersonalizedGreetingProps {
@@ -8,30 +8,33 @@ interface PersonalizedGreetingProps {
 }
 
 export function PersonalizedGreeting({ userName, className }: PersonalizedGreetingProps) {
-  const displayName = userName || "there";
+  const [greeting, setGreeting] = useState("Good Morning");
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      setGreeting("Good Morning");
+    } else if (hour >= 12 && hour < 17) {
+      setGreeting("Good Afternoon");
+    } else if (hour >= 17 && hour < 21) {
+      setGreeting("Good Evening");
+    } else {
+      setGreeting("Good Night");
+    }
+  }, []);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className={cn("mb-6", className)}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.8, ease: "easeInOut" }}
+      className={cn("flex flex-col items-center justify-center text-center", className)}
     >
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">
-          <Sparkles className="w-3.5 h-3.5 text-white" />
-        </div>
-
-        {/* Minimal greeting: avoid verbose salutations */}
-        <span className="text-lg font-medium text-foreground/90">
-          How can I help?
-        </span>
-      </div>
-
-      {/* Subtle prompt with optional name */}
-      <h1 className="text-2xl md:text-3xl lg:text-4xl font-medium text-foreground">
-        {userName ? `${displayName}` : ""}
+      <h1 className="text-3xl md:text-5xl lg:text-[64px] font-medium tracking-tight text-white mb-4">
+        {greeting}{userName ? `, ${userName}` : ""}!
       </h1>
     </motion.div>
   );
 }
+

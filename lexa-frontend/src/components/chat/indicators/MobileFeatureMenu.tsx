@@ -9,7 +9,6 @@ import {
   Image, 
   Users, 
   BarChart3,
-  Sparkles,
   X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +28,7 @@ import { MediaGenerationPanel } from "./MediaGenerationPanel";
 import { WorkspacePanel } from "./WorkspacePanel";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { cn } from "@/lib/utils";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 interface FeatureItem {
   id: string;
@@ -127,7 +127,7 @@ export function MobileFeatureMenu() {
       <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
         <SheetHeader className="pb-4">
           <SheetTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <LogoIcon className="h-5 w-5 text-primary" />
             {activeFeature ? activeFeatureData?.label : "AI Features"}
           </SheetTitle>
         </SheetHeader>

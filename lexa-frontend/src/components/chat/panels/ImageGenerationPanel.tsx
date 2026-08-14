@@ -13,7 +13,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import {
   ImageIcon,
-  Sparkles,
   Download,
   Trash2,
   Loader2,
@@ -25,6 +24,7 @@ import {
 import { useImageGeneration, GeneratedImage, ImageSize, ImageQuality, ImageStyle } from "@/hooks/useImageGeneration";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 const SIZE_OPTIONS: { value: ImageSize; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { value: "1024x1024", label: "Square", icon: Square },
@@ -172,7 +172,7 @@ export function ImageGenerationPanel({ conversationId }: { conversationId?: stri
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4" />
+                    <LogoIcon className="h-4 w-4" />
                     Generate
                   </>
                 )}

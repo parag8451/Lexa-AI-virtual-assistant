@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Sparkles, Plus, Trash2, Heart, Search, Code, PenTool, 
+   Plus, Trash2, Heart, Search, Code, PenTool, 
   GraduationCap, Target, Layers, Mail, FileText, Bug, Lightbulb,
   Play, Edit2, Star, X, Check
 } from "lucide-react";
@@ -30,9 +30,10 @@ import {
 } from "@/components/ui/sheet";
 import { useSmartTemplates, SmartTemplate, TEMPLATE_CATEGORIES } from "@/hooks/useSmartTemplates";
 import { cn } from "@/lib/utils";
+import { LogoIcon } from '@/components/ui/LogoIcon';
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  Sparkles, Code, PenTool, GraduationCap, Target, Layers, Mail, FileText, Bug, Lightbulb, Star
+   Code, PenTool, GraduationCap, Target, Layers, Mail, FileText, Bug, Lightbulb, Star
 };
 
 interface SmartTemplatesPanelProps {
@@ -115,14 +116,14 @@ export function SmartTemplatesPanel({ onUseTemplate }: SmartTemplatesPanelProps)
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-2 h-9">
-          <Sparkles className="h-4 w-4" />
+          <LogoIcon className="h-4 w-4" />
           <span className="hidden sm:inline">Templates</span>
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-lg overflow-hidden flex flex-col p-0">
         <SheetHeader className="p-6 pb-4 border-b">
           <SheetTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <LogoIcon className="h-5 w-5 text-primary" />
             Smart Templates
           </SheetTitle>
           <SheetDescription>
@@ -237,7 +238,7 @@ export function SmartTemplatesPanel({ onUseTemplate }: SmartTemplatesPanelProps)
                     </div>
                   ) : filteredTemplates.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
-                      <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <LogoIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <p className="text-sm">No templates found</p>
                     </div>
                   ) : (
