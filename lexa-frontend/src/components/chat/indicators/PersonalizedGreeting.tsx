@@ -31,7 +31,17 @@ export function PersonalizedGreeting({ userName, className }: PersonalizedGreeti
       transition={{ duration: 0.8, ease: "easeInOut" }}
       className={cn("flex flex-col items-center justify-center text-center", className)}
     >
-      <h1 className="text-3xl md:text-5xl lg:text-[64px] font-medium tracking-tight text-white mb-4">
+      <h1 
+        className="m-0 font-medium tracking-tight"
+        style={{
+          fontFamily: "'Google Sans Display', sans-serif",
+          fontSize: "clamp(36px, 6vw, 92.032px)",
+          lineHeight: "1.1",
+          textAlign: "center",
+          color: "#ffffff",
+          backgroundColor: "rgba(0, 0, 0, 0)",
+        }}
+      >
         {greeting}{userName ? `, ${userName}` : ""}!
       </h1>
     </motion.div>
