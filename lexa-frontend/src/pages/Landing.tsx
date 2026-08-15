@@ -105,8 +105,10 @@ export default function Landing() {
 
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isIntroVisible, setIsIntroVisible] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const bgVideoRef = useRef<HTMLVideoElement>(null);
+  const introVideoRef = useRef<HTMLVideoElement>(null);
 
   // Keep the original cinematic blue wave treatment, but clean up GSAP on unmount
   // and avoid extra positional motion for users who prefer reduced motion.
@@ -154,6 +156,21 @@ export default function Landing() {
   }, []);
 
   const handleGetStarted = () => navigate(isAuthenticated ? "/chat" : "/auth");
+
+  const dismissIntro = () => setIsIntroVisible(false);
+
+  const replayIntro = () => {
+    const video = introVideoRef.current;
+    setIsIntroVisible(true);
+    if (!video) return;
+    video.currentTime = 0;
+    void video.play().catch(() => undefined);
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(dismissIntro, 5200);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // GSAP Animations
   useGSAP(() => {
@@ -278,6 +295,39 @@ export default function Landing() {
   return (
     <main ref={containerRef} className="min-h-screen bg-background text-foreground overflow-x-hidden font-sans selection:bg-primary/20">
 
+      {/* ──────── Cinematic Lexa Intro ──────── */}
+      <div
+        className={cn(
+          "fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black transition-opacity duration-700",
+          isIntroVisible ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+        aria-hidden={!isIntroVisible}
+      >
+        <video
+          ref={introVideoRef}
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          onEnded={dismissIntro}
+          className="absolute inset-0 h-full w-full object-cover"
+          poster="/icon-512.png"
+        >
+          <source src="/videos/Scene-1-Cinematic.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-black/70" />
+        <div className="relative z-10 ml-auto mr-8 max-w-xs text-right text-white sm:mr-16 md:mr-24">
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-white/50">A new intelligence layer</p>
+          <p className="text-2xl font-semibold tracking-[-0.04em] sm:text-4xl">Think deeper.<br />Move faster.</p>
+          <button onClick={dismissIntro} className="mt-7 rounded-full border border-white/25 bg-white/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/70 backdrop-blur transition hover:border-white/60 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+            Enter Lexa <ArrowRight className="ml-1 inline h-3 w-3" />
+          </button>
+        </div>
+        <button onClick={dismissIntro} aria-label="Skip cinematic intro" className="absolute bottom-6 right-6 z-10 rounded-full border border-white/15 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-white/45 transition hover:border-white/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+          Skip intro
+        </button>
+      </div>
+
       {/* ──────── Header ──────── */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
         <div className="absolute bottom-0 left-0 h-[1px] bg-primary/80 scroll-progress w-0" />
@@ -355,6 +405,9 @@ export default function Landing() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
             <span className="text-muted-foreground">Intelligence, redefined.</span>
+            <button onClick={replayIntro} className="ml-1 rounded-full border border-border/50 px-2 py-0.5 text-[10px] text-muted-foreground transition hover:border-primary/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Replay cinematic Lexa intro">
+              Replay intro
+            </button>
           </div>
 
           {/* Staggered Heading */}
