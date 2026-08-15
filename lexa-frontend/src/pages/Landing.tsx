@@ -706,29 +706,32 @@ export default function Landing() {
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <MagneticButton strength={20}>
-                <InteractiveHoverButton
-                  onClick={() => navigate("/chat")}
-                  className="rounded-full h-10 px-5 font-mono text-xs uppercase tracking-wider bg-[#346bf1] text-white shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
-                >
-                  Open Workspace <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                </InteractiveHoverButton>
+                <Link to="/chat" className="inline-block">
+                  <InteractiveHoverButton
+                    className="rounded-full h-10 px-5 font-mono text-xs uppercase tracking-wider bg-[#346bf1] text-white shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
+                  >
+                    Open Workspace <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                  </InteractiveHoverButton>
+                </Link>
               </MagneticButton>
             ) : (
               <>
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/auth")}
-                  className="rounded-full h-10 px-4 text-xs font-mono uppercase tracking-wider text-[#F3F4F6] hover:text-white hover:bg-white/5"
-                >
-                  Sign In
-                </Button>
-                <MagneticButton strength={20}>
-                  <InteractiveHoverButton
-                    onClick={() => navigate("/auth")}
-                    className="rounded-full h-10 px-5 font-mono text-xs uppercase tracking-wider bg-[#346bf1] text-white shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
+                <Link to="/auth" className="inline-block">
+                  <Button
+                    variant="ghost"
+                    className="rounded-full h-10 px-4 text-xs font-mono uppercase tracking-wider text-[#F3F4F6] hover:text-white hover:bg-white/5"
                   >
-                    Start Free <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                  </InteractiveHoverButton>
+                    Sign In
+                  </Button>
+                </Link>
+                <MagneticButton strength={20}>
+                  <Link to="/auth" className="inline-block">
+                    <InteractiveHoverButton
+                      className="rounded-full h-10 px-5 font-mono text-xs uppercase tracking-wider bg-[#346bf1] text-white shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
+                    >
+                      Start Free <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                    </InteractiveHoverButton>
+                  </Link>
                 </MagneticButton>
               </>
             )}
@@ -2089,6 +2092,10 @@ const LEXA_UI_UX_OVERLAY_CSS = `
 }
 
 .lexa-cinematic-film header.fixed:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   opacity: 1;
   background: linear-gradient(90deg, transparent 14%, rgba(120, 230, 255, 0.07) 48%, transparent 85%);
 }
