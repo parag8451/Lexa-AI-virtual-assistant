@@ -108,35 +108,57 @@ export default function Landing() {
   const containerRef = useRef<HTMLDivElement>(null);
   const bgVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Background video speed and horizontal pan animation
+  // Keep the original cinematic blue wave treatment, but clean up GSAP on unmount
+  // and avoid extra positional motion for users who prefer reduced motion.
   useEffect(() => {
-    if (bgVideoRef.current) {
-      bgVideoRef.current.playbackRate = 3.5;
+    const video = bgVideoRef.current;
+    if (!video) return;
 
-      // Horizontal linear movement
-      gsap.fromTo(bgVideoRef.current,
-        { x: "-12vw" },
-        { x: "12vw", duration: 10, ease: "none", yoyo: true, repeat: -1 }
-      );
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    video.playbackRate = prefersReducedMotion ? 1 : 3.5;
 
-      // Vertical sinusoidal bob to create a perfect flowing wave path (exactly 3 oscillations per sweep)
-      gsap.fromTo(bgVideoRef.current,
-        { y: "-4vh" },
-        { y: "4vh", duration: 1.8, ease: "sine.inOut", yoyo: true, repeat: -1 }
-      );
-    }
+    if (prefersReducedMotion) return;
+
+    const horizontalTween = gsap.fromTo(
+      video,
+      { x: "-12vw" },
+      { x: "12vw", duration: 10, ease: "none", yoyo: true, repeat: -1 },
+    );
+    const verticalTween = gsap.fromTo(
+      video,
+      { y: "-4vh" },
+      { y: "4vh", duration: 1.8, ease: "sine.inOut", yoyo: true, repeat: -1 },
+    );
+
+    return () => {
+      horizontalTween.kill();
+      verticalTween.kill();
+      gsap.set(video, { clearProps: "transform" });
+    };
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setIsAuthenticated(true);
+      if (mounted) setIsAuthenticated(Boolean(session?.user));
     });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) setIsAuthenticated(Boolean(session?.user));
+    });
+
+    return () => {
+      mounted = false;
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const handleGetStarted = () => navigate(isAuthenticated ? "/chat" : "/auth");
 
   // GSAP Animations
   useGSAP(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
     // 1. Initial Load Hero Timeline
     const tl = gsap.timeline();
 
@@ -312,6 +334,7 @@ export default function Landing() {
             playsInline
             preload="metadata"
             poster="/icon-512.png"
+            aria-hidden="true"
             className="w-full h-full object-cover opacity-60 scale-x-[1.75] scale-y-[1.3] blur-[60px] pointer-events-none contrast-125 mix-blend-screen"
           >
             <source src="/videos/animation.mp4" type="video/mp4" />
