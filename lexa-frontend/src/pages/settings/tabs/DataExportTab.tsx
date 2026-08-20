@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Upload, FileJson, FileText, CheckCircle2 } from "lucide-react";
+import { Download, Upload, FileJson, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

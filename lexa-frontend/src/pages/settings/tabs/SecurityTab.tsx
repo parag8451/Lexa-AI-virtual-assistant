@@ -1,11 +1,9 @@
-import { useState, useEffect } from "react";
-import { Shield, Smartphone, Key, Monitor, Activity, LogOut, Check, X } from "lucide-react";
+import { useState } from "react";
+import { Smartphone, Monitor, LogOut, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 export function SecurityTab() {
   const [currentPassword, setCurrentPassword] = useState("");

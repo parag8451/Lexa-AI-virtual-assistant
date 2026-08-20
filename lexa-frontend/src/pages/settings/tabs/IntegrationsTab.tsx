@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import {
-  Sparkles, Check, Key, ExternalLink, ShieldCheck, AlertCircle,
-  Loader2, Eye, EyeOff, Bot, Mic, Cpu, RefreshCw
+  Check, Key, ExternalLink, AlertCircle,
+  Loader2, Eye, EyeOff, Mic, RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LogoIcon } from '@/components/ui/LogoIcon';
@@ -77,8 +77,8 @@ export function IntegrationsTab() {
         const err = await res.json().catch(() => ({}));
         setGeminiKey((p) => ({ ...p, status: "invalid", errorMsg: err?.error?.message || "Invalid API key" }));
       }
-    } catch (e: any) {
-      setGeminiKey((p) => ({ ...p, status: "invalid", errorMsg: e?.message || "Network error" }));
+    } catch (e: unknown) {
+      setGeminiKey((p) => ({ ...p, status: "invalid", errorMsg: (e as Error)?.message || "Network error" }));
     }
   };
 
@@ -102,8 +102,8 @@ export function IntegrationsTab() {
       } else {
         setElevenlabsKey((p) => ({ ...p, status: "invalid", errorMsg: "Invalid ElevenLabs API Key" }));
       }
-    } catch (e: any) {
-      setElevenlabsKey((p) => ({ ...p, status: "invalid", errorMsg: e?.message || "Network error" }));
+    } catch (e: unknown) {
+      setElevenlabsKey((p) => ({ ...p, status: "invalid", errorMsg: (e as Error)?.message || "Network error" }));
     }
   };
 

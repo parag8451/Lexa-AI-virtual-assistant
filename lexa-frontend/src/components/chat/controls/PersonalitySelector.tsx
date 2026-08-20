@@ -45,7 +45,7 @@ const PERSONALITIES = [
     id: "empathetic" as PersonalityType,
     label: "Empathetic",
     description: "Supportive, validating, understanding",
-    icon: 
+    icon: Heart,
     color: "text-amber-500",
     bgColor: "bg-amber-500/10",
   },

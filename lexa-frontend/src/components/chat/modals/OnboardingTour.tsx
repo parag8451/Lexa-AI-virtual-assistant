@@ -28,7 +28,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     id: "welcome",
     title: "Welcome to Lexa AI",
     description: "Your emotionally intelligent AI companion that truly understands you. Let's take a quick tour of what you can do!",
-    icon: 
+    icon: Target,
     gradient: "from-violet-500 to-purple-600",
   },
   {
