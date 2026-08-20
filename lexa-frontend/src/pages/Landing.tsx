@@ -1,2713 +1,3747 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import type { RefObject } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useEffect, useInsertionEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  ArrowRight, MessageSquare, Globe, Mic, Brain,
-  Image as ImageIcon, Zap, Bot,
-  Lock, Code2, Check, Sparkles, Terminal, Activity,
-  Cpu, Layers, ShieldCheck, ChevronRight, ChevronDown
-
+  Activity,
+  ArrowDown,
+  ArrowRight,
+  Brain,
+  Check,
+  ChevronRight,
+  Code2,
+  Globe,
+  Image as ImageIcon,
+  Menu,
+  MessageSquare,
+  Mic,
+  Minus,
+  Plus,
+  Quote,
+  Sparkles,
+  X,
+  Zap,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
-import { MagneticButton } from "@/components/ui/magnetic-button";
-import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
-import { useSEO } from "@/hooks/useSEO";
-import { HeroTypingText } from "@/components/ui/HeroTypingText";
-
-// GSAP Imports
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Lenis from "lenis";
+
 import { LogoIcon } from "@/components/ui/LogoIcon";
+import { supabase } from "@/integrations/supabase/client";
+import { useSEO } from "@/hooks/useSEO";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
-/* ─── Data ─── */
+declare global {
+  interface Window {
+    __lexaLenis?: Lenis;
+  }
+}
+
+/** Inject the complete landing stylesheet into <head> before layout. */
+function useLandingStyles() {
+  useInsertionEffect(() => {
+    const styleId = "lexa-palomino-landing-styles";
+    const previous = document.getElementById(
+      styleId,
+    ) as HTMLStyleElement | null;
+    const style = previous ?? document.createElement("style");
+
+    style.id = styleId;
+    style.textContent = PALOMINO_LEXA_CSS;
+    if (!previous) document.head.appendChild(style);
+
+    return () => {
+      if (!previous) style.remove();
+    };
+  }, []);
+}
+
 const FEATURES = [
   {
     id: "smart-ai",
     icon: MessageSquare,
     tag: "COGNITIVE CORE",
     title: "Smart AI Conversations",
-    description: "Context-aware AI virtual assistant that remembers your preferences, adapts to your writing style, and handles complex reasoning tasks seamlessly.",
+    description:
+      "Context-aware intelligence that remembers your preferences, adapts to your voice, and reasons through complex work without losing the thread.",
     preview: {
       type: "chat",
       prompt: "Synthesize quarterly metrics with multi-perspective analysis.",
-      badge: "Deep Reasoning Mode",
-      status: "Adaptive Context Active",
-    }
+      badge: "Deep reasoning mode",
+      status: "Adaptive context active",
+    },
   },
   {
     id: "web-search",
     icon: Globe,
     tag: "LIVE TELEMETRY",
     title: "Real-time Web Search",
-    description: "Access live information with verified citations. Lexa AI browses the web to give you up-to-date answers for research and fact-checking.",
+    description:
+      "Browse live sources, verify claims, and return current answers with citations—without breaking your creative flow.",
     preview: {
       type: "search",
-      query: "global market trends Q3 live feeds",
+      query: "Global market trends · Q3 live feeds",
       sources: ["Bloomberg Terminal", "Reuters API", "ArXiv Research"],
       status: "Verified 24ms ago",
-    }
+    },
   },
   {
     id: "voice-ai",
     icon: Mic,
     tag: "ACOUSTIC SYNTHESIS",
     title: "Voice AI Interactions",
-    description: "Natural voice interactions with lightning-fast speech recognition. Speak to your AI assistant just like a human.",
+    description:
+      "Natural, low-latency voice interaction that feels immediate enough for ideation, drafting, and hands-free execution.",
     preview: {
       type: "audio",
       waveform: [35, 60, 95, 45, 80, 100, 50, 75, 40, 90, 60, 30, 85, 45, 95],
-      latency: "85ms Response Latency",
-      status: "Neural Voice Stream Active",
-    }
+      latency: "85ms response latency",
+      status: "Neural voice stream active",
+    },
   },
   {
     id: "memory-workspace",
     icon: Brain,
     tag: "NEURAL GRAPH",
     title: "Persistent Memory Workspace",
-    description: "An AI that learns your interests for deeply personalized, continuous conversations across your entire productivity workspace.",
+    description:
+      "A durable knowledge layer that connects projects, preferences, and prior decisions across your entire workspace.",
     preview: {
       type: "memory",
-      nodes: ["Design Systems", "TypeScript Architecture", "Brand Guidelines", "User Preferences"],
-      status: "12,480 Tokens In Long-term Index",
-    }
+      nodes: [
+        "Design Systems",
+        "TypeScript Architecture",
+        "Brand Guidelines",
+        "User Preferences",
+      ],
+      status: "12,480 tokens in long-term index",
+    },
   },
   {
     id: "image-video",
     icon: ImageIcon,
     tag: "GENERATIVE MATRIX",
     title: "Image & Video Generation",
-    description: "Create stunning visuals with DALL-E 3 and generate cinematic AI videos seamlessly from text prompts within your dashboard.",
+    description:
+      "Move from prompt to polished visual, concept frame, or cinematic sequence inside the same focused environment.",
     preview: {
       type: "render",
       resolution: "4K Cinema DCI",
       aspectRatio: "21:9 Widescreen",
-      status: "Diffusion Pipeline Ready",
-    }
+      status: "Diffusion pipeline ready",
+    },
   },
   {
     id: "code-gen",
     icon: Code2,
     tag: "SYNTACTIC ENGINE",
     title: "Advanced Code Generation",
-    description: "Write, debug, and explain complex code across dozens of programming languages. A perfect AI assistant for developers.",
+    description:
+      "Generate, review, debug, and explain production code across languages with architecture-aware reasoning.",
     preview: {
       type: "code",
-      snippet: "const stream = await lexa.neural.pipeline({ target: 'production' });",
-      status: "Zero Compiler Warnings",
-    }
+      snippet:
+        "const stream = await lexa.neural.pipeline({ target: 'production' });",
+      status: "Zero compiler warnings",
+    },
   },
-];
+] as const;
 
 const MODELS = [
   {
     id: "gpt-4o",
     name: "GPT-4o",
     provider: "OpenAI",
-    badge: "Omni Engine",
-    spec: "128k Context",
+    spec: "128k context",
     speed: "Instantaneous",
-    strengths: "Complex reasoning, multimodal synthesis, natural dialogue",
+    strengths: "Complex reasoning, multimodal synthesis, and natural dialogue.",
     latency: "320ms",
-    tier: "Tier 1 Flagship"
+    tier: "Tier 1 flagship",
+    metrics: [98, 96, 97, 99],
   },
   {
     id: "gemini-pro",
     name: "Gemini 1.5 Pro",
     provider: "Google",
-    badge: "Long Context",
-    spec: "2M Context",
-    speed: "High Velocity",
-    strengths: "Massive document parsing, video analysis, code generation",
+    spec: "2M context",
+    speed: "High velocity",
+    strengths: "Massive document parsing, video analysis, and code generation.",
     latency: "290ms",
-    tier: "Tier 1 Multimodal"
+    tier: "Tier 1 multimodal",
+    metrics: [96, 94, 99, 97],
   },
   {
     id: "claude-sonnet",
     name: "Claude 3.5 Sonnet",
     provider: "Anthropic",
-    badge: "Coding Titan",
-    spec: "200k Context",
-    speed: "Precision Stream",
-    strengths: "Nuanced writing, complex software architecture, deep logic",
+    spec: "200k context",
+    speed: "Precision stream",
+    strengths: "Nuanced writing, software architecture, and deep logical work.",
     latency: "310ms",
-    tier: "Tier 1 Reasoning"
+    tier: "Tier 1 reasoning",
+    metrics: [99, 98, 96, 99],
   },
   {
     id: "lexa-ultra",
     name: "Lexa Ultra",
     provider: "Custom AI",
-    badge: "Neural Orchestrator",
-    spec: "Adaptive Mesh",
-    speed: "Sub-Second",
-    strengths: "Multi-model ensemble voting, autonomous workflow routing",
+    spec: "Adaptive mesh",
+    speed: "Sub-second",
+    strengths: "Multi-model ensemble voting and autonomous workflow routing.",
     latency: "190ms",
-    tier: "Lexa Proprietary"
+    tier: "Lexa proprietary",
+    metrics: [99, 99, 100, 99],
   },
-];
-
-const FAQS = [
-  {
-    question: "What is Lexa AI?",
-    answer: "Lexa AI is an intelligent virtual assistant designed for professionals. It combines the world's most advanced AI models, web search capabilities, and multimodal tools (voice, image, and video generation) into a single, unified cinematic workspace."
-  },
-  {
-    question: "Who is Lexa AI for?",
-    answer: "Lexa AI is built for professionals, developers, creators, and researchers who need a powerful AI productivity tool to automate tasks, write code, analyze data, and generate content faster."
-  },
-  {
-    question: "Which AI models can I use?",
-    answer: "With Lexa AI, you get access to multiple top-tier models including OpenAI's GPT-4o, Google's Gemini 1.5 Pro, and Anthropic's Claude 3.5 Sonnet, allowing you to choose the best intelligence for your specific task."
-  },
-  {
-    question: "Does Lexa AI support web search?",
-    answer: "Yes, Lexa AI features real-time web search capabilities. It browses the internet to provide you with the most up-to-date information, complete with verified citations and source links."
-  },
-  {
-    question: "Can Lexa AI generate images and videos?",
-    answer: "Absolutely. Our platform integrates advanced image generation models (like DALL-E 3) and AI video generation tools natively into your chat interface."
-  },
-  {
-    question: "How do I get started?",
-    answer: "You can get started completely free by clicking 'Start Building Free'. Create an account and immediately access our powerful AI tools."
-  }
-];
-
-const DISCOVER_MENU = [
-  { label: "Feature Suite", detail: "Explore the cognitive tools", href: "#features", icon: Layers },
-  { label: "Intelligence Mesh", detail: "Switch between frontier models", href: "#intelligence", icon: Cpu },
-  { label: "Pricing Architecture", detail: "Choose the right access tier", href: "#pricing", icon: Zap },
-  { label: "Knowledge Base", detail: "Find concise product answers", href: "#faq", icon: MessageSquare },
 ] as const;
 
 const STATS = [
-
-  { value: "5M+", label: "Messages Processed", sub: "Global throughput" },
+  { value: "5M+", label: "Messages processed", sub: "Global throughput" },
   { value: "99.9%", label: "Uptime SLA", sub: "Enterprise grade" },
-  { value: "50+", label: "AI Models Supported", sub: "Unified catalog" },
-  { value: "<1s", label: "Average Latency", sub: "Edge accelerated" },
-];
+  { value: "50+", label: "Models supported", sub: "Unified catalog" },
+  { value: "<1s", label: "Average latency", sub: "Edge accelerated" },
+] as const;
 
 const PRICING = [
   {
     name: "Free",
     price: "$0",
     period: "forever",
-    description: "Essential intelligence for personal exploration",
-    features: ["100 messages/day", "GPT-4o mini access", "Real-time web search", "Voice speech synthesis", "Community support"],
-    cta: "Start Free",
-    highlighted: false
+    description: "Essential intelligence for personal exploration.",
+    features: [
+      "100 messages/day",
+      "GPT-4o mini access",
+      "Real-time web search",
+      "Voice synthesis",
+      "Community support",
+    ],
+    cta: "Start free",
+    highlighted: false,
   },
   {
     name: "Pro",
     price: "$20",
     period: "/month",
-    description: "Directorial power for builders and professionals",
-    features: ["Unlimited messages", "All flagship AI models", "DALL-E 3 & Video generation", "Persistent memory graph", "Priority neural routing", "Custom instructions"],
+    description: "Directorial power for builders and professionals.",
+    features: [
+      "Unlimited messages",
+      "All flagship AI models",
+      "Image & video generation",
+      "Persistent memory graph",
+      "Priority routing",
+      "Custom instructions",
+    ],
     cta: "Upgrade to Pro",
-    highlighted: true
+    highlighted: true,
   },
   {
     name: "Team",
     price: "$15",
     period: "/user/month",
-    description: "Shared collective intelligence for organizations",
-    features: ["Everything in Pro", "Shared team workspaces", "Centralized administrative console", "SSO & enterprise SAML", "Dedicated API keys", "99.9% uptime SLA"],
-    cta: "Contact Sales",
-    highlighted: false
+    description: "Shared collective intelligence for organizations.",
+    features: [
+      "Everything in Pro",
+      "Shared team workspaces",
+      "Admin console",
+      "SSO & enterprise SAML",
+      "Dedicated API keys",
+      "99.9% uptime SLA",
+    ],
+    cta: "Contact sales",
+    highlighted: false,
   },
-];
+] as const;
 
-/* ─── Typing Effect for Chat Preview ─── */
-function TypingText({ text, delay = 0 }: { text: string; delay?: number }) {
-  const [displayText, setDisplayText] = useState("");
-  const [started, setStarted] = useState(false);
+const FAQS = [
+  {
+    question: "What is Lexa AI?",
+    answer:
+      "Lexa is an intelligent workspace that brings frontier models, live web research, memory, voice, image, video, and code tools into one focused interface.",
+  },
+  {
+    question: "Who is Lexa AI for?",
+    answer:
+      "It is built for professionals, developers, creators, and researchers who want one fast environment for thinking, building, and publishing.",
+  },
+  {
+    question: "Which AI models can I use?",
+    answer:
+      "You can switch among leading OpenAI, Google, Anthropic, and Lexa models while carrying the same project context and memory forward.",
+  },
+  {
+    question: "Does Lexa support live web search?",
+    answer:
+      "Yes. Lexa can search current web sources and return answers with citations and direct source links.",
+  },
+  {
+    question: "Can Lexa generate images and videos?",
+    answer:
+      "Yes. Image and video generation are integrated directly into the workspace so ideas can move from text to visual output without changing tools.",
+  },
+  {
+    question: "How do I get started?",
+    answer:
+      "Choose Start free, create an account, and open your workspace. You can upgrade only when you need higher limits or team features.",
+  },
+] as const;
+
+const INTEGRATIONS = [
+  "OpenAI",
+  "Anthropic",
+  "Google",
+  "Supabase",
+  "Vercel",
+  "Stripe",
+  "Slack",
+  "Notion",
+  "GitHub",
+  "Figma",
+  "Linear",
+  "Zapier",
+] as const;
+
+const TESTIMONIALS = [
+  {
+    quote:
+      "Lexa collapsed four tools into one. Our research velocity doubled overnight.",
+    name: "Aria Chen",
+    role: "Head of Product · Northwind",
+  },
+  {
+    quote:
+      "Model switching with shared memory feels genuinely seamless. Nothing else compares.",
+    name: "Marcus Bell",
+    role: "Staff Engineer · Vertex",
+  },
+  {
+    quote:
+      "Cinematic interface, serious speed. It replaced our entire AI stack in a week.",
+    name: "Priya Nair",
+    role: "Founder · Loop Studio",
+  },
+  {
+    quote:
+      "I write, debug, and ship faster than ever. Lexa is my unfair advantage.",
+    name: "Diego Alvarez",
+    role: "Independent Developer",
+  },
+] as const;
+
+type Feature = (typeof FEATURES)[number];
+
+function useSmoothScroll() {
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      wheelMultiplier: 0.9,
+      touchMultiplier: 1.25,
+      lerp: 0.09,
+    });
+
+    lenis.on("scroll", ScrollTrigger.update);
+    const raf = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(raf);
+    gsap.ticker.lagSmoothing(0);
+    window.__lexaLenis = lenis;
+
+    return () => {
+      gsap.ticker.remove(raf);
+      lenis.destroy();
+      delete window.__lexaLenis;
+    };
+  }, []);
+}
+
+function scrollToSection(selector: string) {
+  if (window.__lexaLenis) {
+    window.__lexaLenis.scrollTo(selector, { offset: -72, duration: 1.35 });
+    return;
+  }
+  document.querySelector(selector)?.scrollIntoView({ behavior: "smooth" });
+}
+
+function useFilmCursor() {
+  useEffect(() => {
+    if (window.matchMedia("(hover: none)").matches) return;
+
+    const cursor = document.createElement("div");
+    cursor.className = "film-cursor";
+    cursor.setAttribute("aria-hidden", "true");
+    document.body.appendChild(cursor);
+
+    const xTo = gsap.quickTo(cursor, "x", {
+      duration: 0.32,
+      ease: "power3.out",
+    });
+    const yTo = gsap.quickTo(cursor, "y", {
+      duration: 0.32,
+      ease: "power3.out",
+    });
+
+    const onMove = (event: PointerEvent) => {
+      xTo(event.clientX);
+      yTo(event.clientY);
+      cursor.classList.add("is-visible");
+    };
+    const onOver = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("a, button, [data-cursor='active']"))
+        cursor.classList.add("is-active");
+    };
+    const onOut = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("a, button, [data-cursor='active']"))
+        cursor.classList.remove("is-active");
+    };
+
+    window.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerover", onOver);
+    document.addEventListener("pointerout", onOut);
+
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerover", onOver);
+      document.removeEventListener("pointerout", onOut);
+      cursor.remove();
+    };
+  }, []);
+}
+
+function SplitHeading({
+  children,
+  className = "",
+}: {
+  children: string;
+  className?: string;
+}) {
+  const words = children.split(" ");
+  return (
+    <h2 className={`split-heading ${className}`} aria-label={children}>
+      {words.map((word, wordIndex) => (
+        <span
+          className="split-word"
+          aria-hidden="true"
+          key={`${word}-${wordIndex}`}
+        >
+          {Array.from(word).map((character, charIndex) => (
+            <span className="split-char" key={`${character}-${charIndex}`}>
+              {character}
+            </span>
+          ))}
+          {wordIndex < words.length - 1 && (
+            <span className="split-space">&nbsp;</span>
+          )}
+        </span>
+      ))}
+    </h2>
+  );
+}
+
+function AnimatedNumber({ value }: { value: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setStarted(true), delay * 1000);
-    return () => clearTimeout(timer);
-  }, [delay]);
+    const element = ref.current;
+    if (
+      !element ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
+
+    const number = Number.parseFloat(value.replace(/[^0-9.]/g, ""));
+    if (Number.isNaN(number)) return;
+
+    const prefix = value.match(/^[^0-9.]*/)?.[0] ?? "";
+    const suffix = value.match(/[^0-9.]*$/)?.[0] ?? "";
+    const decimals = value.includes(".")
+      ? value.split(".")[1].replace(/[^0-9]/g, "").length
+      : 0;
+    const state = { current: 0 };
+    const tween = gsap.to(state, {
+      current: number,
+      duration: 1.7,
+      ease: "power3.out",
+      paused: true,
+      onUpdate: () => {
+        element.textContent = `${prefix}${state.current.toFixed(decimals)}${suffix}`;
+      },
+    });
+    const trigger = ScrollTrigger.create({
+      trigger: element,
+      start: "top 88%",
+      once: true,
+      onEnter: () => tween.play(),
+    });
+
+    return () => {
+      tween.kill();
+      trigger.kill();
+    };
+  }, [value]);
+
+  return <span ref={ref}>{value}</span>;
+}
+
+function TypingLine({ text }: { text: string }) {
+  const [visible, setVisible] = useState("");
 
   useEffect(() => {
-    if (!started) return;
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < text.length) {
-        setDisplayText(text.slice(0, i + 1));
-        i++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 28);
-    return () => clearInterval(interval);
-  }, [started, text]);
+    setVisible("");
+    let index = 0;
+    const timer = window.setInterval(() => {
+      index += 1;
+      setVisible(text.slice(0, index));
+      if (index >= text.length) window.clearInterval(timer);
+    }, 24);
+    return () => window.clearInterval(timer);
+  }, [text]);
 
   return (
     <span>
-      {displayText}
-      {started && displayText.length < text.length && (
-        <span className="inline-block w-[2px] h-[14px] bg-[#346bf1] ml-[2px] animate-pulse" />
-      )}
+      {visible}
+      <span className="typing-caret" aria-hidden="true" />
     </span>
   );
 }
 
-/* ─── Main Landing Component ─── */
-export default function Landing() {
-  useSEO({
-    title: "Lexa AI - The Intelligent Workspace for Professionals",
-    description: "A cinematic AI workspace powered by the world's most capable models. Seamlessly switch between writing, coding, and creating.",
-    canonicalUrl: "/",
-  });
-
-  const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [introPhase, setIntroPhase] = useState<"visible" | "exiting" | "done">("visible");
-  const [activeModelIndex, setActiveModelIndex] = useState(0);
-  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
-  const [isDiscoverOpen, setIsDiscoverOpen] = useState(false);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const discoverMenuRef = useRef<HTMLDivElement>(null);
-
-  const bgVideoRef = useRef<HTMLVideoElement>(null);
-  const introVideoRef = useRef<HTMLVideoElement>(null);
-  const introDismissTimerRef = useRef<number | null>(null);
-  const introExitTimerRef = useRef<number | null>(null);
-
-  // Background wave drift animation
-  useEffect(() => {
-    const video = bgVideoRef.current;
-    if (!video) return;
-
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    video.playbackRate = prefersReducedMotion ? 1 : 0.85;
-
-    if (prefersReducedMotion) return;
-
-    const horizontalTween = gsap.fromTo(
-      video,
-      { x: "-10vw" },
-      { x: "10vw", duration: 12, ease: "sine.inOut", yoyo: true, repeat: -1 },
-    );
-    const verticalTween = gsap.fromTo(
-      video,
-      { y: "-3vh" },
-      { y: "3vh", duration: 2.2, ease: "sine.inOut", yoyo: true, repeat: -1 },
-    );
-
-    return () => {
-      horizontalTween.kill();
-      verticalTween.kill();
-      gsap.set(video, { clearProps: "transform" });
-    };
-  }, []);
+function HeroTypingHeading() {
+  const isReduced =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const [line1, setLine1] = useState(isReduced ? "One intelligence." : "");
+  const [line2, setLine2] = useState(isReduced ? "Every mode." : "");
+  const [activeLine, setActiveLine] = useState<1 | 2 | "done">(
+    isReduced ? "done" : 1,
+  );
 
   useEffect(() => {
-    if (!isDiscoverOpen) return;
-
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      if (discoverMenuRef.current && !discoverMenuRef.current.contains(event.target as Node)) {
-        setIsDiscoverOpen(false);
-      }
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsDiscoverOpen(false);
-    };
-
-    document.addEventListener("mousedown", closeOnOutsideClick);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("mousedown", closeOnOutsideClick);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [isDiscoverOpen]);
-
-  // Auth listener
-  useEffect(() => {
-
-    let mounted = true;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (mounted) setIsAuthenticated(Boolean(session?.user));
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (mounted) setIsAuthenticated(Boolean(session?.user));
-    });
-
-    return () => {
-      mounted = false;
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  const handleGetStarted = () => navigate(isAuthenticated ? "/chat" : "/auth");
-
-  const dismissIntro = useCallback((e?: React.MouseEvent<HTMLButtonElement>) => {
-    if (e?.currentTarget) {
-      e.currentTarget.blur();
-    }
-    if (introPhase !== "visible") return;
-    if (introDismissTimerRef.current !== null) {
-      window.clearTimeout(introDismissTimerRef.current);
-      introDismissTimerRef.current = null;
-    }
-    if (introExitTimerRef.current !== null) {
-      window.clearTimeout(introExitTimerRef.current);
-    }
-
-    introVideoRef.current?.pause();
-    setIntroPhase("exiting");
-
-    introExitTimerRef.current = window.setTimeout(() => {
-      setIntroPhase("done");
-      introExitTimerRef.current = null;
-    }, 850);
-  }, [introPhase]);
-
-  const scheduleIntroDismiss = useCallback(() => {
-    if (introDismissTimerRef.current !== null) {
-      window.clearTimeout(introDismissTimerRef.current);
-    }
-    introDismissTimerRef.current = window.setTimeout(dismissIntro, 30_000);
-
-  }, [dismissIntro]);
-
-  const replayIntro = useCallback(() => {
-    const video = introVideoRef.current;
-    if (introExitTimerRef.current !== null) {
-      window.clearTimeout(introExitTimerRef.current);
-      introExitTimerRef.current = null;
-    }
-    setIntroPhase("visible");
-    scheduleIntroDismiss();
-    if (!video) return;
-    video.currentTime = 0;
-    void video.play().catch(() => undefined);
-  }, [scheduleIntroDismiss]);
-
-  useEffect(() => {
-    scheduleIntroDismiss();
-    return () => {
-      if (introDismissTimerRef.current !== null) {
-        window.clearTimeout(introDismissTimerRef.current);
-      }
-      if (introExitTimerRef.current !== null) {
-        window.clearTimeout(introExitTimerRef.current);
-      }
-    };
-  }, [scheduleIntroDismiss]);
-
-  // GSAP Orchestration
-  useGSAP(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    // 1. Initial Hero Film Reveal
-    const heroTl = gsap.timeline({ delay: 0.1 });
-    heroTl
-      .fromTo(".hero-badge",
-        { opacity: 0, y: 30, filter: "blur(6px)" },
-        { opacity: 1, y: 0, filter: "blur(0px)", duration: 1.1, ease: "expo.out" }
-      )
-      .fromTo(".hero-headline-wrap",
-        { opacity: 0, y: 40, scale: 0.98 },
-        { opacity: 1, y: 0, scale: 1, duration: 1.2, ease: "expo.out" },
-        "-=0.9"
-      )
-      .fromTo(".hero-subtitle",
-        { opacity: 0, y: 30 },
-        { opacity: 1, y: 0, duration: 1.0, ease: "expo.out" },
-        "-=0.9"
-      )
-      .fromTo(".hero-actions",
-        { opacity: 0, y: 30 },
-        { opacity: 1, y: 0, duration: 1.0, ease: "expo.out" },
-        "-=0.8"
-      )
-      .fromTo(".hero-monolith",
-        { opacity: 0, y: 90, scale: 0.94, filter: "blur(10px)" },
-        { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: 1.4, ease: "expo.out" },
-        "-=0.9"
-      );
+    const text1 = "One intelligence.";
+    const text2 = "Every mode.";
+    let i1 = 0;
+    let i2 = 0;
+    let timer1: ReturnType<typeof setInterval>;
+    let timer2: ReturnType<typeof setInterval>;
+    let timeout2: ReturnType<typeof setTimeout>;
 
-    // 2. Hero Parallax Scrub
-    gsap.to(".hero-monolith", {
-      y: 120,
-      scale: 0.98,
-      ease: "none",
-      scrollTrigger: {
-        trigger: ".hero-section",
-        start: "top top",
-        end: "bottom top",
-        scrub: 1.2,
-      }
-    });
-
-    // 3. Stats Telemetry Entrance (Horizontal staggered slide)
-    gsap.fromTo(".stat-card",
-      { opacity: 0, x: -30 },
-      {
-        opacity: 1,
-        x: 0,
-        duration: 1.0,
-        stagger: 0.1,
-        ease: "expo.out",
-        scrollTrigger: {
-          trigger: ".stats-section",
-          start: "top 85%",
+    const startDelay = setTimeout(() => {
+      timer1 = setInterval(() => {
+        i1 += 1;
+        setLine1(text1.slice(0, i1));
+        if (i1 >= text1.length) {
+          clearInterval(timer1);
+          setActiveLine(2);
+          timeout2 = setTimeout(() => {
+            timer2 = setInterval(() => {
+              i2 += 1;
+              setLine2(text2.slice(0, i2));
+              if (i2 >= text2.length) {
+                clearInterval(timer2);
+                setActiveLine("done");
+              }
+            }, 55);
+          }, 350);
         }
-      }
-    );
+      }, 42);
+    }, 2200);
 
-    // 4. Scrollytelling Features (Triggering active feature state on scroll)
-    const featureItems = gsap.utils.toArray<HTMLElement>(".feature-story-item");
-    featureItems.forEach((item, index) => {
-      ScrollTrigger.create({
-        trigger: item,
-        start: "top center",
-        end: "bottom center",
-        onEnter: () => setActiveFeatureIndex(index),
-        onEnterBack: () => setActiveFeatureIndex(index),
-      });
-    });
-
-    // 5. Model Switcher Stage Reveal
-    gsap.fromTo(".model-stage-card",
-      { opacity: 0, y: 50, filter: "blur(8px)" },
-      {
-        opacity: 1,
-        y: 0,
-        filter: "blur(0px)",
-        duration: 1.2,
-        ease: "expo.out",
-        scrollTrigger: {
-          trigger: ".models-section",
-          start: "top 80%",
-        }
-      }
-    );
-
-    // 6. Monolithic Pricing Reveal
-    gsap.fromTo(".pricing-column",
-      { opacity: 0, y: 60, scale: 0.97 },
-      {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        duration: 1.1,
-        stagger: 0.14,
-        ease: "expo.out",
-        scrollTrigger: {
-          trigger: ".pricing-section",
-          start: "top 80%",
-        }
-      }
-    );
-
-    // 7. Scroll Progress Bar Scrub
-    gsap.to(".scroll-progress-bar", {
-      width: "100%",
-      ease: "none",
-      scrollTrigger: {
-        trigger: document.body,
-        start: "top top",
-        end: "bottom bottom",
-        scrub: 0.25,
-      }
-    });
-
-  }, { scope: containerRef });
-
-  useCinematicEnhancements(containerRef);
+    return () => {
+      clearTimeout(startDelay);
+      clearTimeout(timeout2);
+      clearInterval(timer1);
+      clearInterval(timer2);
+    };
+  }, []);
 
   return (
-    <main
-      ref={containerRef}
-      className={cn(
-        "lexa-cinematic-film min-h-screen bg-[#000000] text-[#FFFFFF] overflow-x-hidden selection:bg-[#346bf1]/30 selection:text-white font-inter",
-        introPhase === "exiting" && "lexa-page-revealing"
-      )}
-    >
-      <style>{`${CINEMATIC_DESIGN_SYSTEM_CSS}\n${LEXA_UI_UX_OVERLAY_CSS}\n${LEXA_AURORA_GAS_CSS}`}</style>
-      <CinematicBackdrop />
-      <div className="lexa-aurora-gas" aria-hidden="true">
-        <span className="lexa-aurora-gas__ribbon lexa-aurora-gas__ribbon--one" />
-        <span className="lexa-aurora-gas__ribbon lexa-aurora-gas__ribbon--two" />
-        <span className="lexa-aurora-gas__ribbon lexa-aurora-gas__ribbon--three" />
-        <span className="lexa-aurora-gas__ribbon lexa-aurora-gas__ribbon--four" />
-        <span className="lexa-aurora-gas__cloud lexa-aurora-gas__cloud--blue" />
-        <span className="lexa-aurora-gas__cloud lexa-aurora-gas__cloud--violet" />
-      </div>
-
-      {/* ──────── 1. Cinematic Video Intro ──────── */}
-      {introPhase !== "done" && (
-        <div
-          className={cn(
-            "lexa-cinematic-intro fixed inset-0 z-[100] overflow-hidden bg-[#000000] cursor-pointer",
-            introPhase === "exiting" && "lexa-intro-exiting",
-          )}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Lexa Cinematic Product Intro"
-          onClick={dismissIntro}
-        >
-          {/* Constrained video showcase */}
-          <div className="absolute inset-y-0 left-0 w-full md:w-[62%] flex items-center justify-center p-8 md:p-16 overflow-hidden pointer-events-none">
-            {/* Aspect ratio container to crop watermark */}
-            <div className="relative w-full max-w-[800px] aspect-video overflow-hidden transform scale-[0.95] rounded-[32px] bg-[#0a0a0a] skeleton-shimmer">
-              <video
-                ref={introVideoRef}
-                autoPlay
-                muted
-                playsInline
-                preload="auto"
-                onEnded={() => introVideoRef.current?.pause()}
-                className="w-full h-full object-cover object-center transform scale-[1.08] translate-y-[-2%]"
-                poster="/icon-512.png"
-              >
-                <source src="/videos/LEXAINTRO.mp4" type="video/mp4" />
-              </video>
-            </div>
-            {/* Seamless edge fade into pure black */}
-            <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-r from-transparent to-[#000000] pointer-events-none hidden md:block" />
-          </div>
-
-          {/* Solid pure black narrative panel */}
-          <div className="absolute inset-y-0 right-0 w-full md:w-[42%] bg-gradient-to-t md:bg-gradient-to-l from-[#000000] via-[#000000]/95 to-transparent pointer-events-none" />
-
-          {/* Intro Narrative Content */}
-          <div className="lexa-intro-panel absolute right-0 inset-y-0 w-full md:w-[42%] flex flex-col justify-end md:justify-center p-8 md:pl-20 md:pr-12 text-white z-20 pointer-events-auto">
-            <div className="inline-flex items-center gap-2 mb-4 font-mono text-[10px] uppercase tracking-[0.25em] text-[#346bf1]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#346bf1] animate-pulse" />
-              A New Intelligence Layer
-            </div>
-            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold tracking-[-0.04em] leading-[1.05] mb-4 text-white">
-              Think deeper.<br />Move faster.
-            </h1>
-            <p className="text-[#F3F4F6] text-sm md:text-base font-light mb-8 max-w-sm">
-              Your autonomous AI workspace engineered for developers, creators, and professionals.
-            </p>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={dismissIntro}
-                className="rounded-full bg-[#346bf1] hover:bg-[#2c5ad6] text-white px-6 py-3 font-mono text-xs uppercase tracking-[0.15em] font-medium transition-all shadow-[0_1px_2px_rgba(0,0,0,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#346bf1]"
-              >
-                Enter Lexa <ArrowRight className="ml-2 inline h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Skip CTA */}
-          <button
-            onClick={dismissIntro}
-            aria-label="Skip intro"
-            className="absolute bottom-6 right-6 z-30 rounded-full border border-white/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-[#F3F4F6] hover:text-white hover:border-white/30 backdrop-blur-[40px] transition-colors"
-          >
-            Skip Intro
-          </button>
-        </div>
-      )}
-
-      {/* ──────── 2. Directorial Navigation ──────── */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#000000]/60 backdrop-blur-[40px] border-b border-white/[0.08]">
-        {/* Top Scroll Progress Line */}
-        <div className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-[#346bf1] via-[#6e96ff] to-[#346bf1] scroll-progress-bar w-0 shadow-[0_0_12px_#346bf1]" />
-
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="relative group">
-              <div className="absolute -inset-1 rounded-[16px] bg-[#346bf1]/30 blur-sm opacity-50 group-hover:opacity-100 transition-opacity" />
-              <LogoIcon className="relative w-6 h-6 rounded-[16px] ring-1 ring-white/10 bg-[#202124] p-1" />
-            </div>
-            <span className="font-display text-lg font-bold tracking-tight text-white">Lexa</span>
-            <span className="hidden sm:inline-block font-mono text-[9px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full bg-[#346bf1]/10 text-[#6e96ff] border border-[#346bf1]/20">
-              v2.4 Pro
-            </span>
-          </div>
-
-          {/* Nav Anchors */}
-          <nav className="hidden md:flex items-center gap-8">
-            <div ref={discoverMenuRef} className="relative">
-              <button
-                type="button"
-                aria-expanded={isDiscoverOpen}
-                aria-haspopup="menu"
-                onClick={() => setIsDiscoverOpen((open) => !open)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.15em] text-[#F3F4F6] transition-colors",
-                  isDiscoverOpen ? "text-white" : "hover:text-white"
-                )}
-              >
-                Discover
-                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-300", isDiscoverOpen && "rotate-180 text-[#6e96ff]")} />
-              </button>
-
-              <div
-                role="menu"
-                aria-hidden={!isDiscoverOpen}
-                className={cn(
-                  "lexa-discover-menu absolute left-1/2 top-[calc(100%+18px)] w-[286px] -translate-x-1/2 origin-top rounded-[24px] border border-white/[0.1] bg-[#191A1F]/95 p-2 shadow-2xl backdrop-blur-[40px] transition-all duration-300",
-                  isDiscoverOpen ? "visible translate-y-0 scale-100 opacity-100" : "invisible -translate-y-2 scale-95 opacity-0"
-                )}
-              >
-                <div className="px-3 pb-2 pt-2 font-mono text-[9px] uppercase tracking-[0.24em] text-[#346bf1]">Explore the system</div>
-                {DISCOVER_MENU.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.label}
-                      role="menuitem"
-                      type="button"
-                      onClick={() => {
-                        document.querySelector(item.href)?.scrollIntoView({ behavior: "smooth" });
-                        setIsDiscoverOpen(false);
-                      }}
-                      className="group flex w-full items-center gap-3 rounded-[18px] p-3 text-left transition-all duration-300 hover:bg-[#346bf1]/10"
-                    >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border border-[#346bf1]/20 bg-[#346bf1]/10 text-[#6e96ff] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-4deg]">
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-display text-sm font-semibold text-white">{item.label}</span>
-                        <span className="mt-0.5 block truncate font-sans text-[11px] text-[#F3F4F6]/55">{item.detail}</span>
-                      </span>
-                      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#F3F4F6]/35 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-[#6e96ff]" />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            {[{
-              label: "Features", href: "#features"
-            }, {
-              label: "Intelligence", href: "#intelligence"
-            }, {
-              label: "Pricing", href: "#pricing"
-            }, {
-              label: "FAQ", href: "#faq"
-            }].map((item) => (
-              <button
-                key={item.label}
-                onClick={() => document.querySelector(item.href)?.scrollIntoView({ behavior: "smooth" })}
-                className="font-mono text-xs uppercase tracking-[0.15em] text-[#F3F4F6] transition-colors hover:text-white"
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
-
-          {/* Action CTAs */}
-          <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <MagneticButton strength={20}>
-                <Link to="/chat" className="inline-block">
-                  <InteractiveHoverButton
-                    className="rounded-full h-10 px-5 font-mono text-xs uppercase tracking-wider bg-[#346bf1] text-white shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
-                  >
-                    Open Workspace <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                  </InteractiveHoverButton>
-                </Link>
-              </MagneticButton>
-            ) : (
-              <>
-                <Link to="/auth" className="inline-block">
-                  <Button
-                    variant="ghost"
-                    className="rounded-full h-10 px-4 text-xs font-mono uppercase tracking-wider text-[#F3F4F6] hover:text-white hover:bg-white/5"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <MagneticButton strength={20}>
-                  <Link to="/auth" className="inline-block">
-                    <InteractiveHoverButton
-                      className="rounded-full h-10 px-5 font-mono text-xs uppercase tracking-wider bg-[#346bf1] text-white shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
-                    >
-                      Start Free <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                    </InteractiveHoverButton>
-                  </Link>
-                </MagneticButton>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* ──────── 3. Cinematic Hero Film ──────── */}
-      <section className="hero-section relative pt-40 md:pt-48 pb-24 px-4 flex flex-col items-center justify-center min-h-[92vh] overflow-hidden bg-transparent">
-        {/* Background Cinematic Energy Wave */}
-        <div className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none">
-          <video
-            ref={bgVideoRef}
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="metadata"
-            poster="/icon-512.png"
-            aria-hidden="true"
-            className="w-full h-full object-cover opacity-50 scale-x-[1.8] scale-y-[1.35] blur-[55px] contrast-125 mix-blend-screen"
-          >
-            <source src="/videos/LEXAINTRO.mp4" type="video/mp4" />
-          </video>
-        </div>
-
-        {/* Colorizer matrix converting video to signature #346bf1 blue */}
-        <div className="absolute inset-0 z-10 bg-[#346bf1] mix-blend-color opacity-60 pointer-events-none" />
-
-        {/* Edge Vignette */}
-        <div className="absolute inset-0 z-20 bg-gradient-to-b from-[#000000] via-transparent via-50% to-[#000000] pointer-events-none" />
-
-        <div className="relative z-20 max-w-5xl mx-auto text-center flex flex-col items-center">
-          {/* Intelligence Badge */}
-          <div className="hero-badge inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-white/10 bg-[#202124]/40 backdrop-blur-[40px] text-xs font-medium mb-8 shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#346bf1] opacity-80" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#346bf1]" />
-            </span>
-            <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#F3F4F6]">Intelligence, Redefined</span>
-            {introPhase === "done" && (
-              <button
-                onClick={replayIntro}
-                className="ml-2 rounded-full border border-white/10 px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#F3F4F6] hover:text-white hover:border-[#346bf1]/50 transition-colors"
-                aria-label="Replay Lexa intro film"
-              >
-                Replay Film
-              </button>
-            )}
-          </div>
-
-          {/* Director-Level Title */}
-          <div className="hero-headline-wrap w-full flex justify-center mb-8 px-4" style={{ perspective: "1200px" }}>
-            <HeroTypingText />
-          </div>
-
-          {/* Subtitle */}
-          <p className="hero-subtitle font-sans text-lg md:text-xl text-[#F3F4F6] max-w-2xl mx-auto mb-10 leading-relaxed font-light">
-            Lexa is your personal AI workspace. Powered by the world’s most advanced models,
-            designed with meticulous attention to detail. Seamlessly switch between writing,
-            coding, and creating.
-          </p>
-
-          {/* CTAs */}
-          <div className="hero-actions flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-            <MagneticButton strength={30}>
-              <InteractiveHoverButton
-                size="lg"
-                onClick={handleGetStarted}
-                className="w-full sm:w-auto h-14 px-8 text-sm font-mono uppercase tracking-wider rounded-full bg-[#346bf1] text-white shadow-[0_1px_2px_rgba(0,0,0,0.5)] transition-all"
-              >
-                Start Building Free
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </InteractiveHoverButton>
-            </MagneticButton>
-            <InteractiveHoverButton
-              variant="outline"
-              size="lg"
-              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-              className="w-full sm:w-auto h-14 px-8 text-sm font-mono uppercase tracking-wider rounded-full border-white/15 bg-[#202124]/40 text-[#F3F4F6] hover:text-white hover:bg-[#28292A] backdrop-blur-[40px] shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
-            >
-              Explore Features
-            </InteractiveHoverButton>
-          </div>
-        </div>
-
-        {/* ──────── Monolithic Obsidian Chat Preview ──────── */}
-        <div className="hero-monolith relative mt-16 md:mt-24 w-full max-w-5xl mx-auto" style={{ perspective: "1400px" }}>
-          {/* Blue aura reflection */}
-          <div className="absolute -inset-1.5 rounded-[40px] bg-gradient-to-b from-[#346bf1]/20 via-[#346bf1]/5 to-transparent blur-3xl opacity-70 pointer-events-none" />
-
-          <div className="relative bg-[#202124]/90 border border-white/[0.08] rounded-[36px] shadow-2xl overflow-hidden backdrop-blur-[40px] ring-1 ring-white/5">
-            {/* Minimalist Top Telemetry Bar */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-[#191A1F]/80">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
-                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
-                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
-              </div>
-              <div className="flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#28292A] border border-white/[0.06] font-mono text-[11px] text-[#F3F4F6]">
-                <Lock className="w-3 h-3 text-[#346bf1]" />
-                <span>lexa-ai.com</span>
-                <span className="text-[#F3F4F6]/65">/</span>
-                <span className="text-[#6e96ff]">neural-v2</span>
-              </div>
-              <div className="flex items-center gap-2 font-mono text-[10px] text-[#F3F4F6]/65">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#346bf1] animate-pulse" />
-                <span className="hidden sm:inline">LIVE</span>
-              </div>
-            </div>
-
-            {/* Chat Body */}
-            <div className="p-6 md:p-10 space-y-6 bg-gradient-to-b from-[#191A1F]/80 to-[#191A1F] min-h-[360px]">
-              {/* User message */}
-              <div className="flex justify-end">
-                <div className="max-w-[85%] sm:max-w-[75%] px-6 py-4 rounded-[24px] rounded-tr-[8px] bg-[#28292A] border border-white/[0.08] text-white text-[15px] font-medium shadow-lg backdrop-blur-[40px]">
-                  <TypingText text="Generate an enterprise-grade async workflow orchestrator with neural routing." delay={1.2} />
-                </div>
-              </div>
-
-              {/* AI Response */}
-              <div className="flex gap-4 sm:gap-5">
-                <div className="w-10 h-10 rounded-[16px] bg-[#346bf1] flex items-center justify-center shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-                  <Bot className="w-5 h-5 text-white" />
-                </div>
-                <div className="space-y-4 flex-1 pt-1">
-                  <div className="text-[15px] leading-relaxed text-[#F3F4F6]">
-                    <p className="font-medium text-white mb-3">
-                      Architecting distributed async neural orchestrator. Initialized with multi-model consensus and fallback resilience.
-                    </p>
-
-                    {/* Monolithic Code Terminal */}
-                    <div className="rounded-[24px] bg-[#202124] border border-white/[0.08] overflow-hidden mt-3 shadow-2xl">
-                      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06] bg-[#191A1F] font-mono text-xs text-[#F3F4F6]/65">
-                        <div className="flex items-center gap-2">
-                          <Terminal className="w-3.5 h-3.5 text-[#346bf1]" />
-                          <span>orchestrator.ts</span>
-                        </div>
-                        <span className="text-[10px] text-[#F3F4F6]/65">TypeScript 5.4</span>
-                      </div>
-                      <div className="p-4 sm:p-5 font-mono text-xs text-[#F3F4F6] space-y-1.5 overflow-x-auto">
-                        <div><span className="text-[#6e96ff]">import</span> {'{'} NeuralRouter, ConsensusEngine {'}'} <span className="text-[#6e96ff]">from</span> <span className="text-[#F3F4F6]/65">"@lexa/core"</span>;</div>
-                        <br />
-                        <div><span className="text-[#6e96ff]">export const</span> <span className="text-white font-semibold">pipeline</span> = <span className="text-[#346bf1]">new</span> NeuralRouter({'{'}</div>
-                        <div className="pl-4 text-[#F3F4F6]/65">models: [<span className="text-emerald-400">"gpt-4o"</span>, <span className="text-emerald-400">"claude-3.5-sonnet"</span>, <span className="text-emerald-400">"gemini-1.5-pro"</span>],</div>
-                        <div className="pl-4 text-[#F3F4F6]/65">strategy: <span className="text-emerald-400">"latency-optimized-consensus"</span>,</div>
-                        <div className="pl-4 text-[#F3F4F6]/65">stream: <span className="text-amber-400">true</span></div>
-                        <div>{'}'});</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-[#F3F4F6]/65 pt-2 border-t border-white/[0.04]">
-                    <span className="flex items-center gap-1.5 text-[#F3F4F6]">
-                      <Zap className="w-3.5 h-3.5 text-[#346bf1]" /> 0.8s Latency
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Cpu className="w-3.5 h-3.5 text-[#346bf1]" /> 3 Models Ensembled
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Verified Output
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Wrap rest of the content in Stitch's #191A1F Frame Fill */}
-      <div className="bg-[#191A1F] relative z-10 w-full pt-12 pb-24">
-        {/* ──────── 4. Editorial Stats Film Strip ──────── */}
-        <section id="stats" className="stats-section py-20 px-4 border-y border-white/[0.06] bg-[#202124] relative overflow-hidden max-w-[1536px] mx-auto">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#346bf1]/[0.03] to-transparent pointer-events-none" />
-
-          <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
-            {STATS.map((stat, i) => (
-              <div key={i} className="stat-card relative p-6 rounded-[24px] border border-white/[0.04] bg-[#28292A] hover:border-[#346bf1]/30 transition-all group">
-                <div className="font-display text-4xl sm:text-5xl font-bold tracking-tight mb-2 text-white group-hover:text-[#6e96ff] transition-colors">
-                  {stat.value}
-                </div>
-                <div className="font-mono text-xs uppercase tracking-[0.18em] text-[#F3F4F6]/65 mb-1">
-                  {stat.label}
-                </div>
-                <div className="text-xs text-[#F3F4F6]/65 font-light">
-                  {stat.sub}
-                </div>
-                <div className="absolute bottom-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-[#346bf1]/40 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ──────── 5. Scrollytelling Features Section ──────── */}
-        <section id="features" className="py-32 px-4 relative overflow-hidden max-w-[1536px] mx-auto">
-          <div className="max-w-7xl mx-auto">
-            {/* Section Header */}
-            <div className="max-w-3xl mb-24">
-              <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-[#346bf1] mb-4">
-                <Layers className="w-3.5 h-3.5" />
-                Directorial Feature Suite
-              </div>
-              <h2 className="font-display text-4xl sm:text-6xl font-bold tracking-[-0.04em] text-white mb-6">
-                Designed for depth.<br />Built for speed.
-              </h2>
-              <p className="text-[#F3F4F6]/65 text-lg font-light leading-relaxed">
-                Every tool is engineered as an autonomous extension of your thought process—distraction-free, hyper-responsive, and endlessly extensible.
-              </p>
-            </div>
-
-            {/* Scrollytelling Layout: Sticky Interactive Left Stage + Scrolling Right Narrative */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-              {/* Sticky Left Stage */}
-              <div className="lg:col-span-6 lg:sticky lg:top-28">
-                <div className="relative rounded-[32px] border border-white/[0.08] bg-[#202124] p-8 md:p-10 shadow-2xl overflow-hidden min-h-[460px] flex flex-col justify-between">
-                  {/* Background ambient glow */}
-                  <div className="absolute -top-24 -left-24 w-80 h-80 bg-[#346bf1]/15 rounded-full blur-3xl pointer-events-none" />
-
-                  {/* Top Status */}
-                  <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
-                    <div className="flex items-center gap-3">
-                      {(() => {
-                        const Icon = FEATURES[activeFeatureIndex].icon;
-                        return (
-                          <div className="w-10 h-10 rounded-[16px] bg-[#346bf1]/10 border border-[#346bf1]/20 flex items-center justify-center text-[#6e96ff]">
-                            <Icon className="w-5 h-5" />
-                          </div>
-                        );
-                      })()}
-                      <div>
-                        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#346bf1]">
-                          {FEATURES[activeFeatureIndex].tag}
-                        </div>
-                        <div className="font-display font-semibold text-white text-base">
-                          {FEATURES[activeFeatureIndex].title}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#28292A] text-[#F3F4F6] border border-white/[0.06]">
-                      0{activeFeatureIndex + 1} / 06
-                    </span>
-                  </div>
-
-                  {/* Dynamic Feature Simulation Canvas */}
-                  <div className="my-8 py-6 flex-1 flex flex-col justify-center">
-                    {FEATURES[activeFeatureIndex].preview.type === "chat" && (
-                      <div className="space-y-3 bg-[#191A1F]/40 p-5 rounded-[24px] border border-white/[0.04]">
-                        <div className="text-xs font-mono text-[#F3F4F6]/65 uppercase tracking-widest">Active Context Stream</div>
-                        <div className="text-sm font-medium text-white">{FEATURES[activeFeatureIndex].preview.prompt}</div>
-                        <div className="inline-flex items-center gap-2 text-xs text-[#6e96ff] font-mono bg-[#346bf1]/10 px-3 py-1 rounded-full border border-[#346bf1]/20">
-                          <Sparkles className="w-3 h-3" />
-                          {FEATURES[activeFeatureIndex].preview.badge}
-                        </div>
-                      </div>
-                    )}
-
-                    {FEATURES[activeFeatureIndex].preview.type === "search" && (
-                      <div className="space-y-4 bg-[#191A1F]/40 p-5 rounded-[24px] border border-white/[0.04]">
-                        <div className="flex items-center justify-between text-xs font-mono text-[#F3F4F6]">
-                          <span className="text-[#F3F4F6]/65">QUERY:</span>
-                          <span className="text-white">{FEATURES[activeFeatureIndex].preview.query}</span>
-                        </div>
-                        <div className="space-y-2">
-                          {FEATURES[activeFeatureIndex].preview.sources?.map((s, idx) => (
-                            <div key={idx} className="flex items-center justify-between text-xs font-mono p-2 rounded-[16px] bg-[#28292A] border border-white/[0.04]">
-                              <span className="text-[#F3F4F6]">{s}</span>
-                              <span className="text-emerald-400 flex items-center gap-1">
-                                <Check className="w-3 h-3" /> Indexed
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {FEATURES[activeFeatureIndex].preview.type === "audio" && (
-                      <div className="space-y-6 bg-[#191A1F]/40 p-6 rounded-[24px] border border-white/[0.04]">
-                        <div className="flex items-end justify-center gap-1.5 h-20">
-                          {FEATURES[activeFeatureIndex].preview.waveform?.map((height, idx) => (
-                            <div
-                              key={idx}
-                              style={{ height: `${height}%` }}
-                              className="w-2 rounded-full bg-gradient-to-t from-[#346bf1] to-[#6e96ff] transition-all duration-300 animate-pulse"
-                            />
-                          ))}
-                        </div>
-                        <div className="text-center font-mono text-xs text-[#6e96ff]">
-                          {FEATURES[activeFeatureIndex].preview.latency}
-                        </div>
-                      </div>
-                    )}
-
-                    {FEATURES[activeFeatureIndex].preview.type === "memory" && (
-                      <div className="grid grid-cols-2 gap-3 bg-[#191A1F]/40 p-5 rounded-[24px] border border-white/[0.04]">
-                        {FEATURES[activeFeatureIndex].preview.nodes?.map((node, idx) => (
-                          <div key={idx} className="p-3 rounded-[16px] bg-[#346bf1]/[0.04] border border-[#346bf1]/20 font-mono text-xs text-[#F3F4F6] flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#346bf1]" />
-                            {node}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {FEATURES[activeFeatureIndex].preview.type === "render" && (
-                      <div className="space-y-4 bg-[#191A1F]/40 p-5 rounded-[24px] border border-white/[0.04] text-center">
-                        <div className="w-full h-28 rounded-[16px] border border-dashed border-[#346bf1]/40 flex flex-col items-center justify-center bg-[#346bf1]/[0.02]">
-                          <ImageIcon className="w-8 h-8 text-[#346bf1] mb-2" />
-                          <div className="font-mono text-xs text-[#F3F4F6]">{FEATURES[activeFeatureIndex].preview.resolution}</div>
-                        </div>
-                        <div className="font-mono text-xs text-[#F3F4F6]/65">
-                          Ratio: {FEATURES[activeFeatureIndex].preview.aspectRatio}
-                        </div>
-                      </div>
-                    )}
-
-                    {FEATURES[activeFeatureIndex].preview.type === "code" && (
-                      <div className="bg-[#191A1F] p-4 rounded-[24px] border border-white/[0.08] font-mono text-xs text-[#F3F4F6]">
-                        <div className="text-[#F3F4F6]/65 mb-2">// Executing hot code generation</div>
-                        <div className="text-[#6e96ff]">{FEATURES[activeFeatureIndex].preview.snippet}</div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Bottom Telemetry Footer */}
-                  <div className="flex items-center justify-between font-mono text-xs text-[#F3F4F6]/65 border-t border-white/[0.06] pt-4">
-                    <span className="flex items-center gap-2">
-                      <Activity className="w-3.5 h-3.5 text-[#346bf1]" />
-                      {FEATURES[activeFeatureIndex].preview.status}
-                    </span>
-                    <span className="text-[#346bf1]">READY</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Scrolling Right Narrative List */}
-              <div className="lg:col-span-6 space-y-12 lg:space-y-24 py-8">
-                {FEATURES.map((feature, idx) => (
-                  <div
-                    key={feature.id}
-                    className={cn(
-                      "feature-story-item p-8 sm:p-10 rounded-[32px] border transition-all duration-500",
-                      activeFeatureIndex === idx
-                        ? "border-[#346bf1]/50 bg-[#28292A] shadow-2xl shadow-[#346bf1]/10"
-                        : "border-white/[0.04] bg-transparent opacity-50 hover:opacity-80"
-                    )}
-                    onClick={() => setActiveFeatureIndex(idx)}
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="font-mono text-xs text-[#346bf1] font-semibold">0{idx + 1}.</span>
-                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#F3F4F6]/65">{feature.tag}</span>
-                    </div>
-                    <h3 className="font-display text-2xl sm:text-3xl font-bold text-white mb-4">
-                      {feature.title}
-                    </h3>
-                    <p className="text-[#F3F4F6]/65 leading-relaxed font-light text-base sm:text-lg">
-                      {feature.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ──────── 6. Signature Moment: Intelligence Stage ──────── */}
-        <section id="intelligence" className="models-section py-32 px-4 border-y border-white/[0.06] bg-[#202124] relative overflow-hidden max-w-[1536px] mx-auto">
-          {/* Dynamic Blue Energy Field corresponding to model switching */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-[#346bf1]/10 rounded-full blur-[140px] pointer-events-none" />
-
-          <div className="max-w-6xl mx-auto relative z-10 text-center">
-            <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-[#346bf1] mb-4">
-              <Cpu className="w-3.5 h-3.5" />
-              Model Intelligence Mesh
-            </div>
-            <h2 className="font-display text-4xl sm:text-6xl font-bold tracking-[-0.04em] text-white mb-6">
-              The world's best AI, unified.
-            </h2>
-            <p className="text-[#F3F4F6]/65 text-lg font-light max-w-2xl mx-auto mb-16">
-              Don't limit yourself to one provider. Instantly switch between the most capable models on the planet with shared memory and context.
-            </p>
-
-            {/* Interactive Model Selector Tabs */}
-            <div className="inline-flex flex-wrap justify-center gap-2 p-1.5 rounded-full bg-[#28292A] border border-white/[0.08] backdrop-blur-[40px] mb-12 shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-              {MODELS.map((model, idx) => (
-                <button
-                  key={model.id}
-                  onClick={() => setActiveModelIndex(idx)}
-                  className={cn(
-                    "px-5 py-2.5 rounded-full font-mono text-xs uppercase tracking-wider transition-all duration-300",
-                    activeModelIndex === idx
-                      ? "bg-[#346bf1] text-white shadow-lg shadow-[#346bf1]/30 font-medium"
-                      : "text-[#F3F4F6]/65 hover:text-white hover:bg-[#191A1F]"
-                  )}
-                >
-                  {model.name}
-                </button>
-              ))}
-            </div>
-
-            {/* Active Model Stage Display */}
-            <div className="model-stage-card relative max-w-4xl mx-auto rounded-[32px] border border-white/[0.08] bg-[#191A1F] p-8 sm:p-12 shadow-2xl backdrop-blur-[40px] text-left overflow-hidden">
-              {/* Ambient edge glow */}
-              <div className="absolute top-0 right-0 w-96 h-96 bg-[#346bf1]/15 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-                <div className="md:col-span-7 space-y-6">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs uppercase tracking-[0.2em] px-3 py-1 rounded-full bg-[#346bf1]/10 text-[#6e96ff] border border-[#346bf1]/20">
-                      {MODELS[activeModelIndex].provider}
-                    </span>
-                    <span className="font-mono text-xs text-[#F3F4F6]/65">
-                      {MODELS[activeModelIndex].tier}
-                    </span>
-                  </div>
-
-                  <h3 className="font-display text-3xl sm:text-4xl font-bold text-white">
-                    {MODELS[activeModelIndex].name}
-                  </h3>
-
-                  <p className="text-[#F3F4F6]/65 text-base leading-relaxed font-light">
-                    {MODELS[activeModelIndex].strengths}
-                  </p>
-
-                  <div className="pt-4 flex flex-wrap items-center gap-6 font-mono text-xs">
-                    <div>
-                      <div className="text-[#F3F4F6]/65 uppercase tracking-widest text-[10px] mb-1">Context Window</div>
-                      <div className="text-white font-medium text-sm">{MODELS[activeModelIndex].spec}</div>
-                    </div>
-                    <div className="w-[1px] h-8 bg-white/10" />
-                    <div>
-                      <div className="text-[#F3F4F6]/65 uppercase tracking-widest text-[10px] mb-1">Streaming Latency</div>
-                      <div className="text-[#6e96ff] font-medium text-sm">{MODELS[activeModelIndex].latency}</div>
-                    </div>
-                    <div className="w-[1px] h-8 bg-white/10" />
-                    <div>
-                      <div className="text-[#F3F4F6]/65 uppercase tracking-widest text-[10px] mb-1">Throughput</div>
-                      <div className="text-emerald-400 font-medium text-sm">{MODELS[activeModelIndex].speed}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Side Visual Benchmark Matrix */}
-                <div className="md:col-span-5 bg-[#202124] rounded-[24px] border border-white/[0.06] p-6 space-y-4 font-mono text-xs">
-                  <div className="text-[#F3F4F6]/65 uppercase tracking-widest text-[10px] pb-2 border-b border-white/[0.06] flex items-center justify-between">
-                    <span>Capability Metric</span>
-                    <span className="text-[#346bf1]">Rank</span>
-                  </div>
-                  {[
-                    { label: "Deep Reasoning", score: "98.4%" },
-                    { label: "Code Synthesis", score: "96.2%" },
-                    { label: "Context Retention", score: "99.1%" },
-                    { label: "Instruction Following", score: "97.8%" }
-                  ].map((metric, idx) => (
-                    <div key={idx} className="space-y-1.5">
-                      <div className="flex justify-between text-[#F3F4F6] text-[11px]">
-                        <span>{metric.label}</span>
-                        <span className="text-white font-medium">{metric.score}</span>
-                      </div>
-                      <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-[#346bf1] to-[#6e96ff] transition-all duration-700"
-                          style={{ width: metric.score }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ──────── 7. Monolithic Pricing Architecture ──────── */}
-        <section id="pricing" className="pricing-section py-32 px-4 relative overflow-hidden max-w-[1536px] mx-auto">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-24 max-w-2xl mx-auto">
-              <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-[#346bf1] mb-4">
-                Transparent Access
-              </div>
-              <h2 className="font-display text-4xl sm:text-6xl font-bold tracking-[-0.04em] text-white mb-6">
-                Simple, transparent pricing.
-              </h2>
-              <p className="text-[#F3F4F6]/65 text-lg font-light leading-relaxed">
-                Start completely free. Upgrade when you need the power of unconstrained flagship models.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {PRICING.map((plan, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "pricing-column relative p-8 sm:p-10 rounded-[36px] border flex flex-col justify-between transition-all duration-500",
-                    plan.highlighted
-                      ? "border-[#346bf1] bg-gradient-to-b from-[#346bf1]/[0.08] to-transparent shadow-[0_1px_2px_rgba(0,0,0,0.5)] ring-1 ring-[#346bf1]/40"
-                      : "border-white/[0.08] bg-[#202124] hover:border-white/20"
-                  )}
-                >
-                  {plan.highlighted && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-1.5 rounded-full bg-[#346bf1] text-white shadow-lg shadow-[#346bf1]/40">
-                      Signature Choice
-                    </div>
-                  )}
-
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-display text-2xl font-bold text-white">{plan.name}</h3>
-                      {plan.highlighted && (
-                        <span className="w-2 h-2 rounded-full bg-[#346bf1] animate-ping" />
-                      )}
-                    </div>
-                    <p className="text-[#F3F4F6]/65 text-sm font-light mb-8">{plan.description}</p>
-
-                    <div className="flex items-baseline gap-2 mb-10 pb-8 border-b border-white/[0.06]">
-                      <span className="font-display text-5xl sm:text-6xl font-bold tracking-tight text-white">{plan.price}</span>
-                      <span className="font-mono text-xs uppercase tracking-widest text-[#F3F4F6]/65">{plan.period}</span>
-                    </div>
-
-                    <ul className="space-y-4 mb-10">
-                      {plan.features.map((feature, j) => (
-                        <li key={j} className="flex items-start gap-3.5 text-sm text-[#F3F4F6] font-light">
-                          <div className="w-4 h-4 rounded-full bg-[#346bf1]/10 border border-[#346bf1]/30 flex items-center justify-center shrink-0 mt-0.5 text-[#6e96ff]">
-                            <Check className="w-2.5 h-2.5" />
-                          </div>
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <InteractiveHoverButton
-                    onClick={handleGetStarted}
-                    variant={plan.highlighted ? "default" : "outline"}
-                    className={cn(
-                      "w-full rounded-full h-12 font-mono text-xs uppercase tracking-wider font-medium transition-all",
-                      plan.highlighted
-                        ? "bg-[#346bf1] hover:bg-[#2c5ad6] text-white shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
-                        : "border-white/15 text-[#F3F4F6] hover:text-white hover:bg-white/5"
-                    )}
-                  >
-                    {plan.cta}
-                  </InteractiveHoverButton>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ──────── 8. Editorial FAQ Section ──────── */}
-        <section id="faq" className="py-28 px-4 border-y border-white/[0.06] bg-[#202124] relative overflow-hidden max-w-[1536px] mx-auto">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-20">
-              <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-[#346bf1] mb-4">
-                Knowledge Base
-              </div>
-              <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-[-0.04em] text-white mb-4">
-                Frequently Asked Questions
-              </h2>
-              <p className="text-[#F3F4F6]/65 text-base font-light">
-                Everything you need to know about Lexa AI.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {FAQS.map((faq, i) => (
-                <article
-                  key={i}
-                  className="rounded-[24px] border border-white/[0.06] bg-[#28292A] overflow-hidden transition-all duration-300 hover:border-white/15"
-                >
-                  <button
-                    onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
-                    className="w-full p-6 text-left flex items-center justify-between gap-4 font-display font-semibold text-lg text-white"
-                  >
-                    <span>{faq.question}</span>
-                    <ChevronRight
-                      className={cn(
-                        "w-5 h-5 text-[#346bf1] transition-transform duration-300 shrink-0",
-                        expandedFaq === i && "rotate-90 text-white"
-                      )}
-                    />
-                  </button>
-                  {expandedFaq === i && (
-                    <div className="px-6 pb-6 text-[#F3F4F6]/65 text-[15.3px] font-light leading-relaxed border-t border-white/[0.04] pt-4">
-                      {faq.answer}
-                    </div>
-                  )}
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ──────── 9. Final Cinematic Act: Portal CTA ──────── */}
-        <section className="py-28 px-4 pb-36 relative overflow-hidden max-w-[1536px] mx-auto">
-          <div className="max-w-5xl mx-auto">
-            <div className="relative rounded-[40px] border border-[#346bf1]/30 bg-gradient-to-b from-[#191A1F] to-[#000000] p-12 sm:p-20 text-center overflow-hidden shadow-2xl shadow-[#346bf1]/15">
-              {/* Cinematic Radial Portal Glow */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#346bf1]/20 rounded-full blur-[120px] pointer-events-none" />
-
-              <div className="relative z-10">
-                <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-[#6e96ff] mb-6 px-4 py-1.5 rounded-full bg-[#346bf1]/10 border border-[#346bf1]/20 shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-                  <Sparkles className="w-3.5 h-3.5 text-[#346bf1]" />
-                  Next Generation Workspace
-                </div>
-
-                <h2 className="font-display text-4xl sm:text-6xl font-bold tracking-[-0.04em] text-white mb-6">
-                  Ready to transform your workflow?
-                </h2>
-
-                <p className="text-[#F3F4F6]/65 text-lg sm:text-xl font-light mb-12 max-w-2xl mx-auto leading-relaxed">
-                  Join thousands of forward-thinking professionals building the future with Lexa AI today.
-                </p>
-
-                <MagneticButton strength={40}>
-                  <InteractiveHoverButton
-                    size="lg"
-                    onClick={handleGetStarted}
-                    className="bg-[#346bf1] hover:bg-[#2c5ad6] text-white h-14 px-10 rounded-full font-mono text-sm uppercase tracking-wider font-semibold shadow-2xl shadow-[#346bf1]/40 transition-all hover:scale-105"
-                  >
-                    Get Started Now <ArrowRight className="w-4 h-4 ml-2" />
-                  </InteractiveHoverButton>
-                </MagneticButton>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ──────── 10. Monolithic Footer ──────── */}
-        <footer className="border-t border-white/[0.06] py-16 px-4 bg-[#000000]">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-16">
-              <div className="col-span-2">
-                <div className="flex items-center gap-2 shrink-0 mb-4">
-                  <LogoIcon className="w-6 h-6 rounded-[16px] ring-1 ring-white/10 bg-[#202124] p-1" />
-                  <span className="font-display font-bold tracking-tight text-lg text-white">Lexa</span>
-                </div>
-                <p className="text-[#F3F4F6]/65 font-light max-w-sm leading-relaxed text-sm">
-                  The most advanced, beautifully designed AI assistant built for modern professionals.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="font-mono text-xs uppercase tracking-[0.2em] text-white mb-4">Product</h4>
-                <ul className="space-y-3">
-                  <li>
-                    <a href="#features" className="text-[#F3F4F6]/65 hover:text-white transition-colors text-sm font-light">
-                      Features
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#intelligence" className="text-[#F3F4F6]/65 hover:text-white transition-colors text-sm font-light">
-                      Models
-                    </a>
-                  </li>
-                  <li>
-                    <Link to="/pricing" className="text-[#F3F4F6]/65 hover:text-white transition-colors text-sm font-light">
-                      Pricing
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="font-mono text-xs uppercase tracking-[0.2em] text-white mb-4">Company</h4>
-                <ul className="space-y-3">
-                  <li>
-                    <Link to="/about" className="text-[#F3F4F6]/65 hover:text-white transition-colors text-sm font-light">
-                      About
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/contact" className="text-[#F3F4F6]/65 hover:text-white transition-colors text-sm font-light">
-                      Contact
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="font-mono text-xs uppercase tracking-[0.2em] text-white mb-4">Legal</h4>
-                <ul className="space-y-3">
-                  <li>
-                    <Link to="/privacy" className="text-[#F3F4F6]/65 hover:text-white transition-colors text-sm font-light">
-                      Privacy Policy
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/terms" className="text-[#F3F4F6]/65 hover:text-white transition-colors text-sm font-light">
-                      Terms & Conditions
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="border-t border-white/[0.06] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-[#F3F4F6]/65 font-light">
-              <p>© {new Date().getFullYear()} Lexa AI. All rights reserved.</p>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#346bf1]/10 text-[#6e96ff] border border-[#346bf1]/20 font-mono text-xs shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#346bf1] opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#346bf1]" />
-                </span>
-                All systems operational
-              </div>
-            </div>
-          </div>
-        </footer>
-      </div>
-    </main>
+    <h1 aria-label="One intelligence. Every mode.">
+      <span className="hero-line" aria-hidden="true">
+        <span>
+          {line1}
+          {activeLine === 1 && <span className="hero-typing-caret" />}
+        </span>
+      </span>
+      <span className="hero-line hero-line-indent" aria-hidden="true">
+        <span>
+          {line2}
+          {activeLine === 2 && <span className="hero-typing-caret" />}
+        </span>
+      </span>
+    </h1>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   CINEMATIC DESIGN SYSTEM & CANVAS ENGINE
-   Self-contained visual enhancement layer for Lexa AI product film.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-const CINEMATIC_BLUE = "#346bf1";
-const CINEMATIC_TAU = Math.PI * 2;
-
-type Particle = {
-  x: number;
-  y: number;
-  radius: number;
-  alpha: number;
-  drift: number;
-  speed: number;
-  phase: number;
-};
-
-type WaveRibbon = {
-  amplitude: number;
-  frequency: number;
-  speed: number;
-  offset: number;
-  thickness: number;
-  alpha: number;
-};
-
-function makeParticles(count: number): Particle[] {
-  return Array.from({ length: count }, (_, index) => ({
-    x: Math.random(),
-    y: Math.random(),
-    radius: 0.5 + Math.random() * 1.6,
-    alpha: 0.05 + Math.random() * 0.25,
-    drift: 0.003 + Math.random() * 0.01,
-    speed: 0.1 + Math.random() * 0.25,
-    phase: index * 0.31 + Math.random() * CINEMATIC_TAU,
-  }));
-}
-
-function makeRibbons(count: number): WaveRibbon[] {
-  return Array.from({ length: count }, (_, index) => ({
-    amplitude: 0.12 + index * 0.04, // Increased amplitude
-    frequency: 0.0015 + index * 0.0003,
-    speed: 0.0003 + index * 0.00008, // Increased speed
-    offset: index * 0.3,
-    thickness: 16 + index * 6,
-    alpha: 0.018 + index * 0.008,
-  }));
-}
-
-function drawRibbon(
-  context: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  time: number,
-  ribbon: WaveRibbon,
-) {
-  const center = height * (0.5 + Math.sin(time * ribbon.speed + ribbon.offset) * 0.05);
-  const amplitude = height * ribbon.amplitude;
-  const gradient = context.createLinearGradient(0, 0, width, 0);
-  gradient.addColorStop(0, "rgba(52,107,241,0)");
-  gradient.addColorStop(0.25, `rgba(52,107,241,${ribbon.alpha})`);
-  gradient.addColorStop(0.5, `rgba(110,150,255,${ribbon.alpha * 1.5})`);
-  gradient.addColorStop(0.75, `rgba(52,107,241,${ribbon.alpha})`);
-  gradient.addColorStop(1, "rgba(52,107,241,0)");
-
-  context.beginPath();
-  for (let x = -40; x <= width + 40; x += 12) {
-    const wave = Math.sin(x * ribbon.frequency + time * ribbon.speed * 4 + ribbon.offset) * amplitude;
-    const secondary = Math.sin(x * ribbon.frequency * 0.5 - time * ribbon.speed * 2) * amplitude * 0.35;
-    const y = center + wave + secondary;
-    if (x === -40) context.moveTo(x, y);
-    else context.lineTo(x, y);
-  }
-
-  context.strokeStyle = gradient;
-  context.lineWidth = ribbon.thickness;
-  context.lineCap = "round";
-  context.shadowColor = CINEMATIC_BLUE;
-  context.shadowBlur = 24 + ribbon.thickness;
-  context.stroke();
-  context.shadowBlur = 0;
-}
-
-function drawParticle(
-  context: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  time: number,
-  particle: Particle,
-) {
-  const x = particle.x * width + Math.sin(time * particle.speed + particle.phase) * 16;
-  const y = particle.y * height + Math.cos(time * particle.drift + particle.phase) * 12;
-  const pulse = 0.65 + Math.sin(time * particle.speed + particle.phase) * 0.35;
-  const radius = particle.radius * (0.85 + pulse * 0.3);
-
-  context.beginPath();
-  context.arc(x, y, radius, 0, CINEMATIC_TAU);
-  context.fillStyle = `rgba(110,150,255,${particle.alpha * pulse})`;
-  context.fill();
-}
-
-function useCinematicReducedMotion() {
-  const [reduced, setReduced] = useState(false);
+function PromptTypingText() {
+  const isReduced =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const [line1, setLine1] = useState(isReduced ? "Build the next idea" : "");
+  const [line2, setLine2] = useState(isReduced ? "without leaving the flow." : "");
+  const [activeLine, setActiveLine] = useState<1 | 2 | "done">(
+    isReduced ? "done" : 1,
+  );
 
   useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReduced(media.matches);
-    update();
-    media.addEventListener?.("change", update);
-    return () => media.removeEventListener?.("change", update);
-  }, []);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-  return reduced;
-}
+    const text1 = "Build the next idea";
+    const text2 = "without leaving the flow.";
+    let i1 = 0;
+    let i2 = 0;
+    let timer1: ReturnType<typeof setInterval>;
+    let timer2: ReturnType<typeof setInterval>;
+    let timeout2: ReturnType<typeof setTimeout>;
 
-function useCinematicCanvas(canvasRef: RefObject<HTMLCanvasElement | null>, disabled: boolean) {
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || disabled) return;
-
-    const context = canvas.getContext("2d", { alpha: true });
-    if (!context) return;
-
-    const particles = makeParticles(28);
-    const ribbons = makeRibbons(6);
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-    let width = 0;
-    let height = 0;
-    let frame = 0;
-    let active = true;
-    let lastTime = 0;
-
-    const resize = () => {
-      const bounds = canvas.getBoundingClientRect();
-      width = Math.max(1, bounds.width);
-      height = Math.max(1, bounds.height);
-      canvas.width = Math.floor(width * pixelRatio);
-      canvas.height = Math.floor(height * pixelRatio);
-      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-    };
-
-    const observer = new ResizeObserver(resize);
-    observer.observe(canvas);
-    resize();
-
-    const render = (time: number) => {
-      if (!active) return;
-      const elapsed = time * 0.12;
-      const delta = Math.min(time - lastTime, 50);
-      lastTime = time;
-      if (delta >= 0) {
-        context.clearRect(0, 0, width, height);
-        context.globalCompositeOperation = "screen";
-        ribbons.forEach((ribbon) => drawRibbon(context, width, height, elapsed, ribbon));
-        particles.forEach((particle) => drawParticle(context, width, height, elapsed, particle));
-        context.globalCompositeOperation = "source-over";
-      }
-      frame = requestAnimationFrame(render);
-    };
-
-    frame = requestAnimationFrame(render);
+    const startDelay = setTimeout(() => {
+      timer1 = setInterval(() => {
+        i1 += 1;
+        setLine1(text1.slice(0, i1));
+        if (i1 >= text1.length) {
+          clearInterval(timer1);
+          setActiveLine(2);
+          timeout2 = setTimeout(() => {
+            timer2 = setInterval(() => {
+              i2 += 1;
+              setLine2(text2.slice(0, i2));
+              if (i2 >= text2.length) {
+                clearInterval(timer2);
+                setActiveLine("done");
+              }
+            }, 50);
+          }, 200);
+        }
+      }, 45);
+    }, 2800);
 
     return () => {
-      active = false;
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-      context.clearRect(0, 0, width, height);
+      clearTimeout(startDelay);
+      clearTimeout(timeout2);
+      clearInterval(timer1);
+      clearInterval(timer2);
     };
-  }, [canvasRef, disabled]);
-}
-
-function useCinematicPointerLight(lightRef: RefObject<HTMLDivElement | null>, disabled: boolean) {
-  useEffect(() => {
-    const light = lightRef.current;
-    if (!light || disabled) return;
-
-    const xTo = gsap.quickTo(light, "x", { duration: 0.7, ease: "power3.out" });
-    const yTo = gsap.quickTo(light, "y", { duration: 0.7, ease: "power3.out" });
-
-    const handlePointerMove = (event: MouseEvent) => {
-      xTo(event.clientX - 160);
-      yTo(event.clientY - 160);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handlePointerMove);
-  }, [disabled, lightRef]);
-}
-
-function CinematicBackdrop() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pointerLightRef = useRef<HTMLDivElement>(null);
-  const reducedMotion = useCinematicReducedMotion();
-
-  useCinematicCanvas(canvasRef, reducedMotion);
-  useCinematicPointerLight(pointerLightRef, reducedMotion);
+  }, []);
 
   return (
-    <div className="dot-grid-bg pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-      <div className="flame-wave-container pointer-events-none">
-        <div className="flame-wave-layer-1" />
-        <div className="flame-wave-layer-2" />
+    <p aria-label="Build the next idea without leaving the flow.">
+      <span aria-hidden="true">
+        {line1}
+        {activeLine === 1 && <span className="typing-caret" />}
+        <br />
+        {line2}
+        {activeLine === 2 && <span className="typing-caret" />}
+      </span>
+    </p>
+  );
+}
+
+function FeaturePreview({ feature }: { feature: Feature }) {
+  const preview = feature.preview;
+
+  return (
+    <div className="feature-preview" key={feature.id}>
+      <div className="preview-head">
+        <span>{feature.tag}</span>
+        <span>
+          0{FEATURES.findIndex((item) => item.id === feature.id) + 1} / 06
+        </span>
       </div>
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full opacity-60 mix-blend-screen" />
-      <div
-        ref={pointerLightRef}
-        className="pointer-events-none absolute h-[320px] w-[320px] rounded-full bg-[#346bf1]/[0.08] blur-[80px] transition-opacity duration-300"
-      />
+
+      <div className="preview-body">
+        {preview.type === "chat" && (
+          <div className="preview-chat">
+            <span className="preview-kicker">Active context stream</span>
+            <p>
+              <TypingLine text={preview.prompt} />
+            </p>
+            <span className="preview-status">
+              <Sparkles size={13} />
+              {preview.badge}
+            </span>
+          </div>
+        )}
+
+        {preview.type === "search" && (
+          <div className="preview-search">
+            <p className="preview-query">{preview.query}</p>
+            {preview.sources.map((source, index) => (
+              <div className="source-row" key={source}>
+                <span>0{index + 1}</span>
+                <strong>{source}</strong>
+                <Check size={14} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {preview.type === "audio" && (
+          <div className="preview-audio">
+            <div className="waveform" aria-label="Animated voice waveform">
+              {preview.waveform.map((height, index) => (
+                <span
+                  key={index}
+                  style={{
+                    height: `${height}%`,
+                    animationDelay: `${index * -0.06}s`,
+                  }}
+                />
+              ))}
+            </div>
+            <p>{preview.latency}</p>
+          </div>
+        )}
+
+        {preview.type === "memory" && (
+          <div className="preview-memory">
+            {preview.nodes.map((node, index) => (
+              <div className="memory-node" key={node}>
+                <span>0{index + 1}</span>
+                {node}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {preview.type === "render" && (
+          <div className="preview-render">
+            <div className="render-frame">
+              <ImageIcon strokeWidth={1.3} />
+              <span>GENERATIVE FRAME</span>
+            </div>
+            <div>
+              <span>{preview.resolution}</span>
+              <span>{preview.aspectRatio}</span>
+            </div>
+          </div>
+        )}
+
+        {preview.type === "code" && (
+          <div className="preview-code">
+            <span>01 / production.ts</span>
+            <code>{preview.snippet}</code>
+          </div>
+        )}
+      </div>
+
+      <div className="preview-foot">
+        <Activity size={14} />
+        <span>{preview.status}</span>
+        <i />
+      </div>
     </div>
   );
 }
 
-function useCinematicEnhancements(_scopeRef: RefObject<HTMLElement | null>) {
-  // Enhancements attached directly to GSAP & canvas systems
-}
-
-const CINEMATIC_DESIGN_SYSTEM_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-
-.dot-grid-bg {
-  position: relative;
-  background-color: #000000;
-}
-
-.dot-grid-bg::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.18) 1px,
-    transparent 1px
+function IntegrationMarquee() {
+  const row = [...INTEGRATIONS, ...INTEGRATIONS];
+  return (
+    <section className="integration-strip" aria-label="Integrations">
+      <div className="integration-label">CONNECTED SYSTEMS</div>
+      <div className="marquee-window">
+        <div className="marquee-track">
+          {row.map((name, index) => (
+            <span key={`${name}-${index}`}>{name}</span>
+          ))}
+        </div>
+      </div>
+    </section>
   );
-  background-size: 24px 24px;
+}
+
+function PricingCard({
+  plan,
+  onGetStarted,
+}: {
+  plan: (typeof PRICING)[number];
+  onGetStarted: () => void;
+}) {
+  return (
+    <article
+      className={`pricing-card ${plan.highlighted ? "is-featured" : ""}`}
+    >
+      <div className="pricing-index">
+        {plan.highlighted ? "RECOMMENDED" : "ACCESS"}
+      </div>
+      <h3>{plan.name}</h3>
+      <p className="pricing-description">{plan.description}</p>
+      <div className="pricing-price">
+        <strong>{plan.price}</strong>
+        <span>{plan.period}</span>
+      </div>
+      <ul>
+        {plan.features.map((feature) => (
+          <li key={feature}>
+            <Check size={14} />
+            {feature}
+          </li>
+        ))}
+      </ul>
+      <button
+        className="editorial-button pricing-button"
+        type="button"
+        onClick={onGetStarted}
+      >
+        <span>{plan.cta}</span>
+        <ArrowRight size={17} />
+      </button>
+    </article>
+  );
+}
+
+function Testimonials() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(
+      () => setActive((index) => (index + 1) % TESTIMONIALS.length),
+      5200,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const item = TESTIMONIALS[active];
+  return (
+    <section className="testimonials-section section-shell">
+      <div className="section-meta">
+        <span>VOICES</span>
+        <span>04 — 04</span>
+      </div>
+      <div className="testimonial-grid">
+        <Quote className="quote-mark" strokeWidth={1} />
+        <div className="testimonial-copy" key={active}>
+          <blockquote>“{item.quote}”</blockquote>
+          <div>
+            <strong>{item.name}</strong>
+            <span>{item.role}</span>
+          </div>
+        </div>
+        <div className="testimonial-controls" aria-label="Testimonial controls">
+          {TESTIMONIALS.map((testimonial, index) => (
+            <button
+              key={testimonial.name}
+              type="button"
+              aria-label={`Show testimonial ${index + 1}`}
+              aria-pressed={active === index}
+              onClick={() => setActive(index)}
+            >
+              0{index + 1}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default function Landing() {
+  useLandingStyles();
+
+  useSEO({
+    title: "Lexa AI — One intelligence. Every mode.",
+    description:
+      "A cinematic AI workspace for research, writing, coding, voice, image, and video.",
+    canonicalUrl: "/",
+  });
+
+  const navigate = useNavigate();
+  const rootRef = useRef<HTMLElement>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
+  const [activeModelIndex, setActiveModelIndex] = useState(0);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
+
+  useSmoothScroll();
+  useFilmCursor();
+
+  useEffect(() => {
+    let mounted = true;
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (mounted) setIsAuthenticated(Boolean(session?.user));
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) setIsAuthenticated(Boolean(session?.user));
+    });
+    return () => {
+      mounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("menu-is-open", menuOpen);
+    return () => document.documentElement.classList.remove("menu-is-open");
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [menuOpen]);
+
+  const handleGetStarted = () => navigate(isAuthenticated ? "/chat" : "/auth");
+  const goTo = (selector: string) => {
+    setMenuOpen(false);
+    scrollToSection(selector);
+  };
+
+  useGSAP(
+    () => {
+      const reduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      if (reduced) {
+        gsap.set(".screen-loader", { display: "none" });
+        return;
+      }
+
+      const intro = gsap.timeline({ defaults: { ease: "power4.out" } });
+      intro
+        .to(".screen-loader-burst-layer", {
+          clipPath: "circle(150% at 50% 50%)",
+          duration: 1.15,
+          delay: 0.18,
+          ease: "power4.inOut",
+        })
+        .to(".screen-loader-mark", { color: "#fff", duration: 0.18 }, 0.46)
+        .to(".screen-loader", {
+          autoAlpha: 0,
+          duration: 0.28,
+          pointerEvents: "none",
+        })
+        .from(".site-header", { yPercent: -110, duration: 0.8 }, "-=0.02")
+        .from(
+          ".hero-line > span",
+          { yPercent: 118, rotate: 2.2, stagger: 0.08, duration: 1.15 },
+          "-=0.55",
+        )
+        .from(
+          ".hero-eyebrow, .hero-summary, .hero-actions, .scroll-cue",
+          { opacity: 0, y: 26, stagger: 0.09, duration: 0.75 },
+          "-=0.82",
+        )
+        .from(
+          ".hero-stage",
+          { opacity: 0, y: 90, scale: 0.97, duration: 1.1 },
+          "-=0.7",
+        );
+
+      gsap.to(".scroll-progress-bar", {
+        scaleX: 1,
+        ease: "none",
+        scrollTrigger: {
+          trigger: document.documentElement,
+          start: "top top",
+          end: "bottom bottom",
+          scrub: 0.25,
+        },
+      });
+
+      gsap.to(".hero-stage", {
+        yPercent: 14,
+        scale: 0.975,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".hero-section",
+          start: "top top",
+          end: "bottom top",
+          scrub: 1.1,
+        },
+      });
+
+      gsap.utils.toArray<HTMLElement>(".split-heading").forEach((heading) => {
+        gsap.from(heading.querySelectorAll(".split-char"), {
+          yPercent: 120,
+          opacity: 0,
+          rotateX: -55,
+          filter: "blur(8px)",
+          duration: 0.9,
+          stagger: 0.015,
+          ease: "power4.out",
+          scrollTrigger: { trigger: heading, start: "top 84%", once: true },
+        });
+      });
+
+      gsap.utils.toArray<HTMLElement>("[data-reveal]").forEach((element) => {
+        gsap.from(element, {
+          y: 54,
+          opacity: 0,
+          duration: 0.95,
+          ease: "power4.out",
+          scrollTrigger: { trigger: element, start: "top 88%", once: true },
+        });
+      });
+
+      gsap.utils.toArray<HTMLElement>(".feature-row").forEach((row, index) => {
+        gsap.from(row, {
+          yPercent: 70,
+          opacity: 0,
+          duration: 0.9,
+          ease: "power4.out",
+          scrollTrigger: { trigger: row, start: "top 92%", once: true },
+        });
+        ScrollTrigger.create({
+          trigger: row,
+          start: "top center",
+          end: "bottom center",
+          onEnter: () => setActiveFeatureIndex(index),
+          onEnterBack: () => setActiveFeatureIndex(index),
+        });
+      });
+
+      gsap.from(".stat-item", {
+        xPercent: -20,
+        opacity: 0,
+        stagger: 0.1,
+        duration: 0.9,
+        ease: "power4.out",
+        scrollTrigger: {
+          trigger: ".stats-section",
+          start: "top 82%",
+          once: true,
+        },
+      });
+
+      gsap.from(".pricing-card", {
+        yPercent: 34,
+        opacity: 0,
+        stagger: 0.12,
+        duration: 1,
+        ease: "power4.out",
+        scrollTrigger: {
+          trigger: ".pricing-grid",
+          start: "top 82%",
+          once: true,
+        },
+      });
+
+      return () => {
+        intro.kill();
+      };
+    },
+    { scope: rootRef },
+  );
+
+  const activeFeature = FEATURES[activeFeatureIndex];
+  const activeModel = MODELS[activeModelIndex];
+
+  return (
+    <main className="palomino-lexa" ref={rootRef}>
+      <div className="noise-overlay" aria-hidden="true" />
+
+      <div className="screen-loader" aria-hidden="true">
+        <div className="screen-loader-burst-layer" />
+        <span className="screen-loader-mark">LEXA</span>
+      </div>
+
+      <header className="site-header">
+        <div className="scroll-progress-bar" aria-hidden="true" />
+        <Link className="brand" to="/" aria-label="Lexa home">
+          <LogoIcon className="brand-icon" />
+          <span>LEXA</span>
+        </Link>
+
+        <nav className="desktop-nav" aria-label="Primary navigation">
+          <button type="button" onClick={() => goTo("#features")}>
+            Features
+          </button>
+          <button type="button" onClick={() => goTo("#intelligence")}>
+            Intelligence
+          </button>
+          <button type="button" onClick={() => goTo("#pricing")}>
+            Pricing
+          </button>
+          <button type="button" onClick={() => goTo("#faq")}>
+            FAQ
+          </button>
+        </nav>
+
+        <div className="header-actions">
+          <span className="header-edition">AI / 2026</span>
+          {isAuthenticated ? (
+            <Link className="header-cta" to="/chat">
+              Workspace <ArrowRight size={15} />
+            </Link>
+          ) : (
+            <Link className="header-cta" to="/auth">
+              Start free <ArrowRight size={15} />
+            </Link>
+          )}
+          <button
+            className="menu-toggle"
+            type="button"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? <X /> : <Menu />}
+          </button>
+        </div>
+      </header>
+
+      <div
+        className={`mobile-menu ${menuOpen ? "is-open" : ""}`}
+        aria-hidden={!menuOpen}
+      >
+        <div className="mobile-menu-links">
+          {["Features", "Intelligence", "Pricing", "FAQ"].map(
+            (label, index) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => goTo(`#${label.toLowerCase()}`)}
+              >
+                <span>0{index + 1}</span>
+                {label}
+                <ArrowRight />
+              </button>
+            ),
+          )}
+        </div>
+        <div className="mobile-menu-foot">
+          <span>One intelligence.</span>
+          <span>Every mode.</span>
+        </div>
+      </div>
+
+      <section className="hero-section section-shell">
+        <div className="hero-copy">
+          <div className="hero-eyebrow">
+            <span>AI WORKSPACE</span>
+            <span>BUILT FOR PROFESSIONALS</span>
+          </div>
+          <HeroTypingHeading />
+          <div className="hero-lower">
+            <p className="hero-summary">
+              Research, write, code, speak, and create in one continuous
+              workspace powered by the world’s most capable models.
+            </p>
+            <div className="hero-actions">
+              <button
+                className="editorial-button is-light"
+                type="button"
+                onClick={handleGetStarted}
+              >
+                <span>Start building free</span>
+                <ArrowRight />
+              </button>
+              <button
+                className="text-link"
+                type="button"
+                onClick={() => goTo("#features")}
+              >
+                Explore the system <ArrowDown />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="hero-stage" data-cursor="active">
+          <div className="hero-stage-top">
+            <span>LEXA / LIVE INTERFACE</span>
+            <span>
+              <i /> SYSTEM ONLINE
+            </span>
+          </div>
+          <div className="hero-stage-core animation-sample">
+            <span className="stage-index">01</span>
+            <div>
+              <span className="stage-label">ACTIVE PROMPT</span>
+              <PromptTypingText />
+            </div>
+            <div className="stage-orbit" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+          <div className="hero-stage-bottom">
+            <span>GPT-4o · Claude · Gemini · Lexa Ultra</span>
+            <span>128K+ CONTEXT</span>
+          </div>
+        </div>
+
+        <button
+          className="scroll-cue"
+          type="button"
+          onClick={() => goTo("#stats")}
+        >
+          <span>Scroll to discover</span>
+          <ArrowDown />
+        </button>
+      </section>
+
+      <section className="stats-section section-shell" id="stats">
+        <div className="section-meta">
+          <span>AT A GLANCE</span>
+          <span>01 — 04</span>
+        </div>
+        <div className="stats-grid">
+          {STATS.map((stat, index) => (
+            <article className="stat-item" key={stat.label}>
+              <span className="stat-index">0{index + 1}</span>
+              <strong>
+                <AnimatedNumber value={stat.value} />
+              </strong>
+              <div>
+                <span>{stat.label}</span>
+                <small>{stat.sub}</small>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <IntegrationMarquee />
+
+      <section className="features-section section-shell" id="features">
+        <div className="section-meta">
+          <span>CAPABILITIES</span>
+          <span>02 — 04</span>
+        </div>
+        <div className="section-heading-row">
+          <SplitHeading>Built to move at the speed of thought.</SplitHeading>
+          <p data-reveal>
+            Six connected systems. One continuous context. Every interaction is
+            designed to stay fast, focused, and deeply personal.
+          </p>
+        </div>
+
+        <div className="features-layout">
+          <div className="feature-sticky">
+            <FeaturePreview feature={activeFeature} />
+          </div>
+          <div className="feature-list">
+            {FEATURES.map((feature, index) => {
+              const Icon = feature.icon;
+              const active = index === activeFeatureIndex;
+              return (
+                <button
+                  className={`feature-row ${active ? "is-active" : ""}`}
+                  type="button"
+                  key={feature.id}
+                  onClick={() => setActiveFeatureIndex(index)}
+                >
+                  <span className="feature-number">0{index + 1}</span>
+                  <span className="feature-icon">
+                    <Icon strokeWidth={1.35} />
+                  </span>
+                  <span className="feature-copy">
+                    <small>{feature.tag}</small>
+                    <strong>{feature.title}</strong>
+                    <p>{feature.description}</p>
+                  </span>
+                  <span className="feature-arrow">
+                    <ArrowRight />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="models-section" id="intelligence">
+        <div className="section-shell">
+          <div className="section-meta section-meta-dark">
+            <span>INTELLIGENCE MESH</span>
+            <span>03 — 04</span>
+          </div>
+          <div className="section-heading-row models-heading">
+            <SplitHeading>The world’s best AI, unified.</SplitHeading>
+            <p data-reveal>
+              Choose the right intelligence for the moment. Your memory and
+              project context move with you.
+            </p>
+          </div>
+
+          <div className="models-layout">
+            <div className="model-tabs" role="tablist" aria-label="AI models">
+              {MODELS.map((model, index) => (
+                <button
+                  key={model.id}
+                  role="tab"
+                  type="button"
+                  aria-selected={activeModelIndex === index}
+                  className={activeModelIndex === index ? "is-active" : ""}
+                  onClick={() => setActiveModelIndex(index)}
+                >
+                  <span>0{index + 1}</span>
+                  <strong>{model.name}</strong>
+                  <small>{model.provider}</small>
+                  <ChevronRight />
+                </button>
+              ))}
+            </div>
+
+            <article className="model-detail" key={activeModel.id}>
+              <div className="model-detail-head">
+                <span>{activeModel.provider}</span>
+                <span>{activeModel.tier}</span>
+              </div>
+              <h3>{activeModel.name}</h3>
+              <p>{activeModel.strengths}</p>
+              <div className="model-specs">
+                <div>
+                  <span>Context</span>
+                  <strong>{activeModel.spec}</strong>
+                </div>
+                <div>
+                  <span>Latency</span>
+                  <strong>{activeModel.latency}</strong>
+                </div>
+                <div>
+                  <span>Throughput</span>
+                  <strong>{activeModel.speed}</strong>
+                </div>
+              </div>
+              <div className="metric-list">
+                {[
+                  "Deep reasoning",
+                  "Code synthesis",
+                  "Context retention",
+                  "Instruction following",
+                ].map((label, index) => (
+                  <div className="metric" key={label}>
+                    <span>{label}</span>
+                    <strong>{activeModel.metrics[index]}%</strong>
+                    <i>
+                      <b style={{ width: `${activeModel.metrics[index]}%` }} />
+                    </i>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section className="pricing-section section-shell" id="pricing">
+        <div className="section-meta">
+          <span>ACCESS</span>
+          <span>PRICING</span>
+        </div>
+        <div className="section-heading-row">
+          <SplitHeading>Start free. Scale when it matters.</SplitHeading>
+          <p data-reveal>
+            Clear access tiers with no visual noise and no hidden complexity.
+          </p>
+        </div>
+        <div className="pricing-grid">
+          {PRICING.map((plan) => (
+            <PricingCard
+              key={plan.name}
+              plan={plan}
+              onGetStarted={handleGetStarted}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="faq-section section-shell" id="faq">
+        <div className="section-meta">
+          <span>KNOWLEDGE BASE</span>
+          <span>FAQ</span>
+        </div>
+        <div className="faq-layout">
+          <SplitHeading>Questions, answered.</SplitHeading>
+          <div className="faq-list">
+            {FAQS.map((faq, index) => {
+              const open = expandedFaq === index;
+              return (
+                <article
+                  className={`faq-item ${open ? "is-open" : ""}`}
+                  key={faq.question}
+                >
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    onClick={() => setExpandedFaq(open ? null : index)}
+                  >
+                    <span>0{index + 1}</span>
+                    <strong>{faq.question}</strong>
+                    {open ? <Minus /> : <Plus />}
+                  </button>
+                  <div className="faq-answer">
+                    <p>{faq.answer}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <Testimonials />
+
+      <section className="final-cta section-shell">
+        <span className="final-kicker">
+          <Zap size={14} /> YOUR NEXT WORKSPACE
+        </span>
+        <SplitHeading>Ready to work differently?</SplitHeading>
+        <button
+          className="editorial-button is-light final-button"
+          type="button"
+          onClick={handleGetStarted}
+        >
+          <span>Enter Lexa</span>
+          <ArrowRight />
+        </button>
+      </section>
+
+      <footer className="site-footer section-shell">
+        <div className="footer-top">
+          <div>
+            <span>PRODUCT</span>
+            <Link to="/pricing">Pricing</Link>
+            <button type="button" onClick={() => goTo("#features")}>
+              Features
+            </button>
+          </div>
+          <div>
+            <span>COMPANY</span>
+            <Link to="/about">About</Link>
+            <Link to="/contact">Contact</Link>
+          </div>
+          <div>
+            <span>LEGAL</span>
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
+          </div>
+          <div className="footer-status">
+            <i /> ALL SYSTEMS OPERATIONAL
+          </div>
+        </div>
+        <div className="footer-word" aria-label="Lexa">
+          LEXA
+        </div>
+        <div className="footer-bottom">
+          <span>© {new Date().getFullYear()} Lexa AI</span>
+          <span>ONE INTELLIGENCE · EVERY MODE</span>
+          <button type="button" onClick={() => scrollToSection("body")}>
+            BACK TO TOP ↑
+          </button>
+        </div>
+      </footer>
+    </main>
+  );
+}
+
+const PALOMINO_LEXA_CSS = String.raw`
+:root {
+  --lexa-black: #000000;
+  --lexa-ink: #090909;
+  --lexa-white: #ffffff;
+  --lexa-line: rgba(255, 255, 255, 0.22);
+  --lexa-line-soft: rgba(255, 255, 255, 0.12);
+  --lexa-muted: rgba(255, 255, 255, 0.62);
+  --lexa-ease-out: cubic-bezier(0.3, 1, 0.7, 1);
+  --lexa-ease-in-out: cubic-bezier(0.83, 0, 0.17, 1);
+  --lexa-gutter: clamp(18px, 2.1vw, 34px);
+  --lexa-section-y: clamp(92px, 11vw, 180px);
+}
+
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background: var(--lexa-black);
+}
+
+html::-webkit-scrollbar,
+.palomino-lexa::-webkit-scrollbar {
+  display: none;
+}
+
+html.menu-is-open,
+html.menu-is-open body {
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  background: var(--lexa-black);
+}
+
+.palomino-lexa,
+.palomino-lexa * {
+  box-sizing: border-box;
+}
+
+.palomino-lexa {
+  min-height: 100vh;
+  overflow: hidden;
+  position: relative;
+  background: var(--lexa-black);
+  color: var(--lexa-white);
+  font-family: "Host Grotesk", "Arial", sans-serif;
+  font-size: 16px;
+  line-height: 1.2;
+  isolation: isolate;
+}
+
+.palomino-lexa ::selection {
+  background: var(--lexa-white);
+  color: var(--lexa-black);
+}
+
+.palomino-lexa a,
+.palomino-lexa button,
+.palomino-lexa input,
+.palomino-lexa textarea {
+  color: inherit;
+  font: inherit;
+}
+
+.palomino-lexa a {
+  text-decoration: none;
+}
+
+.palomino-lexa button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.palomino-lexa button,
+.palomino-lexa a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.palomino-lexa button:focus-visible,
+.palomino-lexa a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 5px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .palomino-lexa,
+  .palomino-lexa * {
+    cursor: none !important;
+  }
+}
+
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
   pointer-events: none;
+  opacity: 0.11;
+  mix-blend-mode: soft-light;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='.72'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 150px 150px;
 }
 
-.skeleton-shimmer {
-  background: linear-gradient(90deg, #0a0a0a 25%, #1a1a1a 50%, #0a0a0a 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite linear;
+.film-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background: #fff;
+  mix-blend-mode: difference;
+  transition:
+    width 0.32s var(--lexa-ease-out),
+    height 0.32s var(--lexa-ease-out),
+    margin 0.32s var(--lexa-ease-out),
+    opacity 0.2s ease;
 }
 
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+.film-cursor.is-visible {
+  opacity: 1;
 }
 
-.flame-wave-container {
+.film-cursor.is-active {
+  width: 62px;
+  height: 62px;
+  margin: -31px 0 0 -31px;
+}
+
+.screen-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #fff;
+  color: #000;
+}
+
+.screen-loader-burst-layer {
+  position: absolute;
+  inset: -2px;
+  background: #000;
+  clip-path: circle(0% at 50% 50%);
+}
+
+.screen-loader-mark {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(32px, 6vw, 88px);
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+}
+
+.section-shell {
+  width: 100%;
+  padding-left: var(--lexa-gutter);
+  padding-right: var(--lexa-gutter);
+}
+
+.section-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 54px;
+  border-top: 1px solid var(--lexa-line);
+  color: var(--lexa-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+
+.section-meta-dark {
+  border-color: rgba(0, 0, 0, 0.24);
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.site-header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 500;
+  height: 74px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 var(--lexa-gutter);
+  color: #fff;
+  background: rgba(0, 0, 0, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.scroll-progress-bar {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: #fff;
+}
+
+.brand {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.18em;
+}
+
+.brand-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(22px, 2.7vw, 44px);
+}
+
+.desktop-nav button,
+.header-edition {
+  min-height: 44px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 0.25s ease;
+}
+
+.desktop-nav button {
+  position: relative;
+}
+
+.desktop-nav button::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: 8px;
+  height: 1px;
+  background: #fff;
+  transition: right 0.4s var(--lexa-ease-out);
+}
+
+.desktop-nav button:hover {
+  color: #fff;
+}
+
+.desktop-nav button:hover::after {
+  right: 0;
+}
+
+.header-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.header-cta {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  padding: 0 18px;
+  border: 1px solid #fff;
+  background: #fff;
+  color: #000 !important;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition:
+    background 0.3s ease,
+    color 0.3s ease;
+}
+
+.header-cta svg {
+  transition: transform 0.35s var(--lexa-ease-out);
+}
+
+.header-cta:hover {
+  background: transparent;
+  color: #fff !important;
+}
+
+.header-cta:hover svg {
+  transform: translateX(4px);
+}
+
+.menu-toggle {
+  width: 44px;
+  height: 44px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-toggle svg {
+  width: 22px;
+}
+
+.mobile-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 450;
+  visibility: hidden;
+  opacity: 0;
+  padding: 118px var(--lexa-gutter) 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #000;
+  transform: translateY(-16px);
+  transition:
+    opacity 0.35s ease,
+    transform 0.55s var(--lexa-ease-out),
+    visibility 0.55s;
+}
+
+.mobile-menu.is-open {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mobile-menu-links {
+  border-top: 1px solid var(--lexa-line);
+}
+
+.mobile-menu-links button {
+  width: 100%;
+  min-height: 84px;
+  display: grid;
+  grid-template-columns: 48px 1fr 32px;
+  align-items: center;
+  border-bottom: 1px solid var(--lexa-line-soft);
+  text-align: left;
+  font-size: clamp(28px, 7vw, 44px);
+}
+
+.mobile-menu-links button > span {
+  color: var(--lexa-muted);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.mobile-menu-links svg {
+  width: 23px;
+}
+
+.mobile-menu-foot {
+  display: flex;
+  justify-content: space-between;
+  color: var(--lexa-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hero-section {
+  position: relative;
+  z-index: 2;
+  min-height: 110svh;
+  padding-top: clamp(138px, 15vw, 220px);
+  padding-bottom: clamp(80px, 9vw, 140px);
+  background:
+    radial-gradient(
+      circle at 80% 14%,
+      rgba(255, 255, 255, 0.075),
+      transparent 25vw
+    ),
+    #000;
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-eyebrow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: clamp(34px, 5vw, 72px);
+  color: var(--lexa-muted);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.hero-copy h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(54px, 10.4vw, 154px);
+  font-weight: 570;
+  letter-spacing: -0.058em;
+  line-height: 0.86;
+}
+
+.hero-line {
+  display: block;
+  overflow: hidden;
+  padding: 0.08em 0 0.12em;
+  min-height: 1em;
+}
+
+.hero-typing-caret {
+  display: inline-block;
+  width: 0.06em;
+  height: 0.82em;
+  background: #fff;
+  margin-left: 0.08em;
+  vertical-align: -0.04em;
+  animation: hero-caret-blink 0.75s steps(1) infinite;
+}
+
+@keyframes hero-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.hero-line > span {
+  display: block;
+  transform-origin: left bottom;
+  will-change: transform;
+}
+
+.hero-line-indent {
+  padding-left: 14vw;
+}
+
+.hero-lower {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 500px);
+  gap: 64px;
+  align-items: end;
+  margin-top: clamp(42px, 6vw, 86px);
+}
+
+.hero-summary {
+  grid-column: 2;
+  max-width: 500px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: clamp(18px, 1.7vw, 25px);
+  font-weight: 350;
+  line-height: 1.28;
+}
+
+.hero-actions {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 22px;
+}
+
+.editorial-button {
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 0 20px;
+  border: 1px solid currentColor !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  transition:
+    background 0.35s ease,
+    color 0.35s ease,
+    transform 0.18s ease;
+}
+
+.editorial-button.is-light {
+  background: #fff !important;
+  color: #000 !important;
+}
+
+.editorial-button svg {
+  width: 18px;
+  transition: transform 0.4s var(--lexa-ease-out);
+}
+
+.editorial-button:hover {
+  background: #000 !important;
+  color: #fff !important;
+}
+
+.editorial-button:hover svg {
+  transform: translateX(5px);
+}
+
+.editorial-button:active {
+  transform: scale(0.98);
+}
+
+.text-link {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--lexa-muted) !important;
+  font-size: 12px !important;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  transition: color 0.25s ease;
+}
+
+.text-link svg {
+  width: 16px;
+  transition: transform 0.35s var(--lexa-ease-out);
+}
+
+.text-link:hover {
+  color: #fff !important;
+}
+
+.text-link:hover svg {
+  transform: translateY(4px);
+}
+
+.hero-stage {
+  position: relative;
+  z-index: 2;
+  height: clamp(520px, 67vw, 780px);
+  min-height: 520px;
+  margin-top: clamp(82px, 11vw, 156px);
+  overflow: hidden;
+  border: 1px solid var(--lexa-line);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    radial-gradient(
+      circle at 50% 47%,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.025) 28%,
+      transparent 56%
+    ),
+    #060606;
+  background-size:
+    64px 64px,
+    64px 64px,
+    auto,
+    auto;
+  will-change: transform;
+}
+
+.hero-stage::after {
+  content: "";
   position: absolute;
   inset: 0;
-  overflow: hidden;
-  z-index: -1;
-  mix-blend-mode: screen;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    #000 0,
+    transparent 18%,
+    transparent 78%,
+    #000 100%
+  );
+  opacity: 0.72;
 }
 
-.flame-wave-layer-1 {
+.hero-stage-top,
+.hero-stage-bottom {
   position: absolute;
-  top: -30%; bottom: -30%; left: 0; right: 0;
-  background: linear-gradient(90deg, rgba(30,64,175,0.15) 0%, rgba(52,107,241,0.3) 25%, rgba(110,150,255,0.5) 50%, rgba(52,107,241,0.3) 75%, rgba(30,64,175,0.15) 100%);
-  background-size: 200% 100%;
-  animation: flame-pan-right 5s linear infinite;
-  filter: blur(80px);
+  z-index: 3;
+  left: 22px;
+  right: 22px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.13em;
 }
 
-.flame-wave-layer-2 {
+.hero-stage-top {
+  top: 19px;
+}
+
+.hero-stage-top span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero-stage-top i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 12px #fff;
+}
+
+.hero-stage-bottom {
+  bottom: 19px;
+}
+
+.hero-stage-core {
   position: absolute;
-  top: 5%; bottom: 5%; left: 0; right: 0;
-  background: linear-gradient(90deg, rgba(30,64,175,0.1) 0%, rgba(30,64,175,0.35) 33%, rgba(52,107,241,0.55) 66%, rgba(30,64,175,0.1) 100%);
-  background-size: 200% 100%;
-  animation: flame-pan-right 8s linear infinite reverse;
-  filter: blur(120px);
+  z-index: 2;
+  inset: 50% auto auto 50%;
+  width: min(780px, 72%);
+  transform: translate(-50%, -50%);
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  align-items: start;
+  gap: 28px;
+  padding: clamp(28px, 4vw, 58px);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: rgba(0, 0, 0, 0.64);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  will-change: transform;
 }
 
-@keyframes flame-pan-right {
-  0% { background-position: 200% 50%; }
-  100% { background-position: 0% 50%; }
+.animation-sample {
+  animation: sample 6s ease-in-out infinite;
 }
 
-.font-display {
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+@keyframes sample {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-10px);
+  }
+}
+
+.stage-index,
+.stage-label {
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+}
+
+.hero-stage-core p {
+  max-width: 620px;
+  margin: 24px 0 0;
+  font-size: clamp(32px, 5.1vw, 78px);
+  font-weight: 500;
   letter-spacing: -0.045em;
+  line-height: 0.98;
+  min-height: 1.96em;
 }
 
-.font-sans, .font-inter {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+.stage-orbit {
+  position: absolute;
+  right: -15%;
+  bottom: -54%;
+  width: 420px;
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  animation: orbit-spin 18s linear infinite;
 }
 
-.font-mono {
-  font-family: 'JetBrains Mono', monospace;
+.stage-orbit span {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
 }
 
-.lexa-cinematic-film {
-  background-color: #000000 !important;
-  color: #f4f5f8;
+.stage-orbit span:nth-child(1) {
+  inset: 16%;
+}
+.stage-orbit span:nth-child(2) {
+  inset: 33%;
+}
+.stage-orbit span:nth-child(3) {
+  top: -4px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  box-shadow: 0 0 18px #fff;
 }
 
-.lexa-cinematic-intro {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  transition: transform 1.6s cubic-bezier(0.65, 0, 0.35, 1), opacity 1.6s cubic-bezier(0.65, 0, 0.35, 1);
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.scroll-cue {
+  min-height: 52px;
+  margin-top: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--lexa-muted) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.scroll-cue svg {
+  width: 15px;
+}
+
+.stats-section {
+  position: relative;
+  z-index: 2;
+  padding-bottom: var(--lexa-section-y);
+  background: #000;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--lexa-line-soft);
+}
+
+.stat-item {
+  min-height: 310px;
+  padding: 22px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid var(--lexa-line-soft);
+}
+
+.stat-item:last-child {
+  border-right: 0;
+}
+
+.stat-index {
+  color: var(--lexa-muted);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.stat-item > strong {
+  font-size: clamp(50px, 6vw, 96px);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+}
+
+.stat-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.stat-item small {
+  color: var(--lexa-muted);
+  font-size: 12px;
+}
+
+.integration-strip {
+  position: relative;
+  z-index: 2;
+  padding: 0 0 clamp(80px, 9vw, 140px);
+  overflow: hidden;
+  background: #000;
+}
+
+.integration-label {
+  margin: 0 var(--lexa-gutter) 24px;
+  color: var(--lexa-muted);
+  font-size: 10px;
+  letter-spacing: 0.13em;
+}
+
+.marquee-window {
+  overflow: hidden;
+  padding: 28px 0;
+  border-top: 1px solid var(--lexa-line);
+  border-bottom: 1px solid var(--lexa-line);
+}
+
+.marquee-track {
+  width: max-content;
+  display: flex;
+  align-items: center;
+  animation: lexa-marquee 32s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track span {
+  display: inline-flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: clamp(26px, 3vw, 48px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  transition: color 0.25s ease;
+}
+
+.marquee-track span::after {
+  content: "✦";
+  margin: 0 44px;
+  color: rgba(255, 255, 255, 0.26);
+  font-size: 0.46em;
+}
+
+.marquee-track span:hover {
+  color: #fff;
+}
+.marquee-window:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes lexa-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.features-section {
+  position: relative;
+  z-index: 2;
+  padding-bottom: var(--lexa-section-y);
+  background: #000;
+}
+
+.section-heading-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 440px);
+  gap: clamp(54px, 8vw, 130px);
+  align-items: end;
+  padding: clamp(60px, 8vw, 120px) 0 clamp(70px, 10vw, 150px);
+}
+
+.split-heading {
+  margin: 0;
+  max-width: 1080px;
+  font-size: clamp(48px, 7.4vw, 112px);
+  font-weight: 560;
+  letter-spacing: -0.058em;
+  line-height: 0.93;
+  perspective: 800px;
+}
+
+.split-word {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.split-char,
+.split-space {
+  display: inline-block;
+  transform-origin: 50% 100%;
   will-change: transform, opacity;
 }
 
-.lexa-cinematic-intro.lexa-intro-exiting {
-  opacity: 0.9; /* Slight fade but keep mostly visible during slide */
-  transform: translate3d(0, -100vh, 0);
-  pointer-events: none;
+.section-heading-row > p {
+  max-width: 440px;
+  margin: 0;
+  color: var(--lexa-muted);
+  font-size: clamp(17px, 1.45vw, 22px);
+  font-weight: 350;
+  line-height: 1.34;
 }
 
-.lexa-page-revealing {
-  animation: lexa-film-unveil 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+.features-layout {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.9fr) minmax(480px, 1.1fr);
+  gap: clamp(36px, 6vw, 100px);
+  align-items: start;
 }
 
-@keyframes lexa-film-unveil {
-  0% {
-    opacity: 0.4;
-    transform: scale(1.02);
-    filter: blur(6px);
+.feature-sticky {
+  position: sticky;
+  top: 104px;
+}
+
+.feature-preview {
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--lexa-line);
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    #050505;
+  background-size: 42px 42px;
+  animation: preview-enter 0.62s var(--lexa-ease-out) both;
+}
+
+@keyframes preview-enter {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+    filter: blur(7px);
   }
-  100% {
+  to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0);
     filter: blur(0);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *:before, *:after {
-    animation-duration: 0.001ms !important;
-    transition-duration: 0.001ms !important;
+.preview-head,
+.preview-foot {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 20px;
+  color: var(--lexa-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.preview-head {
+  border-bottom: 1px solid var(--lexa-line-soft);
+}
+
+.preview-foot {
+  justify-content: flex-start;
+  margin-top: auto;
+  border-top: 1px solid var(--lexa-line-soft);
+}
+
+.preview-foot i {
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+  animation: status-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  50% {
+    opacity: 0.25;
+    transform: scale(0.72);
   }
-  .lexa-cinematic-intro.lexa-intro-exiting {
+}
+
+.preview-body {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: clamp(26px, 4vw, 58px);
+}
+
+.preview-chat,
+.preview-search,
+.preview-audio,
+.preview-memory,
+.preview-render,
+.preview-code {
+  width: 100%;
+}
+
+.preview-kicker {
+  color: var(--lexa-muted);
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.preview-chat p {
+  min-height: 120px;
+  margin: 28px 0 34px;
+  font-size: clamp(28px, 3.2vw, 52px);
+  font-weight: 480;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+}
+
+.preview-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #fff;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.typing-caret {
+  display: inline-block;
+  width: 2px;
+  height: 0.8em;
+  margin-left: 3px;
+  background: #fff;
+  animation: caret-blink 0.7s steps(1) infinite;
+}
+
+@keyframes caret-blink {
+  50% {
     opacity: 0;
-    transform: none;
   }
 }
 
-/* ─── Reference-inspired Lexa surface system ─── */
-.lexa-cinematic-film {
-  --lexa-reference-surface: #111214;
-  --lexa-reference-panel: #1a1b1f;
-  --lexa-reference-panel-raised: #222327;
-  --lexa-reference-border: rgba(255,255,255,.1);
-  --lexa-reference-muted: rgba(241,243,244,.64);
-  --lexa-reference-blue: #346bf1;
-  background: #000 !important;
-  color: #f1f3f4;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+.preview-query {
+  margin: 0 0 40px;
+  font-size: clamp(25px, 3vw, 46px);
+  letter-spacing: -0.035em;
 }
 
-.lexa-cinematic-film h1,
-.lexa-cinematic-film h2,
-.lexa-cinematic-film h3,
-.lexa-cinematic-film h4 {
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-weight: 600;
-  letter-spacing: -.045em;
-  line-height: 1.06;
-  text-wrap: balance;
+.source-row {
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: 38px 1fr 20px;
+  align-items: center;
+  border-top: 1px solid var(--lexa-line-soft);
+  font-size: 13px;
 }
 
-.lexa-cinematic-film p {
-  line-height: 1.68;
+.source-row > span {
+  color: var(--lexa-muted);
+  font-size: 10px;
+}
+.source-row strong {
+  font-weight: 450;
 }
 
-.lexa-cinematic-film header {
-  background: rgba(0,0,0,.68);
-  border-color: rgba(255,255,255,.09);
-  box-shadow: 0 12px 46px rgba(0,0,0,.24);
+.preview-audio {
+  text-align: center;
 }
 
-.lexa-cinematic-film header:after {
-  position: absolute;
-  inset: 0;
-  content: "";
-  pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(52,107,241,.05), transparent);
-  opacity: .8;
+.waveform {
+  height: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(5px, 0.7vw, 10px);
 }
 
-.lexa-cinematic-film .hero-section {
-  min-height: min(960px, 100vh);
-  padding-top: clamp(8rem, 16vh, 12rem);
-  background: transparent;
+.waveform span {
+  width: 5px;
+  min-height: 8px;
+  background: #fff;
+  transform-origin: center;
+  animation: waveform 1.35s ease-in-out infinite alternate;
 }
 
-.lexa-cinematic-film .hero-section:before {
-  position: absolute;
-  top: 4%;
-  left: 50%;
-  width: min(74vw, 900px);
-  aspect-ratio: 1;
-  content: "";
-  border-radius: 999px;
-  background: radial-gradient(circle at 50% 44%, rgba(52,107,241,.21), rgba(52,107,241,.08) 32%, transparent 70%);
-  filter: blur(34px);
-  transform: translateX(-50%);
-  animation: lexa-reference-bloom 14s ease-in-out infinite;
-  pointer-events: none;
-}
-
-.lexa-cinematic-film .hero-section:after {
-  position: absolute;
-  inset: 0;
-  content: "";
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(0,0,0,.3), transparent 24%, transparent 70%, #000 100%), radial-gradient(circle at 50% 20%, rgba(255,255,255,.035), transparent 38%);
-}
-
-.lexa-cinematic-film .hero-section > .relative.z-20,
-.lexa-cinematic-film .hero-section > .hero-monolith {
-  width: min(100%, 1160px);
-}
-
-.lexa-cinematic-film .hero-section .hero-badge {
-  margin-bottom: clamp(1.75rem, 4vw, 3.25rem);
-  border-color: rgba(255,255,255,.14);
-  background: rgba(17,18,20,.58);
-  box-shadow: 0 0 0 1px rgba(52,107,241,.08), 0 16px 70px rgba(0,0,0,.3);
-}
-
-.lexa-cinematic-film .hero-section .hero-headline-wrap {
-  margin-bottom: clamp(1.25rem, 3vw, 2rem);
-}
-
-.lexa-cinematic-film .hero-section .hero-subtitle {
-  max-width: 42rem;
-  color: var(--lexa-reference-muted);
-  font-size: clamp(1rem, 1.5vw, 1.22rem);
-  text-wrap: balance;
-}
-
-.lexa-cinematic-film .hero-section .hero-actions {
-  gap: .75rem;
-  margin-top: clamp(.25rem, 1vw, .8rem);
-}
-
-.lexa-cinematic-film .hero-section .hero-actions button {
-  min-height: 3.25rem;
-  padding-inline: 1.55rem;
-  border-radius: 999px;
-  letter-spacing: .1em;
-  box-shadow: 0 12px 30px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.1);
-  transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s cubic-bezier(.22,1,.36,1), background-color .35s ease, border-color .35s ease;
-}
-
-.lexa-cinematic-film .hero-section .hero-actions button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 20px 48px rgba(52,107,241,.2), inset 0 1px 0 rgba(255,255,255,.2);
-}
-
-.lexa-cinematic-film .hero-monolith {
-  margin-top: clamp(3.5rem, 8vw, 7rem);
-}
-
-.lexa-cinematic-film .hero-monolith > div.relative {
-  border: 1px solid var(--lexa-reference-border);
-  border-radius: 32px;
-  background: rgba(17,18,20,.86);
-  box-shadow: 0 30px 120px rgba(0,0,0,.5), 0 0 0 1px rgba(52,107,241,.06);
-}
-
-.lexa-cinematic-film .hero-monolith .rounded-\[24px\],
-.lexa-cinematic-film .hero-monolith .rounded-\[36px\] {
-  border-color: rgba(255,255,255,.08);
-}
-
-.lexa-cinematic-film > div.bg-\[\#191A1F\] {
-  background: #0a0b0d;
-}
-
-.lexa-cinematic-film section {
-  scroll-margin-top: 6rem;
-}
-
-.lexa-cinematic-film .stats-section,
-.lexa-cinematic-film .models-section,
-.lexa-cinematic-film .pricing-section,
-.lexa-cinematic-film #features,
-.lexa-cinematic-film #faq {
-  max-width: 1440px;
-  margin-inline: auto;
-  border-color: rgba(255,255,255,.08);
-}
-
-.lexa-cinematic-film .stats-section,
-.lexa-cinematic-film .models-section,
-.lexa-cinematic-film #faq {
-  background: #111214;
-}
-
-.lexa-cinematic-film .stat-card,
-.lexa-cinematic-film .feature-story-item,
-.lexa-cinematic-film .model-stage-card,
-.lexa-cinematic-film .pricing-column,
-.lexa-cinematic-film article.rounded-\[24px\] {
-  border-color: rgba(255,255,255,.1);
-  background: rgba(26,27,31,.82);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 24px 80px rgba(0,0,0,.16);
-  transition: transform .45s cubic-bezier(.22,1,.36,1), border-color .45s ease, background-color .45s ease, box-shadow .45s ease;
-}
-
-.lexa-cinematic-film .stat-card:hover,
-.lexa-cinematic-film .feature-story-item:hover,
-.lexa-cinematic-film .pricing-column:hover,
-.lexa-cinematic-film article.rounded-\[24px\]:hover {
-  transform: translateY(-6px);
-  border-color: rgba(52,107,241,.42);
-  background: rgba(34,35,39,.9);
-  box-shadow: 0 28px 80px rgba(0,0,0,.28), 0 0 40px rgba(52,107,241,.09);
-}
-
-.lexa-cinematic-film .feature-story-item {
-  min-height: 220px;
-}
-
-.lexa-cinematic-film .feature-story-item h3,
-.lexa-cinematic-film .pricing-column h3,
-.lexa-cinematic-film .model-stage-card h3 {
-  letter-spacing: -.04em;
-}
-
-.lexa-cinematic-film .model-stage-card {
-  border-radius: 32px;
-  background: #111214;
-}
-
-.lexa-cinematic-film .pricing-column {
-  border-radius: 30px;
-}
-
-.lexa-cinematic-film .pricing-column button,
-.lexa-cinematic-film .model-stage-card button {
-  border-radius: 999px;
-  min-height: 3rem;
-}
-
-.lexa-cinematic-film footer {
-  background: #000;
-  border-color: rgba(255,255,255,.08);
-}
-
-.lexa-cinematic-film a,
-.lexa-cinematic-film button {
-  -webkit-tap-highlight-color: transparent;
-}
-
-.lexa-cinematic-film button:focus-visible,
-.lexa-cinematic-film a:focus-visible {
-  outline: 2px solid #6e96ff;
-  outline-offset: 3px;
-}
-
-@keyframes lexa-reference-bloom {
-  0%, 100% { opacity: .7; transform: translateX(-50%) scale(.96); }
-  50% { opacity: 1; transform: translateX(-50%) scale(1.04); }
-}
-
-@media (max-width: 768px) {
-  .lexa-cinematic-film .hero-section {
-    min-height: auto;
-    padding-top: 8rem;
-  }
-  .lexa-cinematic-film .hero-section .hero-actions {
-    width: 100%;
-    max-width: 22rem;
-  }
-  .lexa-cinematic-film .hero-section .hero-actions > * {
-    width: 100%;
-  }
-  .lexa-cinematic-film .hero-section .hero-actions button {
-    width: 100%;
-  }
-  .lexa-cinematic-film .hero-monolith {
-    margin-top: 4rem;
-  }
-  .lexa-cinematic-film .feature-story-item {
-    min-height: auto;
+@keyframes waveform {
+  50% {
+    transform: scaleY(0.52);
+    opacity: 0.42;
   }
 }
-`;
 
-/*
-  UI/UX enhancement overlay
-  -----------------------------------------------------------------------------
-  This layer deliberately overrides presentation only. The original component,
-  data, navigation, authentication, animations, and section order are preserved.
-  It adds depth, hierarchy, contrast, accessible states, and responsive polish.
-*/
-const LEXA_UI_UX_OVERLAY_CSS = `
-/* ─── 1. Cool-toned surface tokens ─────────────────────────────────────── */
-.lexa-cinematic-film {
-  --lexa-void: #05070d;
-  --lexa-night: #0a1020;
-  --lexa-surface: #101827;
-  --lexa-surface-raised: #152136;
-  --lexa-blue: #4d7dff;
-  --lexa-blue-bright: #82a7ff;
-  --lexa-cyan: #78e6ff;
-  --lexa-mint: #82e6c8;
-  --lexa-gold: #ffd180;
-  --lexa-text: #f7faff;
-  --lexa-body: rgba(225, 235, 255, 0.72);
-  --lexa-soft: rgba(151, 178, 221, 0.7);
-  --lexa-line: rgba(161, 192, 255, 0.14);
-  background:
-    radial-gradient(circle at 72% -8%, rgba(77, 125, 255, 0.2), transparent 31rem),
-    radial-gradient(circle at 14% 28%, rgba(120, 230, 255, 0.06), transparent 28rem),
-    var(--lexa-void) !important;
-  color: var(--lexa-text);
+.preview-audio p {
+  margin: 26px 0 0;
+  color: var(--lexa-muted);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-.lexa-cinematic-film .dot-grid-bg {
-  background:
-    radial-gradient(ellipse at 70% 7%, rgba(77, 125, 255, 0.22), transparent 29%),
-    radial-gradient(ellipse at 22% 34%, rgba(120, 230, 255, 0.09), transparent 24%),
-    linear-gradient(180deg, #04060c 0%, #070d19 62%, #101827 100%);
+.preview-memory {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--lexa-line);
+  border-left: 1px solid var(--lexa-line);
 }
 
-.lexa-cinematic-film .dot-grid-bg::after {
-  opacity: 0.55;
-  background-image: radial-gradient(circle, rgba(170, 199, 255, 0.24) 1px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: linear-gradient(to bottom, black 0%, rgba(0, 0, 0, 0.62) 52%, transparent 92%);
+.memory-node {
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px;
+  border-right: 1px solid var(--lexa-line);
+  border-bottom: 1px solid var(--lexa-line);
+  font-size: 15px;
 }
 
-.lexa-cinematic-film .flame-wave-layer-1 {
-  background: linear-gradient(90deg, rgba(42, 77, 177, 0.06), rgba(77, 125, 255, 0.28), rgba(120, 230, 255, 0.34), rgba(77, 125, 255, 0.28), rgba(42, 77, 177, 0.06));
-  filter: blur(95px);
+.memory-node span {
+  color: var(--lexa-muted);
+  font-size: 10px;
 }
 
-.lexa-cinematic-film .flame-wave-layer-2 {
-  background: linear-gradient(90deg, rgba(23, 49, 121, 0.05), rgba(77, 125, 255, 0.26), rgba(151, 130, 255, 0.19), rgba(77, 125, 255, 0.25), rgba(23, 49, 121, 0.05));
-  filter: blur(128px);
+.render-frame {
+  height: 230px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  border: 1px solid var(--lexa-line);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.14),
+    transparent 56%
+  );
 }
 
-/* ─── 2. Navigation: clearer hierarchy and tactile actions ─────────────── */
-.lexa-cinematic-film header.fixed {
-  height: 76px;
-  border-color: rgba(161, 192, 255, 0.12);
-  background: rgba(5, 7, 13, 0.68) !important;
-  box-shadow: 0 13px 40px rgba(0, 0, 0, 0.16);
+.render-frame svg {
+  width: 52px;
+  height: 52px;
+}
+.render-frame span {
+  font-size: 10px;
+  letter-spacing: 0.14em;
 }
 
-.lexa-cinematic-film header.fixed:after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 1;
-  background: linear-gradient(90deg, transparent 14%, rgba(120, 230, 255, 0.07) 48%, transparent 85%);
+.preview-render > div:last-child {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 18px;
+  color: var(--lexa-muted);
+  font-size: 11px;
+  text-transform: uppercase;
 }
 
-.lexa-cinematic-film .scroll-progress-bar {
-  height: 2px !important;
-  background: linear-gradient(90deg, var(--lexa-blue), var(--lexa-cyan), var(--lexa-blue-bright)) !important;
-  box-shadow: 0 0 17px rgba(120, 230, 255, 0.75) !important;
+.preview-code {
+  border-top: 1px solid var(--lexa-line);
+  border-bottom: 1px solid var(--lexa-line);
+  padding: 24px 0;
 }
 
-.lexa-cinematic-film .font-display {
-  font-family: Outfit, ui-sans-serif, system-ui, sans-serif;
+.preview-code > span {
+  display: block;
+  margin-bottom: 35px;
+  color: var(--lexa-muted);
+  font-size: 10px;
+  letter-spacing: 0.12em;
 }
 
-.lexa-cinematic-film .font-mono {
-  font-family: "DM Mono", "JetBrains Mono", monospace;
+.preview-code code {
+  display: block;
+  overflow-wrap: anywhere;
+  font-family: "Courier New", monospace;
+  font-size: clamp(17px, 2vw, 28px);
+  line-height: 1.5;
 }
 
-.lexa-cinematic-film header.fixed .font-display.text-lg {
-  letter-spacing: -0.045em;
+.feature-list {
+  border-top: 1px solid var(--lexa-line);
 }
 
-.lexa-cinematic-film header.fixed .rounded-full.bg-\[\#346bf1\] {
-  background: linear-gradient(135deg, var(--lexa-blue), #3165e8) !important;
-  box-shadow: 0 10px 27px rgba(48, 101, 232, 0.3), inset 0 1px 0 rgba(255,255,255,0.22) !important;
-}
-
-.lexa-cinematic-film header.fixed .rounded-full.bg-\[\#346bf1\]:hover {
-  background: linear-gradient(135deg, #5b8aff, #2f5ee0) !important;
-  transform: translateY(-1px);
-}
-
-.lexa-cinematic-film .lexa-discover-menu {
-  border-color: rgba(161, 192, 255, 0.2) !important;
-  background: rgba(13, 21, 36, 0.94) !important;
-  box-shadow: 0 22px 65px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.06) !important;
-}
-
-.lexa-cinematic-film .lexa-discover-menu button:hover {
-  background: linear-gradient(90deg, rgba(77,125,255,0.18), rgba(120,230,255,0.05)) !important;
-}
-
-/* ─── 3. Hero: retain the same composition with a stronger visual thesis ── */
-.lexa-cinematic-film .hero-section {
-  min-height: min(970px, 100vh);
+.feature-row {
+  position: relative;
+  width: 100%;
+  min-height: 270px;
+  display: grid;
+  grid-template-columns: 52px 54px 1fr 34px;
+  gap: 18px;
+  align-items: start;
+  padding: 28px 20px 32px 0;
+  overflow: hidden;
+  border-bottom: 1px solid var(--lexa-line) !important;
+  color: #fff !important;
+  text-align: left;
+  transition:
+    color 0.48s var(--lexa-ease-out),
+    padding-left 0.48s var(--lexa-ease-out);
   isolation: isolate;
 }
 
-.lexa-cinematic-film .hero-section::before {
-  width: min(83vw, 1080px);
-  background:
-    radial-gradient(circle at 50% 42%, rgba(77, 125, 255, 0.25), rgba(77,125,255,0.08) 32%, transparent 68%),
-    radial-gradient(circle at 67% 60%, rgba(120,230,255,0.1), transparent 31%);
-  filter: blur(27px);
-}
-
-.lexa-cinematic-film .hero-section::after {
-  background:
-    linear-gradient(180deg, rgba(4, 6, 12, 0.32), transparent 26%, transparent 70%, #0f1827 100%),
-    radial-gradient(circle at 50% 24%, rgba(255,255,255,0.05), transparent 34%);
-}
-
-.lexa-cinematic-film .hero-badge {
-  border-color: rgba(130, 167, 255, 0.28) !important;
-  background: rgba(16, 24, 39, 0.66) !important;
-  box-shadow: 0 0 0 1px rgba(120, 230, 255, 0.06), 0 16px 70px rgba(0,0,0,.24) !important;
-}
-
-.lexa-cinematic-film .hero-badge .bg-\[\#346bf1\] {
-  background: var(--lexa-cyan) !important;
-  box-shadow: 0 0 13px rgba(120, 230, 255, 0.8);
-}
-
-.lexa-cinematic-film .hero-subtitle {
-  max-width: 45rem !important;
-  color: var(--lexa-body) !important;
-  font-size: clamp(1rem, 1.5vw, 1.18rem) !important;
-}
-
-.lexa-cinematic-film .hero-actions button {
-  min-height: 3.45rem !important;
-  letter-spacing: 0.09em !important;
-}
-
-.lexa-cinematic-film .hero-actions button:first-child {
-  background: linear-gradient(135deg, var(--lexa-blue), #3566ea) !important;
-  box-shadow: 0 16px 40px rgba(52,107,241,.27), inset 0 1px 0 rgba(255,255,255,.19) !important;
-}
-
-.lexa-cinematic-film .hero-actions button:last-child {
-  border-color: rgba(161, 192, 255, 0.22) !important;
-  background: rgba(15, 24, 39, 0.52) !important;
-}
-
-.lexa-cinematic-film .hero-actions button:last-child:hover {
-  border-color: rgba(120, 230, 255, 0.5) !important;
-  background: rgba(77, 125, 255, 0.12) !important;
-}
-
-/* ─── 4. Workspace preview: clearer layering and calmer code surface ────── */
-.lexa-cinematic-film .hero-monolith > div.relative {
-  border-color: rgba(154, 188, 255, 0.2) !important;
-  background: linear-gradient(145deg, rgba(18, 28, 45, 0.94), rgba(9, 14, 25, 0.97)) !important;
-  box-shadow: 0 38px 130px rgba(0,0,0,.55), 0 0 0 1px rgba(120,230,255,.06), 0 0 90px rgba(52,107,241,.12) !important;
-}
-
-.lexa-cinematic-film .hero-monolith > div.relative::before {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  content: "";
-  pointer-events: none;
-  background: linear-gradient(110deg, rgba(255,255,255,.05), transparent 20%, transparent 75%, rgba(120,230,255,.03));
-}
-
-.lexa-cinematic-film .hero-monolith > div.relative > * {
+.feature-row > * {
   position: relative;
   z-index: 1;
 }
 
-.lexa-cinematic-film .hero-monolith .bg-\[\#191A1F\],
-.lexa-cinematic-film .hero-monolith .bg-\[\#202124\] {
-  background-color: rgba(10, 16, 28, 0.72) !important;
-}
-
-.lexa-cinematic-film .hero-monolith .bg-\[\#28292A\] {
-  background: rgba(49, 64, 87, 0.36) !important;
-}
-
-.lexa-cinematic-film .hero-monolith .text-emerald-400 {
-  color: var(--lexa-mint) !important;
-}
-
-.lexa-cinematic-film .hero-monolith .text-amber-400 {
-  color: var(--lexa-gold) !important;
-}
-
-.lexa-cinematic-film .hero-monolith .rounded-\[24px\] {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 18px 46px rgba(0,0,0,.17) !important;
-}
-
-/* ─── 5. Shared section language ───────────────────────────────────────── */
-.lexa-cinematic-film > div.bg-\[\#191A1F\] {
-  background:
-    linear-gradient(180deg, #0e1726 0%, #101827 28%, #10131d 72%, #090d16 100%) !important;
-}
-
-.lexa-cinematic-film .stats-section,
-.lexa-cinematic-film .models-section,
-.lexa-cinematic-film #faq {
-  background: rgba(14, 23, 38, 0.94) !important;
-}
-
-.lexa-cinematic-film .stats-section,
-.lexa-cinematic-film .models-section,
-.lexa-cinematic-film .pricing-section,
-.lexa-cinematic-film #features,
-.lexa-cinematic-film #faq {
-  border-color: var(--lexa-line) !important;
-}
-
-.lexa-cinematic-film .stats-section::before,
-.lexa-cinematic-film .models-section::before,
-.lexa-cinematic-film #features::before {
+.feature-row::before {
+  content: "";
   position: absolute;
   inset: 0;
-  content: "";
-  pointer-events: none;
-  background-image: linear-gradient(rgba(151,178,221,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(151,178,221,.035) 1px, transparent 1px);
-  background-size: 52px 52px;
-  mask-image: linear-gradient(90deg, transparent, black 20%, black 80%, transparent);
-}
-
-.lexa-cinematic-film .stats-section > *,
-.lexa-cinematic-film .models-section > *,
-.lexa-cinematic-film #features > * {
-  position: relative;
-  z-index: 1;
-}
-
-.lexa-cinematic-film .stat-card,
-.lexa-cinematic-film .feature-story-item,
-.lexa-cinematic-film .model-stage-card,
-.lexa-cinematic-film .pricing-column,
-.lexa-cinematic-film article.rounded-\[24px\] {
-  border-color: rgba(161, 192, 255, 0.14) !important;
-  background: linear-gradient(145deg, rgba(29, 42, 62, 0.8), rgba(16, 25, 40, 0.86)) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 24px 80px rgba(0,0,0,.18) !important;
-}
-
-.lexa-cinematic-film .stat-card:hover,
-.lexa-cinematic-film .feature-story-item:hover,
-.lexa-cinematic-film .pricing-column:hover,
-.lexa-cinematic-film article.rounded-\[24px\]:hover {
-  border-color: rgba(120, 230, 255, 0.42) !important;
-  background: linear-gradient(145deg, rgba(39, 57, 84, 0.94), rgba(18, 29, 49, 0.95)) !important;
-  box-shadow: 0 28px 90px rgba(0,0,0,.28), 0 0 44px rgba(77,125,255,.1) !important;
-}
-
-.lexa-cinematic-film .stat-card .font-display {
-  background: linear-gradient(120deg, #fff 0%, #a9c3ff 55%, #77e6ff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent !important;
-}
-
-.lexa-cinematic-film .stat-card .text-\[\#F3F4F6\]\/65,
-.lexa-cinematic-film .feature-story-item .text-\[\#F3F4F6\]\/65,
-.lexa-cinematic-film .model-stage-card .text-\[\#F3F4F6\]\/65,
-.lexa-cinematic-film .pricing-column .text-\[\#F3F4F6\]\/65,
-.lexa-cinematic-film #faq .text-\[\#F3F4F6\]\/65 {
-  color: var(--lexa-body) !important;
-}
-
-/* ─── 6. Features: selected-state clarity and a richer command surface ──── */
-.lexa-cinematic-film .feature-story-item {
-  border-left-width: 2px !important;
-}
-
-.lexa-cinematic-film .feature-story-item.border-\[\#346bf1\]\/50 {
-  border-color: rgba(120, 230, 255, 0.55) !important;
-  border-left-color: var(--lexa-cyan) !important;
-  background: linear-gradient(120deg, rgba(52,107,241,.2), rgba(18,29,49,.93)) !important;
-  box-shadow: 0 26px 70px rgba(0,0,0,.24), inset 3px 0 0 rgba(120,230,255,.75) !important;
-}
-
-.lexa-cinematic-film .feature-story-item .text-\[\#346bf1\],
-.lexa-cinematic-film .feature-story-item .text-\[\#6e96ff\] {
-  color: var(--lexa-blue-bright) !important;
-}
-
-.lexa-cinematic-film .feature-story-item:hover .font-display {
-  color: #ffffff !important;
-}
-
-.lexa-cinematic-film .lg\:sticky .rounded-\[32px\] {
-  border-color: rgba(120, 230, 255, 0.2) !important;
-  background:
-    radial-gradient(circle at 85% 11%, rgba(77,125,255,.16), transparent 31%),
-    linear-gradient(145deg, rgba(23,36,58,.96), rgba(12,19,32,.98)) !important;
-  box-shadow: 0 30px 95px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.055) !important;
-}
-
-.lexa-cinematic-film .lg\:sticky .rounded-\[32px\] .border-b,
-.lexa-cinematic-film .lg\:sticky .rounded-\[32px\] .border-t {
-  border-color: rgba(161,192,255,.1) !important;
-}
-
-.lexa-cinematic-film .lg\:sticky .rounded-\[32px\] .bg-\[\#191A1F\]\/40,
-.lexa-cinematic-film .lg\:sticky .rounded-\[32px\] .bg-\[\#28292A\] {
-  background-color: rgba(6, 13, 24, 0.45) !important;
-}
-
-/* ─── 7. Intelligence mesh: more legible selection and metrics ─────────── */
-.lexa-cinematic-film .models-section .inline-flex.rounded-full {
-  border-color: rgba(161,192,255,.18) !important;
-  background: rgba(5, 10, 18, 0.62) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 14px 45px rgba(0,0,0,.2) !important;
-}
-
-.lexa-cinematic-film .models-section .bg-\[\#346bf1\] {
-  background: linear-gradient(135deg, var(--lexa-blue), #3f6ef1) !important;
-  box-shadow: 0 9px 23px rgba(52,107,241,.28) !important;
-}
-
-.lexa-cinematic-film .model-stage-card {
-  border-color: rgba(130, 167, 255, 0.19) !important;
-  background:
-    radial-gradient(circle at 92% 13%, rgba(120,230,255,.11), transparent 25%),
-    linear-gradient(145deg, #161f31, #0e1524) !important;
-}
-
-.lexa-cinematic-film .model-stage-card .bg-\[\#202124\] {
-  border-color: rgba(161,192,255,.12) !important;
-  background: rgba(6, 12, 22, 0.5) !important;
-}
-
-.lexa-cinematic-film .model-stage-card .h-full.rounded-full {
-  background: linear-gradient(90deg, var(--lexa-blue), var(--lexa-cyan)) !important;
-  box-shadow: 0 0 13px rgba(120,230,255,.52);
-}
-
-/* ─── 8. Pricing and FAQ: hierarchy, confidence, and comfortable rhythm ── */
-.lexa-cinematic-film .pricing-column {
-  min-height: 100%;
-}
-
-.lexa-cinematic-film .pricing-column.ring-1 {
-  border-color: rgba(120,230,255,.55) !important;
-  background:
-    linear-gradient(180deg, rgba(77,125,255,.2), rgba(22,34,54,.97) 52%, rgba(14,21,35,.98)) !important;
-  box-shadow: 0 32px 95px rgba(0,0,0,.32), 0 0 62px rgba(77,125,255,.12), inset 0 1px 0 rgba(255,255,255,.1) !important;
-}
-
-.lexa-cinematic-film .pricing-column .absolute.-top-3\.5 {
-  background: linear-gradient(135deg, var(--lexa-blue-light), var(--lexa-blue)) !important;
-  box-shadow: 0 10px 25px rgba(52,107,241,.32) !important;
-}
-
-.lexa-cinematic-film .pricing-column li > div {
-  border-color: rgba(120,230,255,.3) !important;
-  color: var(--lexa-cyan) !important;
-  background: rgba(77,125,255,.1) !important;
-}
-
-.lexa-cinematic-film #faq article.rounded-\[24px\] {
-  overflow: clip;
-}
-
-.lexa-cinematic-film #faq article.rounded-\[24px\] button {
-  transition: background-color .22s ease, color .22s ease;
-}
-
-.lexa-cinematic-film #faq article.rounded-\[24px\] button:hover {
-  background: rgba(77,125,255,.08);
-}
-
-.lexa-cinematic-film #faq article.rounded-\[24px\] .text-\[\#346bf1\] {
-  color: var(--lexa-cyan) !important;
-}
-
-/* ─── 9. Final CTA and footer: a quieter, stronger finish ──────────────── */
-.lexa-cinematic-film .relative.rounded-\[40px\].border {
-  border-color: rgba(120,230,255,.3) !important;
-  background:
-    radial-gradient(circle at 50% 18%, rgba(77,125,255,.25), transparent 33%),
-    linear-gradient(145deg, #141f34, #070b13 74%) !important;
-  box-shadow: 0 36px 105px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.07) !important;
-}
-
-.lexa-cinematic-film .relative.rounded-\[40px\].border .bg-\[\#346bf1\] {
-  background: linear-gradient(135deg, var(--lexa-blue), #2e5bda) !important;
-  box-shadow: 0 14px 38px rgba(52,107,241,.32) !important;
-}
-
-.lexa-cinematic-film footer {
-  background:
-    linear-gradient(180deg, rgba(7,12,22,.95), #03050a) !important;
-  border-color: var(--lexa-line) !important;
-}
-
-.lexa-cinematic-film footer a:hover {
-  color: var(--lexa-cyan) !important;
-}
-
-.lexa-cinematic-film footer .bg-\[\#346bf1\]\/10 {
-  border-color: rgba(120,230,255,.24) !important;
-  color: var(--lexa-cyan) !important;
-  background: rgba(77,125,255,.1) !important;
-}
-
-/* ─── 10. Global micro-interactions, safe focus styles, and mobile polish ─ */
-.lexa-cinematic-film button,
-.lexa-cinematic-film a {
-  transition-timing-function: cubic-bezier(.22, 1, .36, 1);
-}
-
-.lexa-cinematic-film button:focus-visible,
-.lexa-cinematic-film a:focus-visible {
-  outline: 2px solid var(--lexa-cyan) !important;
-  outline-offset: 4px;
-}
-
-.lexa-cinematic-film button:active {
-  transform: scale(.975);
-}
-
-.lexa-cinematic-film .hero-actions button:active,
-.lexa-cinematic-film .pricing-column button:active {
-  transform: scale(.97);
-}
-
-@media (max-width: 1023px) {
-  .lexa-cinematic-film .hero-section {
-    min-height: auto;
-    padding-top: 9rem;
-  }
-
-  .lexa-cinematic-film .hero-monolith {
-    max-width: 880px;
-  }
-
-  .lexa-cinematic-film .feature-story-item {
-    min-height: auto;
-  }
-}
-
-@media (max-width: 767px) {
-  .lexa-cinematic-film header.fixed {
-    height: 65px;
-  }
-
-  .lexa-cinematic-film header.fixed .mx-auto.max-w-7xl {
-    height: 65px;
-  }
-
-  .lexa-cinematic-film .hero-section {
-    padding-top: 7.8rem;
-    padding-bottom: 4.5rem;
-  }
-
-  .lexa-cinematic-film .hero-badge {
-    margin-bottom: 1.5rem !important;
-  }
-
-  .lexa-cinematic-film .hero-monolith > div.relative {
-    border-radius: 21px;
-  }
-
-  .lexa-cinematic-film .hero-monolith .p-6,
-  .lexa-cinematic-film .hero-monolith .md\\:p-10 {
-    padding: 1rem !important;
-  }
-
-  .lexa-cinematic-film .stat-card,
-  .lexa-cinematic-film .feature-story-item,
-  .lexa-cinematic-film .pricing-column,
-  .lexa-cinematic-film article.rounded-\[24px\] {
-    border-radius: 18px !important;
-  }
-
-  .lexa-cinematic-film .lg\\:sticky .rounded-\[32px\],
-  .lexa-cinematic-film .model-stage-card {
-    border-radius: 21px !important;
-  }
-
-  .lexa-cinematic-film .relative.rounded-\[40px\].border {
-    border-radius: 24px !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .lexa-cinematic-film .flame-wave-layer-1,
-  .lexa-cinematic-film .flame-wave-layer-2,
-  .lexa-cinematic-film .hero-section::before,
-  .lexa-cinematic-film .stat-card,
-  .lexa-cinematic-film .feature-story-item,
-  .lexa-cinematic-film .pricing-column {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-`;
-
-/*
-  Aurora gas animation layer
-  Six blurred layers produce wide, flowing ribbons instead of thin neon lines.
-  Only transform and opacity animate, preserving rendering performance.
-*/
-const LEXA_AURORA_GAS_CSS = `
-.lexa-aurora-gas {
-  position: fixed;
   z-index: 0;
-  inset: -20vh -18vw;
+  background: #fff;
+  transform: translateY(101%);
+  transition: transform 0.55s var(--lexa-ease-in-out);
+}
+
+.feature-row:hover,
+.feature-row.is-active {
+  color: #000 !important;
+  padding-left: 18px;
+}
+
+.feature-row:hover::before,
+.feature-row.is-active::before {
+  transform: translateY(0);
+}
+
+.feature-number {
+  color: currentColor;
+  opacity: 0.55;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.feature-icon svg {
+  width: 29px;
+  height: 29px;
+  transition: transform 0.5s var(--lexa-ease-out);
+}
+
+.feature-row:hover .feature-icon svg,
+.feature-row.is-active .feature-icon svg {
+  transform: rotate(-7deg) scale(1.08);
+}
+
+.feature-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.feature-copy small {
+  margin-bottom: 18px;
+  opacity: 0.58;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+}
+
+.feature-copy strong {
+  font-size: clamp(25px, 3vw, 46px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.feature-copy p {
+  max-width: 590px;
+  margin: 24px 0 0;
+  opacity: 0.62;
+  font-size: 15px;
+  font-weight: 370;
+  line-height: 1.42;
+}
+
+.feature-arrow {
+  align-self: center;
+}
+
+.feature-arrow svg {
+  width: 23px;
+  transition: transform 0.45s var(--lexa-ease-out);
+}
+
+.feature-row:hover .feature-arrow svg,
+.feature-row.is-active .feature-arrow svg {
+  transform: translateX(5px);
+}
+
+.models-section {
+  position: relative;
+  z-index: 2;
+  padding: var(--lexa-section-y) 0;
+  background: #fff;
+  color: #000;
+}
+
+.models-heading > p {
+  color: rgba(0, 0, 0, 0.58);
+}
+
+.models-layout {
+  display: grid;
+  grid-template-columns: minmax(350px, 0.92fr) minmax(460px, 1.08fr);
+  gap: clamp(42px, 8vw, 130px);
+  align-items: start;
+}
+
+.model-tabs {
+  border-top: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.model-tabs button {
+  width: 100%;
+  min-height: 98px;
+  display: grid;
+  grid-template-columns: 46px 1fr auto 26px;
+  gap: 16px;
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2) !important;
+  color: #000 !important;
+  text-align: left;
+  transition:
+    padding-left 0.4s var(--lexa-ease-out),
+    background 0.3s ease;
+}
+
+.model-tabs button:hover,
+.model-tabs button.is-active {
+  padding-left: 16px;
+  background: #000;
+  color: #fff !important;
+}
+
+.model-tabs button > span,
+.model-tabs button > small {
+  opacity: 0.58;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.model-tabs button > strong {
+  font-size: clamp(21px, 2.2vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.model-tabs button svg {
+  width: 18px;
+  transition: transform 0.35s var(--lexa-ease-out);
+}
+
+.model-tabs button:hover svg,
+.model-tabs button.is-active svg {
+  transform: translateX(4px);
+}
+
+.model-detail {
+  position: sticky;
+  top: 106px;
+  min-height: 590px;
+  padding: clamp(30px, 4.5vw, 66px);
+  border: 1px solid rgba(0, 0, 0, 0.32);
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.055) 1px, transparent 1px), #f7f7f5;
+  background-size: 46px 46px;
+  animation: model-enter 0.62s var(--lexa-ease-out) both;
+}
+
+@keyframes model-enter {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+    filter: blur(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.model-detail-head {
+  display: flex;
+  justify-content: space-between;
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.model-detail h3 {
+  margin: clamp(60px, 8vw, 112px) 0 18px;
+  font-size: clamp(50px, 6.3vw, 96px);
+  font-weight: 560;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+}
+
+.model-detail > p {
+  max-width: 600px;
+  margin: 0;
+  color: rgba(0, 0, 0, 0.62);
+  font-size: clamp(17px, 1.5vw, 22px);
+  line-height: 1.35;
+}
+
+.model-specs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 48px;
+  border-top: 1px solid rgba(0, 0, 0, 0.22);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.22);
+}
+
+.model-specs > div {
+  min-height: 104px;
+  padding: 18px 12px 18px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid rgba(0, 0, 0, 0.18);
+}
+
+.model-specs > div:not(:first-child) {
+  padding-left: 16px;
+}
+.model-specs > div:last-child {
+  border-right: 0;
+}
+.model-specs span {
+  color: rgba(0, 0, 0, 0.52);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.model-specs strong {
+  font-size: 15px;
+  font-weight: 520;
+}
+
+.metric-list {
+  margin-top: 35px;
+}
+
+.metric {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 9px 20px;
+  margin-top: 18px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.metric > i {
+  grid-column: 1 / -1;
+  height: 2px;
   overflow: hidden;
-  pointer-events: none;
-  opacity: 0.65;
-  mix-blend-mode: screen;
-  transform: translateZ(0);
-  mask-image: linear-gradient(180deg, transparent 0%, transparent 45%, rgba(0,0,0,0.1) 60%, black 80%, black 90%, transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, transparent 45%, rgba(0,0,0,0.1) 60%, black 80%, black 90%, transparent 100%);
+  background: rgba(0, 0, 0, 0.13);
 }
 
-.lexa-aurora-gas::before {
-  position: absolute;
-  inset: 0;
-  content: "";
-  background:
-    linear-gradient(180deg, rgba(1, 4, 10, 0.02) 0%, transparent 28%, rgba(1, 4, 10, 0.56) 82%, rgba(1, 4, 10, 0.93) 100%),
-    radial-gradient(ellipse at 50% 0%, transparent 0%, rgba(1,4,10,0.12) 62%, rgba(1,4,10,0.52) 100%);
-}
-
-.lexa-aurora-gas__ribbon,
-.lexa-aurora-gas__cloud {
-  position: absolute;
+.metric > i > b {
   display: block;
-  will-change: transform, opacity;
-  transform: translate3d(0, 0, 0);
+  height: 100%;
+  background: #000;
+  animation: metric-grow 0.8s var(--lexa-ease-out) both;
+  transform-origin: left;
 }
 
-.lexa-aurora-gas__ribbon {
-  width: 142vw;
-  height: 22vh;
-  border-radius: 46% 54% 48% 52% / 67% 45% 55% 33%;
-  filter: blur(48px) saturate(1.1);
-  opacity: 0.35;
+@keyframes metric-grow {
+  from {
+    transform: scaleX(0);
+  }
 }
 
-.lexa-aurora-gas__ribbon--one {
-  top: 9vh;
-  left: -31vw;
+.pricing-section {
+  position: relative;
+  z-index: 2;
+  padding-top: var(--lexa-section-y);
+  padding-bottom: var(--lexa-section-y);
+  background: #000;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--lexa-line);
+  border-left: 1px solid var(--lexa-line);
+}
+
+.pricing-card {
+  min-height: 690px;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(26px, 3vw, 44px);
+  border-right: 1px solid var(--lexa-line);
+  border-bottom: 1px solid var(--lexa-line);
+  background: #000;
+  color: #fff;
+  transition:
+    transform 0.55s var(--lexa-ease-out),
+    background 0.35s ease,
+    color 0.35s ease;
+}
+
+.pricing-card:hover {
+  transform: translateY(-10px);
+}
+
+.pricing-card.is-featured {
+  background: #fff;
+  color: #000;
+}
+
+.pricing-index {
+  min-height: 50px;
+  color: currentColor;
+  opacity: 0.56;
+  font-size: 10px;
+  letter-spacing: 0.13em;
+}
+
+.pricing-card h3 {
+  margin: 32px 0 16px;
+  font-size: clamp(36px, 4vw, 62px);
+  font-weight: 520;
+  letter-spacing: -0.05em;
+}
+
+.pricing-description {
+  min-height: 50px;
+  margin: 0;
+  opacity: 0.64;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.pricing-price {
+  min-height: 150px;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-top: 44px;
+  padding: 28px 0;
+  border-top: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+}
+
+.pricing-price strong {
+  font-size: clamp(55px, 6vw, 92px);
+  font-weight: 520;
+  letter-spacing: -0.065em;
+}
+
+.pricing-price span {
+  opacity: 0.58;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.pricing-card ul {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 32px 0 40px;
+  padding: 0;
+  list-style: none;
+}
+
+.pricing-card li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  opacity: 0.78;
+  font-size: 13px;
+}
+
+.pricing-button {
+  width: 100%;
+  margin-top: auto;
+}
+
+.pricing-card:not(.is-featured) .pricing-button {
+  background: #fff !important;
+  color: #000 !important;
+}
+
+.pricing-card.is-featured .pricing-button {
+  background: #000 !important;
+  color: #fff !important;
+}
+
+.pricing-card:not(.is-featured) .pricing-button:hover {
+  background: #000 !important;
+  color: #fff !important;
+  box-shadow: inset 0 0 0 1px #fff;
+}
+
+.pricing-card.is-featured .pricing-button:hover {
+  background: #fff !important;
+  color: #000 !important;
+  box-shadow: inset 0 0 0 1px #000;
+}
+
+.faq-section {
+  position: relative;
+  z-index: 2;
+  padding-bottom: var(--lexa-section-y);
+  background: #000;
+}
+
+.faq-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.78fr) minmax(500px, 1.22fr);
+  gap: clamp(50px, 9vw, 150px);
+  padding-top: clamp(64px, 8vw, 122px);
+}
+
+.faq-layout .split-heading {
+  position: sticky;
+  top: 112px;
+  align-self: start;
+  font-size: clamp(48px, 6.4vw, 96px);
+}
+
+.faq-list {
+  border-top: 1px solid var(--lexa-line);
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--lexa-line);
+}
+
+.faq-item > button {
+  width: 100%;
+  min-height: 102px;
+  display: grid;
+  grid-template-columns: 48px 1fr 30px;
+  align-items: center;
+  gap: 18px;
+  color: #fff !important;
+  text-align: left;
+}
+
+.faq-item > button > span {
+  color: var(--lexa-muted);
+  font-size: 10px;
+}
+
+.faq-item > button > strong {
+  font-size: clamp(18px, 1.8vw, 27px);
+  font-weight: 470;
+  letter-spacing: -0.025em;
+}
+
+.faq-item > button svg {
+  width: 20px;
+  transition: transform 0.4s var(--lexa-ease-out);
+}
+
+.faq-item:hover > button svg {
+  transform: rotate(90deg);
+}
+
+.faq-answer {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.5s var(--lexa-ease-out),
+    opacity 0.35s ease;
+}
+
+.faq-answer > p {
+  min-height: 0;
+  overflow: hidden;
+  max-width: 720px;
+  margin: 0 48px 0 66px;
+  color: var(--lexa-muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.faq-item.is-open .faq-answer {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.faq-item.is-open .faq-answer > p {
+  padding-bottom: 34px;
+}
+
+.testimonials-section {
+  position: relative;
+  z-index: 2;
+  padding-bottom: var(--lexa-section-y);
+  background: #000;
+}
+
+.testimonial-grid {
+  min-height: 560px;
+  display: grid;
+  grid-template-columns: 150px 1fr 100px;
+  gap: 40px;
+  align-items: center;
+  border-bottom: 1px solid var(--lexa-line);
+}
+
+.quote-mark {
+  align-self: start;
+  width: 66px;
+  height: 66px;
+  margin-top: 70px;
+}
+
+.testimonial-copy {
+  animation: testimonial-in 0.7s var(--lexa-ease-out) both;
+}
+
+@keyframes testimonial-in {
+  from {
+    opacity: 0;
+    transform: translateY(36px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.testimonial-copy blockquote {
+  max-width: 1040px;
+  margin: 0;
+  font-size: clamp(38px, 5.8vw, 86px);
+  font-weight: 450;
+  letter-spacing: -0.05em;
+  line-height: 0.99;
+}
+
+.testimonial-copy > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 50px;
+  font-size: 13px;
+}
+
+.testimonial-copy > div strong {
+  font-weight: 520;
+}
+.testimonial-copy > div span {
+  color: var(--lexa-muted);
+}
+
+.testimonial-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.testimonial-controls button {
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--lexa-line) !important;
+  color: var(--lexa-muted) !important;
+  font-size: 10px !important;
+  transition:
+    background 0.25s ease,
+    color 0.25s ease;
+}
+
+.testimonial-controls button[aria-pressed="true"],
+.testimonial-controls button:hover {
+  background: #fff;
+  color: #000 !important;
+}
+
+.final-cta {
+  position: relative;
+  z-index: 2;
+  min-height: 90svh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+  border-top: 1px solid var(--lexa-line);
   background:
-    radial-gradient(ellipse at 13% 52%, rgba(54, 86, 255, 0.02) 0%, rgba(54, 86, 255, 0.48) 20%, transparent 45%),
-    radial-gradient(ellipse at 48% 48%, rgba(91, 143, 255, 0.6) 0%, rgba(91, 143, 255, 0.23) 31%, transparent 61%),
-    radial-gradient(ellipse at 78% 52%, rgba(97, 236, 255, 0.62) 0%, rgba(97, 236, 255, 0.15) 29%, transparent 55%);
-  animation: lexa-aurora-flow-one 23s cubic-bezier(.45, 0, .55, 1) infinite alternate;
+    radial-gradient(
+      circle at 74% 50%,
+      rgba(255, 255, 255, 0.1),
+      transparent 25vw
+    ),
+    #000;
 }
 
-.lexa-aurora-gas__ribbon--two {
-  top: 25vh;
-  left: -13vw;
-  height: 24vh;
-  border-radius: 57% 43% 59% 41% / 50% 61% 39% 50%;
-  background:
-    radial-gradient(ellipse at 20% 45%, rgba(123, 89, 255, 0.43) 0%, transparent 39%),
-    radial-gradient(ellipse at 49% 61%, rgba(61, 119, 255, 0.45) 0%, transparent 45%),
-    radial-gradient(ellipse at 85% 37%, rgba(126, 235, 255, 0.35) 0%, transparent 41%);
-  filter: blur(63px) saturate(1.4);
-  opacity: 0.34;
-  animation: lexa-aurora-flow-two 31s cubic-bezier(.42, 0, .58, 1) infinite alternate-reverse;
-}
-
-.lexa-aurora-gas__ribbon--three {
-  top: 45vh;
-  left: -45vw;
-  width: 155vw;
-  height: 29vh;
-  border-radius: 39% 61% 43% 57% / 69% 43% 57% 31%;
-  background:
-    radial-gradient(ellipse at 19% 52%, rgba(36, 72, 228, 0.3) 0%, transparent 42%),
-    radial-gradient(ellipse at 58% 40%, rgba(68, 132, 255, 0.52) 0%, rgba(68,132,255,0.18) 29%, transparent 59%),
-    radial-gradient(ellipse at 88% 65%, rgba(96, 236, 222, 0.42) 0%, transparent 42%);
-  filter: blur(72px) saturate(1.26);
-  opacity: 0.25;
-  animation: lexa-aurora-flow-three 37s cubic-bezier(.42, 0, .58, 1) infinite alternate;
-}
-
-.lexa-aurora-gas__ribbon--four {
-  top: 69vh;
-  left: -21vw;
-  height: 22vh;
-  border-radius: 51% 49% 63% 37% / 43% 59% 41% 57%;
-  background:
-    radial-gradient(ellipse at 17% 42%, rgba(94, 89, 247, 0.28) 0%, transparent 40%),
-    radial-gradient(ellipse at 55% 62%, rgba(77, 125, 255, 0.38) 0%, transparent 43%),
-    radial-gradient(ellipse at 81% 33%, rgba(120, 230, 255, 0.28) 0%, transparent 38%);
-  filter: blur(76px) saturate(1.18);
-  opacity: 0.2;
-  animation: lexa-aurora-flow-four 42s cubic-bezier(.45, 0, .55, 1) infinite alternate-reverse;
-}
-
-.lexa-aurora-gas__cloud {
-  width: 48vw;
+.final-cta::before {
+  content: "";
+  position: absolute;
+  right: -12vw;
+  top: 50%;
+  width: min(62vw, 900px);
   aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 50%;
-  filter: blur(105px) saturate(1.42);
-  opacity: 0.22;
+  transform: translateY(-50%);
+  animation: orbit-spin 32s linear infinite;
 }
 
-.lexa-aurora-gas__cloud--blue {
-  top: 12vh;
-  right: -13vw;
-  background: rgba(76, 123, 255, 0.9);
-  animation: lexa-aurora-cloud-blue 28s ease-in-out infinite alternate;
+.final-kicker {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 42px;
+  color: var(--lexa-muted);
+  font-size: 10px;
+  letter-spacing: 0.13em;
 }
 
-.lexa-aurora-gas__cloud--violet {
-  top: 50vh;
-  left: -16vw;
-  background: rgba(120, 89, 255, 0.72);
-  opacity: 0.14;
-  animation: lexa-aurora-cloud-violet 34s ease-in-out infinite alternate-reverse;
+.final-cta .split-heading {
+  position: relative;
+  z-index: 1;
+  max-width: 1120px;
+  font-size: clamp(58px, 9.5vw, 146px);
 }
 
-@keyframes lexa-aurora-flow-one {
-  0% { transform: translate3d(-4vw, -1vh, 0) rotate(-7deg) scale(1.02); opacity: 0.4; }
-  48% { transform: translate3d(17vw, 7vh, 0) rotate(5deg) scale(1.13); opacity: 0.63; }
-  100% { transform: translate3d(34vw, 2vh, 0) rotate(10deg) scale(1.05); opacity: 0.46; }
+.final-button {
+  position: relative;
+  z-index: 1;
+  margin-top: 58px;
+  min-width: 250px;
 }
 
-@keyframes lexa-aurora-flow-two {
-  0% { transform: translate3d(28vw, 2vh, 0) rotate(10deg) scale(1.04); opacity: 0.28; }
-  52% { transform: translate3d(4vw, -7vh, 0) rotate(-5deg) scale(1.18); opacity: 0.45; }
-  100% { transform: translate3d(-18vw, 3vh, 0) rotate(-12deg) scale(1.07); opacity: 0.3; }
+.site-footer {
+  position: relative;
+  z-index: 2;
+  padding-top: 72px;
+  padding-bottom: 28px;
+  border-top: 1px solid var(--lexa-line);
+  background: #000;
 }
 
-@keyframes lexa-aurora-flow-three {
-  0% { transform: translate3d(-2vw, 5vh, 0) rotate(4deg) scale(1); opacity: 0.18; }
-  50% { transform: translate3d(19vw, -4vh, 0) rotate(-7deg) scale(1.16); opacity: 0.34; }
-  100% { transform: translate3d(31vw, 7vh, 0) rotate(7deg) scale(1.04); opacity: 0.22; }
+.footer-top {
+  display: grid;
+  grid-template-columns: repeat(3, 150px) 1fr;
+  gap: 44px;
 }
 
-@keyframes lexa-aurora-flow-four {
-  0% { transform: translate3d(18vw, -4vh, 0) rotate(-5deg) scale(1.08); opacity: 0.16; }
-  50% { transform: translate3d(-6vw, 5vh, 0) rotate(7deg) scale(1.2); opacity: 0.27; }
-  100% { transform: translate3d(-21vw, -2vh, 0) rotate(-8deg) scale(1.1); opacity: 0.17; }
+.footer-top > div:not(.footer-status) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 11px;
 }
 
-@keyframes lexa-aurora-cloud-blue {
-  0% { transform: translate3d(0, 0, 0) scale(.9); opacity: .14; }
-  50% { transform: translate3d(-14vw, 8vh, 0) scale(1.25); opacity: .31; }
-  100% { transform: translate3d(-6vw, 17vh, 0) scale(1.06); opacity: .19; }
+.footer-top > div > span {
+  margin-bottom: 9px;
+  color: var(--lexa-muted);
+  font-size: 9px;
+  letter-spacing: 0.13em;
 }
 
-@keyframes lexa-aurora-cloud-violet {
-  0% { transform: translate3d(0, 0, 0) scale(.94); opacity: .08; }
-  50% { transform: translate3d(19vw, -15vh, 0) scale(1.28); opacity: .22; }
-  100% { transform: translate3d(31vw, 6vh, 0) scale(1.06); opacity: .11; }
+.footer-top a,
+.footer-top button {
+  min-height: 24px;
+  color: rgba(255, 255, 255, 0.72) !important;
+  font-size: 13px !important;
+  transition: color 0.2s ease;
 }
 
-@media (max-width: 767px) {
-  .lexa-aurora-gas { inset: -12vh -48vw; opacity: 0.72; }
-  .lexa-aurora-gas__ribbon { width: 190vw; filter: blur(44px) saturate(1.25); }
-  .lexa-aurora-gas__ribbon--one { top: 7vh; }
-  .lexa-aurora-gas__ribbon--two { top: 24vh; }
-  .lexa-aurora-gas__ribbon--three { top: 48vh; }
-  .lexa-aurora-gas__ribbon--four { top: 72vh; }
-  .lexa-aurora-gas__cloud { width: 110vw; filter: blur(84px); }
+.footer-top a:hover,
+.footer-top button:hover {
+  color: #fff !important;
+}
+
+.footer-status {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  align-self: start;
+  color: var(--lexa-muted);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.footer-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px #fff;
+}
+
+.footer-word {
+  margin: clamp(100px, 13vw, 210px) -0.04em 0;
+  overflow: hidden;
+  font-size: clamp(130px, 28.2vw, 430px);
+  font-weight: 580;
+  letter-spacing: -0.082em;
+  line-height: 0.65;
+  white-space: nowrap;
+}
+
+.footer-bottom {
+  min-height: 70px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 46px;
+  padding-top: 20px;
+  border-top: 1px solid var(--lexa-line);
+  color: var(--lexa-muted);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.footer-bottom button {
+  min-height: 38px;
+  color: #fff !important;
+  font-size: 9px !important;
+  letter-spacing: 0.12em;
+}
+
+@media (max-width: 1100px) {
+  .desktop-nav {
+    display: none;
+  }
+  .site-header {
+    grid-template-columns: 1fr auto;
+  }
+  .header-edition {
+    display: none;
+  }
+  .menu-toggle {
+    display: inline-flex;
+  }
+
+  .hero-line-indent {
+    padding-left: 7vw;
+  }
+  .hero-lower {
+    grid-template-columns: 1fr minmax(300px, 440px);
+  }
+
+  .features-layout,
+  .models-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-sticky,
+  .model-detail {
+    position: relative;
+    top: auto;
+  }
+
+  .feature-preview {
+    min-height: 540px;
+  }
+  .faq-layout {
+    grid-template-columns: 0.72fr 1.28fr;
+    gap: 54px;
+  }
+}
+
+@media (max-width: 820px) {
+  :root {
+    --lexa-section-y: 92px;
+  }
+
+  .site-header {
+    height: 66px;
+  }
+  .header-cta {
+    display: none;
+  }
+  .brand {
+    min-height: 42px;
+  }
+
+  .hero-section {
+    min-height: auto;
+    padding-top: 126px;
+  }
+
+  .hero-eyebrow span:last-child {
+    display: none;
+  }
+  .hero-copy h1 {
+    font-size: clamp(54px, 14vw, 92px);
+    line-height: 0.9;
+  }
+  .hero-line-indent {
+    padding-left: 0;
+  }
+  .hero-lower {
+    display: block;
+    margin-top: 42px;
+  }
+  .hero-summary {
+    max-width: 560px;
+  }
+  .hero-actions {
+    margin-top: 30px;
+  }
+  .hero-stage {
+    height: 590px;
+    margin-top: 76px;
+    background-size: 48px 48px;
+  }
+  .hero-stage-core {
+    width: calc(100% - 42px);
+    grid-template-columns: 40px 1fr;
+    padding: 26px;
+  }
+  .stage-orbit {
+    width: 300px;
+  }
+  .hero-stage-top span:last-child,
+  .hero-stage-bottom span:last-child {
+    display: none;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .stat-item {
+    min-height: 250px;
+    border-bottom: 1px solid var(--lexa-line-soft);
+  }
+  .stat-item:nth-child(2) {
+    border-right: 0;
+  }
+
+  .section-heading-row {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    padding: 60px 0 82px;
+  }
+  .split-heading {
+    font-size: clamp(48px, 12vw, 80px);
+  }
+  .section-heading-row > p {
+    max-width: 590px;
+  }
+
+  .feature-row {
+    min-height: 240px;
+    grid-template-columns: 42px 42px 1fr 24px;
+    gap: 12px;
+  }
+  .feature-copy p {
+    font-size: 14px;
+  }
+
+  .model-detail {
+    min-height: 530px;
+  }
+  .model-detail h3 {
+    margin-top: 70px;
+  }
+
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+  .pricing-card {
+    min-height: 620px;
+  }
+  .pricing-card:hover {
+    transform: none;
+  }
+
+  .faq-layout {
+    grid-template-columns: 1fr;
+  }
+  .faq-layout .split-heading {
+    position: relative;
+    top: auto;
+    margin-bottom: 30px;
+  }
+
+  .testimonial-grid {
+    grid-template-columns: 70px 1fr;
+    min-height: 520px;
+  }
+  .testimonial-controls {
+    grid-column: 2;
+    flex-direction: row;
+    margin-bottom: 40px;
+  }
+
+  .footer-top {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .footer-status {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-top: 20px;
+  }
+  .footer-word {
+    line-height: 0.74;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --lexa-gutter: 18px;
+  }
+
+  .mobile-menu {
+    padding-top: 102px;
+  }
+  .mobile-menu-links button {
+    min-height: 74px;
+  }
+  .mobile-menu-foot {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .hero-section {
+    padding-top: 112px;
+    padding-bottom: 70px;
+  }
+  .hero-copy h1 {
+    font-size: clamp(50px, 15vw, 76px);
+    letter-spacing: -0.06em;
+  }
+  .hero-summary {
+    font-size: 17px;
+  }
+  .hero-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .editorial-button {
+    width: 100%;
+    min-height: 52px;
+  }
+  .text-link {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .hero-stage {
+    min-height: 510px;
+    height: 510px;
+  }
+  .hero-stage-core {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 22px;
+  }
+  .hero-stage-core p {
+    font-size: 35px;
+  }
+  .stage-orbit {
+    right: -48%;
+    bottom: -35%;
+    width: 260px;
+  }
+  .hero-stage-bottom {
+    font-size: 8px;
+  }
+
+  .section-meta {
+    min-height: 46px;
+    font-size: 9px;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .stat-item {
+    min-height: 220px;
+    border-right: 0;
+  }
+  .stat-item > strong {
+    font-size: 68px;
+  }
+
+  .marquee-track span::after {
+    margin: 0 28px;
+  }
+
+  .feature-preview {
+    min-height: 480px;
+  }
+  .preview-body {
+    padding: 24px;
+  }
+  .preview-memory {
+    grid-template-columns: 1fr;
+  }
+  .memory-node {
+    min-height: 76px;
+  }
+  .render-frame {
+    height: 180px;
+  }
+  .feature-row {
+    min-height: 260px;
+    grid-template-columns: 30px 1fr 24px;
+    padding-right: 6px;
+  }
+  .feature-icon {
+    display: none;
+  }
+  .feature-copy strong {
+    font-size: 29px;
+  }
+  .feature-row:hover,
+  .feature-row.is-active {
+    padding-left: 10px;
+  }
+
+  .models-section {
+    padding-top: 86px;
+    padding-bottom: 86px;
+  }
+  .model-tabs button {
+    grid-template-columns: 34px 1fr 20px;
+    min-height: 82px;
+  }
+  .model-tabs button > small {
+    display: none;
+  }
+  .model-detail {
+    min-height: 0;
+    padding: 25px;
+  }
+  .model-detail h3 {
+    margin-top: 56px;
+    font-size: 52px;
+  }
+  .model-specs {
+    grid-template-columns: 1fr;
+  }
+  .model-specs > div {
+    min-height: 72px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+    padding-left: 0 !important;
+  }
+
+  .pricing-card {
+    min-height: 600px;
+    padding: 26px 22px;
+  }
+  .pricing-price {
+    min-height: 130px;
+  }
+
+  .faq-item > button {
+    grid-template-columns: 30px 1fr 24px;
+    gap: 10px;
+    min-height: 88px;
+  }
+  .faq-answer > p {
+    margin: 0 0 0 40px;
+    font-size: 15px;
+  }
+
+  .testimonial-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    min-height: 540px;
+  }
+  .quote-mark {
+    width: 48px;
+    height: 48px;
+    margin-top: 50px;
+  }
+  .testimonial-copy blockquote {
+    font-size: 40px;
+  }
+  .testimonial-controls {
+    grid-column: 1;
+  }
+
+  .final-cta {
+    min-height: 76svh;
+  }
+  .final-cta .split-heading {
+    font-size: 58px;
+  }
+  .final-button {
+    min-width: 0;
+  }
+
+  .footer-top {
+    grid-template-columns: 1fr 1fr;
+    gap: 42px 22px;
+  }
+  .footer-top > div:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+  .footer-word {
+    margin-top: 112px;
+    font-size: 35vw;
+  }
+  .footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lexa-aurora-gas__ribbon,
-  .lexa-aurora-gas__cloud { animation: none !important; }
+  .palomino-lexa *,
+  .palomino-lexa *::before,
+  .palomino-lexa *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .screen-loader {
+    display: none !important;
+  }
+  .marquee-track {
+    transform: translateX(0);
+  }
+  .film-cursor {
+    display: none;
+  }
 }
 `;
