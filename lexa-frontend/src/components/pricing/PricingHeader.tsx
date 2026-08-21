@@ -43,11 +43,11 @@ export function PricingHeader() {
 
         {/* Right CTA */}
         <div className="hidden md:flex items-center gap-4">
-          <Link to="/auth" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/chat" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Sign In
           </Link>
           <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6">
-            <Link to="/auth">Get Started</Link>
+            <Link to="/chat">Get Started</Link>
           </Button>
         </div>
 
@@ -78,10 +78,10 @@ export function PricingHeader() {
           ))}
           <div className="flex flex-col gap-3 mt-4">
             <Button asChild variant="outline" className="w-full justify-center">
-              <Link to="/auth">Sign In</Link>
+              <Link to="/chat">Sign In</Link>
             </Button>
             <Button asChild className="w-full justify-center bg-indigo-600 hover:bg-indigo-700 text-white">
-              <Link to="/auth">Get Started</Link>
+              <Link to="/chat">Get Started</Link>
             </Button>
           </div>
         </div>

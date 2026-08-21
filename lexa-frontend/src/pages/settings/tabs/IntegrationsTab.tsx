@@ -25,8 +25,10 @@ export function IntegrationsTab() {
 
 
   const [elevenlabsKey, setElevenlabsKey] = useState<KeyState>({
-    value: localStorage.getItem("lexa_elevenlabs_key") || import.meta.env.VITE_ELEVENLABS_API_KEY || "",
-    isSaved: Boolean(localStorage.getItem("lexa_elevenlabs_key") || import.meta.env.VITE_ELEVENLABS_API_KEY),
+    // SECURITY: Never use VITE_ env vars for API keys — they are baked into the JS bundle.
+    // Keys must only come from user input stored in localStorage.
+    value: localStorage.getItem("lexa_elevenlabs_key") || "",
+    isSaved: Boolean(localStorage.getItem("lexa_elevenlabs_key")),
     status: "untested",
   });
 

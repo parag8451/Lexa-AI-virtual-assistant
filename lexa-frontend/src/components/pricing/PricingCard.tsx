@@ -64,7 +64,7 @@ export function PricingCard({ plan, isYearly }: PricingCardProps) {
             plan.highlighted ? "bg-indigo-600 hover:bg-indigo-700 text-white" : ""
           }`}
         >
-          <a href="/auth">{plan.ctaText}</a>
+          <a href="/chat">{plan.ctaText}</a>
         </Button>
       </div>
 

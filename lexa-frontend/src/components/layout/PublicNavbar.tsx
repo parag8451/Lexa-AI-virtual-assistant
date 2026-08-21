@@ -95,13 +95,13 @@ export function PublicNavbar() {
             <>
               <Button
                 variant="ghost"
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/chat")}
                 className="rounded-full h-10 text-sm font-medium"
               >
                 Log in
               </Button>
               <Button
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/chat")}
                 className="rounded-full h-10 px-5 font-medium shadow-sm transition-transform active:scale-95"
               >
                 Get Started <ArrowRight className="w-4 h-4 ml-1.5" />
@@ -167,7 +167,7 @@ export function PublicNavbar() {
                   variant="outline"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    navigate("/auth");
+                    navigate("/chat");
                   }}
                   className="w-full justify-center rounded-full h-12 text-base font-medium"
                 >
@@ -176,7 +176,7 @@ export function PublicNavbar() {
                 <Button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    navigate("/auth");
+                    navigate("/chat");
                   }}
                   className="w-full justify-center rounded-full h-12 text-base font-medium"
                 >

@@ -48,6 +48,33 @@ export async function streamChatResponse({
     signal.addEventListener("abort", () => abortController.abort());
   }
 
+  // SECURITY: Input Validation & Bounds Checking
+  if (!messages || messages.length === 0) {
+    throw new Error("Message history cannot be empty");
+  }
+  if (messages.length > 100) {
+    throw new Error("Message history exceeds maximum allowed length (100)");
+  }
+  
+  // Validate individual message sizes to prevent payload DoS
+  const MAX_CHARS_PER_MSG = 150000; // ~50k tokens
+  for (const msg of messages) {
+    if (msg.content && msg.content.length > MAX_CHARS_PER_MSG) {
+      throw new Error("Individual message length exceeds maximum limit");
+    }
+  }
+
+  // Validate allowed models to prevent prompt injection / model overriding
+  const ALLOWED_MODELS = [
+    "gemini-3.5-flash", "gemini-3.5-pro", "gemini-3.5-flash-8b",
+    "gpt-4o", "gpt-4o-mini", "claude-3-5-sonnet",
+    "llama-3.1-70b-versatile", "llama3-8b-8192"
+  ];
+  const validatedModel = ALLOWED_MODELS.includes(model) ? model : "gemini-3.5-flash";
+
+  const ALLOWED_MODES = ["assistant", "design", "code"];
+  const validatedMode = ALLOWED_MODES.includes(mode) ? mode : "assistant";
+
   // Get current auth session if present
   let authHeader: Record<string, string> = {};
   try {
@@ -62,9 +89,9 @@ export async function streamChatResponse({
   const payload = {
     messages,
     attachments,
-    model,
+    model: validatedModel,
     webSearch,
-    mode,
+    mode: validatedMode,
   };
 
   let response: Response | null = null;

@@ -1,112 +1,73 @@
-import { ReactNode } from "react";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import {  ArrowUpRight, MessageSquare, Bot } from "lucide-react";
-import { CustomCursor } from "@/components/ui/CustomCursor";
-import { Card } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { LogoIcon } from "@/components/ui/LogoIcon";
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
 interface AuthLayoutProps {
-  leftPanel: ReactNode;
-  rightPanel: ReactNode;
+  leftPanel: React.ReactNode;
+  rightPanel: React.ReactNode;
+  className?: string;
 }
 
-export function AuthLayout({ leftPanel, rightPanel }: AuthLayoutProps) {
+/**
+ * Full-screen, forced-dark auth shell. The `dark` class guarantees a true black
+ * UI regardless of the app theme, and a layered CSS background (gradient orbs +
+ * masked grid + vignette) provides depth without any JS/canvas cost.
+ */
+export function AuthLayout({ leftPanel, rightPanel, className }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen w-full relative flex flex-col justify-between overflow-x-hidden font-sans bg-background text-foreground selection:bg-[#FF8A65]/30 selection:text-[#752305]">
-      {/* Interactive Mix-blend Cursor */}
-      <CustomCursor />
-
-      {/* ─── Background Layer: Soft Atmospheric Ethereal Gradients ─── */}
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        {/* Top Sky Blue & Soft Violet Ambient Wash */}
-        <div className="absolute top-0 left-0 right-0 h-[650px] bg-gradient-to-b from-[#38BDF8]/20 via-[#C084FC]/10 to-transparent" />
-        
-        {/* Soft Radial Ambient Glow Orbs */}
-        <div className="absolute top-[15%] left-[10%] w-[450px] h-[450px] rounded-full bg-[#38BDF8]/15 blur-[120px]" />
-        <div className="absolute top-[25%] right-[15%] w-[500px] h-[500px] rounded-full bg-[#C084FC]/15 blur-[140px]" />
-        <div className="absolute bottom-[10%] left-[30%] w-[400px] h-[400px] rounded-full bg-[#FF5E3A]/10 blur-[130px]" />
-
-        {/* Delicate Horizon Dot Pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.25] dark:opacity-[0.15]"
-          style={{
-            backgroundImage: "radial-gradient(circle, #a855f7 1px, transparent 1px)",
-            backgroundSize: "32px 32px",
-          }}
-        />
+    <div
+      className={cn(
+        "dark relative flex min-h-screen w-full overflow-hidden bg-[#050506] text-foreground antialiased",
+        className,
+      )}
+    >
+      <AuthBackground />
+      <div className="relative z-10 grid min-h-screen w-full lg:grid-cols-2">
+        <div className="relative hidden items-center justify-center border-r border-white/5 p-12 lg:flex">
+          <div className="relative w-full max-w-lg">{leftPanel}</div>
+        </div>
+        <div className="flex items-center justify-center p-6 sm:p-10">{rightPanel}</div>
       </div>
+    </div>
+  );
+}
 
-      {/* ─── Floating Horizon Pill Navigation ─── */}
-      <header className="fixed top-5 left-1/2 -translate-x-1/2 w-[94%] max-w-6xl rounded-full border border-white/60 dark:border-white/10 bg-white/40 dark:bg-zinc-950/40 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.04)] z-50 flex justify-between items-center py-2.5 px-5 transition-all">
-        {/* Logo */}
-        <Link
-          to="/"
-          className="flex items-center gap-2.5 group transition-transform active:scale-95"
-        >
-          <LogoIcon className="w-8 h-8 rounded-full" />
-          <span className="font-extrabold text-lg tracking-tight text-foreground font-sans">
-            Lexa<span className="text-[#FF5E3A] font-semibold">.ai</span>
-          </span>
-        </Link>
-
-        {/* Center Pill Links */}
-        <nav className="hidden md:flex items-center gap-6 text-xs font-semibold tracking-wide uppercase text-muted-foreground">
-          <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
-          <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-          <a href="#models" className="hover:text-foreground transition-colors">Models</a>
-          <a href="#security" className="hover:text-foreground transition-colors">Security</a>
-        </nav>
-
-        {/* Action Button */}
-        <div className="flex items-center gap-3">
-          <Link
-            to="/chat"
-            className="inline-flex items-center gap-1.5 bg-white/60 dark:bg-white/10 border border-white/80 dark:border-white/20 text-foreground text-xs font-semibold px-4 py-2 rounded-full shadow-sm hover:bg-white/90 dark:hover:bg-white/20 transition-all active:scale-95"
-          >
-            <span>Open Chat</span>
-            <ArrowUpRight className="w-3.5 h-3.5 opacity-70" />
-          </Link>
-        </div>
-      </header>
-
-      {/* ─── Main Content Split Layout ─── */}
-      <main className="flex-1 max-w-7xl mx-auto w-full pt-28 pb-12 px-4 sm:px-6 lg:px-8 flex items-center">
-        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Panel: Horizon Interactive App Showcase */}
-          <motion.div
-            initial={{ opacity: 0, x: -24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="lg:col-span-7 flex flex-col justify-center py-4"
-          >
-            {leftPanel}
-          </motion.div>
-
-          {/* Right Panel: Frosted Glass Form Container */}
-          <motion.div
-            initial={{ opacity: 0, x: 24, scale: 0.98 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="lg:col-span-5 flex justify-center py-4"
-          >
-            {rightPanel}
-          </motion.div>
-        </div>
-      </main>
-
-      {/* ─── Minimalist Footer ─── */}
-      <footer className="w-full py-6 text-center text-xs text-muted-foreground/80 border-t border-border/10 z-10">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>© {new Date().getFullYear()} Lexa AI. Built for the next era of intelligent interaction.</p>
-          <div className="flex items-center gap-5">
-            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
-            <Link to="/contact" className="hover:text-foreground transition-colors">Contact Support</Link>
-          </div>
-        </div>
-      </footer>
+function AuthBackground() {
+  return (
+    <div aria-hidden="true" className="lx-auth-bg">
+      <div className="lx-auth-base" />
+      <div className="lx-auth-orb o1" />
+      <div className="lx-auth-orb o2" />
+      <div className="lx-auth-orb o3" />
+      <div className="lx-auth-grid" />
+      <div className="lx-auth-vignette" />
+      <style>{`
+        .lx-auth-bg { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+        .lx-auth-base { position:absolute; inset:0; background:
+          radial-gradient(1100px 600px at 50% -12%, rgba(124,92,255,0.22), transparent 60%),
+          radial-gradient(900px 520px at 100% 108%, rgba(34,211,238,0.12), transparent 55%),
+          radial-gradient(700px 500px at 0% 100%, rgba(217,70,239,0.10), transparent 55%),
+          #050506; }
+        .lx-auth-grid { position:absolute; inset:0; opacity:0.5;
+          background-image:
+            linear-gradient(to right, rgba(255,255,255,0.045) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255,255,255,0.045) 1px, transparent 1px);
+          background-size:46px 46px;
+          -webkit-mask-image: radial-gradient(ellipse at 50% 38%, #000 28%, transparent 72%);
+          mask-image: radial-gradient(ellipse at 50% 38%, #000 28%, transparent 72%); }
+        .lx-auth-orb { position:absolute; border-radius:9999px; filter:blur(72px); opacity:0.55; will-change:transform; }
+        .lx-auth-orb.o1 { width:440px; height:440px; left:-70px; top:-90px;
+          background:radial-gradient(circle, rgba(124,92,255,0.9), transparent 70%); animation:lxFloatA 20s ease-in-out infinite; }
+        .lx-auth-orb.o2 { width:400px; height:400px; right:-60px; top:18%;
+          background:radial-gradient(circle, rgba(34,211,238,0.75), transparent 70%); animation:lxFloatB 24s ease-in-out infinite; }
+        .lx-auth-orb.o3 { width:380px; height:380px; left:26%; bottom:-140px;
+          background:radial-gradient(circle, rgba(217,70,239,0.7), transparent 70%); animation:lxFloatC 28s ease-in-out infinite; }
+        .lx-auth-vignette { position:absolute; inset:0;
+          background:radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.82) 100%); }
+        @keyframes lxFloatA { 0%,100%{transform:translate(0,0)} 50%{transform:translate(46px,34px)} }
+        @keyframes lxFloatB { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-38px,44px)} }
+        @keyframes lxFloatC { 0%,100%{transform:translate(0,0)} 50%{transform:translate(28px,-34px)} }
+        @media (prefers-reduced-motion: reduce) { .lx-auth-orb { animation:none !important; } }
+      `}</style>
     </div>
   );
 }

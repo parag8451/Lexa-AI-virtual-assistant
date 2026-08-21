@@ -12,6 +12,13 @@ interface UseAuthRateLimitOptions {
   windowDuration?: number; // in seconds
 }
 
+/**
+ * SECURITY NOTE: This is a CLIENT-SIDE rate limiter for UX purposes only.
+ * It can be trivially bypassed by clearing localStorage or using DevTools.
+ * Real rate limiting MUST be enforced server-side (Supabase Edge Functions,
+ * API gateway, or middleware). This hook only provides a better user experience
+ * by showing lockout UI before the server would reject the request anyway.
+ */
 const STORAGE_KEY = "auth_rate_limit";
 
 export function useAuthRateLimit(options: UseAuthRateLimitOptions = {}) {

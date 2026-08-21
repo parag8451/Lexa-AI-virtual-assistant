@@ -1,0 +1,314 @@
+﻿
+  src\pages\Landing.tsx:202:] as const;
+  src\pages\Landing.tsx:203:
+> src\pages\Landing.tsx:204:const PRICING = [
+  src\pages\Landing.tsx:205:  {
+  src\pages\Landing.tsx:206:    name: "Free",
+  src\pages\Landing.tsx:207:    price: "$0",
+  src\pages\Landing.tsx:208:    period: "forever",
+  src\pages\Landing.tsx:209:    description: "Essential intelligence for personal exploration.",
+  src\pages\Landing.tsx:210:    features: [
+  src\pages\Landing.tsx:211:      "100 messages/day",
+  src\pages\Landing.tsx:212:      "GPT-4o mini access",
+  src\pages\Landing.tsx:213:      "Real-time web search",
+  src\pages\Landing.tsx:214:      "Voice synthesis",
+  src\pages\Landing.tsx:752:}
+  src\pages\Landing.tsx:753:
+> src\pages\Landing.tsx:754:function PricingCard({
+  src\pages\Landing.tsx:755:  plan,
+  src\pages\Landing.tsx:756:  onGetStarted,
+  src\pages\Landing.tsx:757:}: {
+> src\pages\Landing.tsx:758:  plan: (typeof PRICING)[number];
+  src\pages\Landing.tsx:759:  onGetStarted: () => void;
+  src\pages\Landing.tsx:760:}) {
+  src\pages\Landing.tsx:761:  return (
+  src\pages\Landing.tsx:762:    <article
+> src\pages\Landing.tsx:763:      className={`pricing-card ${plan.highlighted ? "is-featured" : ""}`}
+  src\pages\Landing.tsx:764:    >
+> src\pages\Landing.tsx:765:      <div className="pricing-index">
+  src\pages\Landing.tsx:766:        {plan.highlighted ? "RECOMMENDED" : "ACCESS"}
+  src\pages\Landing.tsx:767:      </div>
+  src\pages\Landing.tsx:768:      <h3>{plan.name}</h3>
+> src\pages\Landing.tsx:769:      <p className="pricing-description">{plan.description}</p>
+> src\pages\Landing.tsx:770:      <div className="pricing-price">
+  src\pages\Landing.tsx:771:        <strong>{plan.price}</strong>
+  src\pages\Landing.tsx:772:        <span>{plan.period}</span>
+  src\pages\Landing.tsx:773:      </div>
+  src\pages\Landing.tsx:774:      <ul>
+  src\pages\Landing.tsx:775:        {plan.features.map((feature) => (
+  src\pages\Landing.tsx:776:          <li key={feature}>
+  src\pages\Landing.tsx:777:            <Check size={14} />
+  src\pages\Landing.tsx:778:            {feature}
+  src\pages\Landing.tsx:779:          </li>
+  src\pages\Landing.tsx:780:        ))}
+  src\pages\Landing.tsx:781:      </ul>
+  src\pages\Landing.tsx:782:      <button
+> src\pages\Landing.tsx:783:        className="editorial-button pricing-button"
+  src\pages\Landing.tsx:784:        type="button"
+  src\pages\Landing.tsx:785:        onClick={onGetStarted}
+  src\pages\Landing.tsx:786:      >
+  src\pages\Landing.tsx:787:        <span>{plan.cta}</span>
+  src\pages\Landing.tsx:788:        <ArrowRight size={17} />
+  src\pages\Landing.tsx:789:      </button>
+  src\pages\Landing.tsx:790:    </article>
+  src\pages\Landing.tsx:791:  );
+  src\pages\Landing.tsx:792:}
+  src\pages\Landing.tsx:793:
+  src\pages\Landing.tsx:1009:      });
+  src\pages\Landing.tsx:1010:
+> src\pages\Landing.tsx:1011:      gsap.from(".pricing-card", {
+  src\pages\Landing.tsx:1012:        yPercent: 34,
+  src\pages\Landing.tsx:1013:        opacity: 0,
+  src\pages\Landing.tsx:1014:        stagger: 0.12,
+  src\pages\Landing.tsx:1015:        duration: 1,
+  src\pages\Landing.tsx:1016:        ease: "power4.out",
+  src\pages\Landing.tsx:1017:        scrollTrigger: {
+> src\pages\Landing.tsx:1018:          trigger: ".pricing-grid",
+  src\pages\Landing.tsx:1019:          start: "top 82%",
+  src\pages\Landing.tsx:1020:          once: true,
+  src\pages\Landing.tsx:1021:        },
+  src\pages\Landing.tsx:1022:      });
+  src\pages\Landing.tsx:1023:
+  src\pages\Landing.tsx:1024:      return () => {
+  src\pages\Landing.tsx:1025:        intro.kill();
+  src\pages\Landing.tsx:1026:      };
+  src\pages\Landing.tsx:1027:    },
+  src\pages\Landing.tsx:1028:    { scope: rootRef },
+  src\pages\Landing.tsx:1055:            Intelligence
+  src\pages\Landing.tsx:1056:          </button>
+> src\pages\Landing.tsx:1057:          <button type="button" onClick={() => goTo("#pricing")}>
+> src\pages\Landing.tsx:1058:            Pricing
+  src\pages\Landing.tsx:1059:          </button>
+  src\pages\Landing.tsx:1060:          <button type="button" onClick={() => goTo("#faq")}>
+  src\pages\Landing.tsx:1061:            FAQ
+  src\pages\Landing.tsx:1062:          </button>
+  src\pages\Landing.tsx:1063:        </nav>
+  src\pages\Landing.tsx:1064:
+  src\pages\Landing.tsx:1065:        <div className="header-actions">
+  src\pages\Landing.tsx:1066:          <span className="header-edition">AI / 2026</span>
+  src\pages\Landing.tsx:1067:          {isAuthenticated ? (
+  src\pages\Landing.tsx:1068:            <Link className="header-cta" to="/chat">
+  src\pages\Landing.tsx:1091:      >
+  src\pages\Landing.tsx:1092:        <div className="mobile-menu-links">
+> src\pages\Landing.tsx:1093:          {["Features", "Intelligence", "Pricing", "FAQ"].map(
+  src\pages\Landing.tsx:1094:            (label, index) => (
+  src\pages\Landing.tsx:1095:              <button
+  src\pages\Landing.tsx:1096:                key={label}
+  src\pages\Landing.tsx:1097:                type="button"
+  src\pages\Landing.tsx:1098:                onClick={() => goTo(`#${label.toLowerCase()}`)}
+  src\pages\Landing.tsx:1099:              >
+  src\pages\Landing.tsx:1100:                <span>0{index + 1}</span>
+  src\pages\Landing.tsx:1101:                {label}
+  src\pages\Landing.tsx:1102:                <ArrowRight />
+  src\pages\Landing.tsx:1103:              </button>
+  src\pages\Landing.tsx:1323:      </section>
+  src\pages\Landing.tsx:1324:
+> src\pages\Landing.tsx:1325:      <section className="pricing-section section-shell" id="pricing">
+  src\pages\Landing.tsx:1326:        <div className="section-meta">
+  src\pages\Landing.tsx:1327:          <span>ACCESS</span>
+> src\pages\Landing.tsx:1328:          <span>PRICING</span>
+  src\pages\Landing.tsx:1329:        </div>
+  src\pages\Landing.tsx:1330:        <div className="section-heading-row">
+  src\pages\Landing.tsx:1331:          <SplitHeading>Start free. Scale when it matters.</SplitHeading>
+  src\pages\Landing.tsx:1332:          <p data-reveal>
+  src\pages\Landing.tsx:1333:            Clear access tiers with no visual noise and no hidden complexity.
+  src\pages\Landing.tsx:1334:          </p>
+  src\pages\Landing.tsx:1335:        </div>
+> src\pages\Landing.tsx:1336:        <div className="pricing-grid">
+> src\pages\Landing.tsx:1337:          {PRICING.map((plan) => (
+> src\pages\Landing.tsx:1338:            <PricingCard
+  src\pages\Landing.tsx:1339:              key={plan.name}
+  src\pages\Landing.tsx:1340:              plan={plan}
+  src\pages\Landing.tsx:1341:              onGetStarted={handleGetStarted}
+  src\pages\Landing.tsx:1342:            />
+  src\pages\Landing.tsx:1343:          ))}
+  src\pages\Landing.tsx:1344:        </div>
+  src\pages\Landing.tsx:1345:      </section>
+  src\pages\Landing.tsx:1346:
+  src\pages\Landing.tsx:1347:      <section className="faq-section section-shell" id="faq">
+  src\pages\Landing.tsx:1348:        <div className="section-meta">
+  src\pages\Landing.tsx:1400:          <div>
+  src\pages\Landing.tsx:1401:            <span>PRODUCT</span>
+> src\pages\Landing.tsx:1402:            <Link to="/pricing">Pricing</Link>
+  src\pages\Landing.tsx:1403:            <button type="button" onClick={() => goTo("#features")}>
+  src\pages\Landing.tsx:1404:              Features
+  src\pages\Landing.tsx:1405:            </button>
+  src\pages\Landing.tsx:1406:          </div>
+  src\pages\Landing.tsx:1407:          <div>
+  src\pages\Landing.tsx:1408:            <span>COMPANY</span>
+  src\pages\Landing.tsx:1409:            <Link to="/about">About</Link>
+  src\pages\Landing.tsx:1410:            <Link to="/contact">Contact</Link>
+  src\pages\Landing.tsx:1411:          </div>
+  src\pages\Landing.tsx:1412:          <div>
+  src\pages\Landing.tsx:2889:}
+  src\pages\Landing.tsx:2890:
+> src\pages\Landing.tsx:2891:.pricing-section {
+  src\pages\Landing.tsx:2892:  position: relative;
+  src\pages\Landing.tsx:2893:  z-index: 2;
+  src\pages\Landing.tsx:2894:  padding-top: var(--lexa-section-y);
+  src\pages\Landing.tsx:2895:  padding-bottom: var(--lexa-section-y);
+  src\pages\Landing.tsx:2896:  background: #000;
+  src\pages\Landing.tsx:2897:}
+  src\pages\Landing.tsx:2898:
+> src\pages\Landing.tsx:2899:.pricing-grid {
+  src\pages\Landing.tsx:2900:  display: grid;
+  src\pages\Landing.tsx:2901:  grid-template-columns: repeat(3, 1fr);
+  src\pages\Landing.tsx:2902:  border-top: 1px solid var(--lexa-line);
+  src\pages\Landing.tsx:2903:  border-left: 1px solid var(--lexa-line);
+  src\pages\Landing.tsx:2904:}
+  src\pages\Landing.tsx:2905:
+> src\pages\Landing.tsx:2906:.pricing-card {
+  src\pages\Landing.tsx:2907:  min-height: 690px;
+  src\pages\Landing.tsx:2908:  display: flex;
+  src\pages\Landing.tsx:2909:  flex-direction: column;
+  src\pages\Landing.tsx:2910:  padding: clamp(26px, 3vw, 44px);
+  src\pages\Landing.tsx:2911:  border-right: 1px solid var(--lexa-line);
+  src\pages\Landing.tsx:2912:  border-bottom: 1px solid var(--lexa-line);
+  src\pages\Landing.tsx:2913:  background: #000;
+  src\pages\Landing.tsx:2914:  color: #fff;
+  src\pages\Landing.tsx:2915:  transition:
+  src\pages\Landing.tsx:2916:    transform 0.55s var(--lexa-ease-out),
+  src\pages\Landing.tsx:2919:}
+  src\pages\Landing.tsx:2920:
+> src\pages\Landing.tsx:2921:.pricing-card:hover {
+  src\pages\Landing.tsx:2922:  transform: translateY(-10px);
+  src\pages\Landing.tsx:2923:}
+  src\pages\Landing.tsx:2924:
+> src\pages\Landing.tsx:2925:.pricing-card.is-featured {
+  src\pages\Landing.tsx:2926:  background: #fff;
+  src\pages\Landing.tsx:2927:  color: #000;
+  src\pages\Landing.tsx:2928:}
+  src\pages\Landing.tsx:2929:
+> src\pages\Landing.tsx:2930:.pricing-index {
+  src\pages\Landing.tsx:2931:  min-height: 50px;
+  src\pages\Landing.tsx:2932:  color: currentColor;
+  src\pages\Landing.tsx:2933:  opacity: 0.56;
+  src\pages\Landing.tsx:2934:  font-size: 10px;
+  src\pages\Landing.tsx:2935:  letter-spacing: 0.13em;
+  src\pages\Landing.tsx:2936:}
+  src\pages\Landing.tsx:2937:
+> src\pages\Landing.tsx:2938:.pricing-card h3 {
+  src\pages\Landing.tsx:2939:  margin: 32px 0 16px;
+  src\pages\Landing.tsx:2940:  font-size: clamp(36px, 4vw, 62px);
+  src\pages\Landing.tsx:2941:  font-weight: 520;
+  src\pages\Landing.tsx:2942:  letter-spacing: -0.05em;
+  src\pages\Landing.tsx:2943:}
+  src\pages\Landing.tsx:2944:
+> src\pages\Landing.tsx:2945:.pricing-description {
+  src\pages\Landing.tsx:2946:  min-height: 50px;
+  src\pages\Landing.tsx:2947:  margin: 0;
+  src\pages\Landing.tsx:2948:  opacity: 0.64;
+  src\pages\Landing.tsx:2949:  font-size: 15px;
+  src\pages\Landing.tsx:2950:  line-height: 1.4;
+  src\pages\Landing.tsx:2951:}
+  src\pages\Landing.tsx:2952:
+> src\pages\Landing.tsx:2953:.pricing-price {
+  src\pages\Landing.tsx:2954:  min-height: 150px;
+  src\pages\Landing.tsx:2955:  display: flex;
+  src\pages\Landing.tsx:2956:  align-items: center;
+  src\pages\Landing.tsx:2957:  gap: 9px;
+  src\pages\Landing.tsx:2958:  margin-top: 24px;
+  src\pages\Landing.tsx:2959:  padding: 20px 0;
+  src\pages\Landing.tsx:2960:  border-top: 1px solid currentColor;
+  src\pages\Landing.tsx:2961:  border-bottom: 1px solid currentColor;
+  src\pages\Landing.tsx:2962:}
+  src\pages\Landing.tsx:2963:
+> src\pages\Landing.tsx:2964:.pricing-price strong {
+  src\pages\Landing.tsx:2965:  font-size: clamp(55px, 6vw, 92px);
+  src\pages\Landing.tsx:2966:  font-weight: 520;
+  src\pages\Landing.tsx:2967:  letter-spacing: -0.065em;
+  src\pages\Landing.tsx:2968:}
+  src\pages\Landing.tsx:2969:
+> src\pages\Landing.tsx:2970:.pricing-price span {
+  src\pages\Landing.tsx:2971:  opacity: 0.58;
+  src\pages\Landing.tsx:2972:  font-size: 11px;
+  src\pages\Landing.tsx:2973:  text-transform: uppercase;
+  src\pages\Landing.tsx:2974:}
+  src\pages\Landing.tsx:2975:
+> src\pages\Landing.tsx:2976:.pricing-card ul {
+  src\pages\Landing.tsx:2977:  display: flex;
+  src\pages\Landing.tsx:2978:  flex-direction: column;
+  src\pages\Landing.tsx:2979:  gap: 14px;
+  src\pages\Landing.tsx:2980:  margin: 32px 0 40px;
+  src\pages\Landing.tsx:2981:  padding: 0;
+  src\pages\Landing.tsx:2982:  list-style: none;
+  src\pages\Landing.tsx:2983:}
+  src\pages\Landing.tsx:2984:
+> src\pages\Landing.tsx:2985:.pricing-card li {
+  src\pages\Landing.tsx:2986:  display: flex;
+  src\pages\Landing.tsx:2987:  align-items: center;
+  src\pages\Landing.tsx:2988:  gap: 11px;
+  src\pages\Landing.tsx:2989:  opacity: 0.78;
+  src\pages\Landing.tsx:2990:  font-size: 13px;
+  src\pages\Landing.tsx:2991:}
+  src\pages\Landing.tsx:2992:
+> src\pages\Landing.tsx:2993:.pricing-button {
+  src\pages\Landing.tsx:2994:  width: 100%;
+  src\pages\Landing.tsx:2995:  margin-top: auto;
+  src\pages\Landing.tsx:2996:}
+  src\pages\Landing.tsx:2997:
+> src\pages\Landing.tsx:2998:.pricing-card:not(.is-featured) .pricing-button {
+  src\pages\Landing.tsx:2999:  background: #fff !important;
+  src\pages\Landing.tsx:3000:  color: #000 !important;
+  src\pages\Landing.tsx:3001:}
+  src\pages\Landing.tsx:3002:
+> src\pages\Landing.tsx:3003:.pricing-card.is-featured .pricing-button {
+  src\pages\Landing.tsx:3004:  background: #000 !important;
+  src\pages\Landing.tsx:3005:  color: #fff !important;
+  src\pages\Landing.tsx:3006:}
+  src\pages\Landing.tsx:3007:
+> src\pages\Landing.tsx:3008:.pricing-card:not(.is-featured) .pricing-button:hover {
+  src\pages\Landing.tsx:3009:  background: #000 !important;
+  src\pages\Landing.tsx:3010:  color: #fff !important;
+  src\pages\Landing.tsx:3011:  box-shadow: inset 0 0 0 1px #fff;
+  src\pages\Landing.tsx:3012:}
+  src\pages\Landing.tsx:3013:
+> src\pages\Landing.tsx:3014:.pricing-card.is-featured .pricing-button:hover {
+  src\pages\Landing.tsx:3015:  background: #fff !important;
+  src\pages\Landing.tsx:3016:  color: #000 !important;
+  src\pages\Landing.tsx:3017:  box-shadow: inset 0 0 0 1px #000;
+  src\pages\Landing.tsx:3018:}
+  src\pages\Landing.tsx:3019:
+  src\pages\Landing.tsx:3020:.faq-section {
+  src\pages\Landing.tsx:3021:  position: relative;
+  src\pages\Landing.tsx:3022:  z-index: 2;
+  src\pages\Landing.tsx:3023:  padding-bottom: var(--lexa-section-y);
+  src\pages\Landing.tsx:3024:  background: #000;
+  src\pages\Landing.tsx:3481:  }
+  src\pages\Landing.tsx:3482:
+> src\pages\Landing.tsx:3483:  .pricing-grid {
+  src\pages\Landing.tsx:3484:    grid-template-columns: 1fr;
+  src\pages\Landing.tsx:3485:  }
+> src\pages\Landing.tsx:3486:  .pricing-card {
+  src\pages\Landing.tsx:3487:    min-height: 620px;
+  src\pages\Landing.tsx:3488:  }
+> src\pages\Landing.tsx:3489:  .pricing-card:hover {
+  src\pages\Landing.tsx:3490:    transform: none;
+  src\pages\Landing.tsx:3491:  }
+  src\pages\Landing.tsx:3492:
+  src\pages\Landing.tsx:3493:  .faq-layout {
+  src\pages\Landing.tsx:3494:    grid-template-columns: 1fr;
+  src\pages\Landing.tsx:3495:  }
+  src\pages\Landing.tsx:3496:  .faq-layout .split-heading {
+  src\pages\Landing.tsx:3497:    position: relative;
+  src\pages\Landing.tsx:3498:    top: auto;
+  src\pages\Landing.tsx:3499:    margin-bottom: 30px;
+  src\pages\Landing.tsx:3663:  }
+  src\pages\Landing.tsx:3664:
+> src\pages\Landing.tsx:3665:  .pricing-card {
+  src\pages\Landing.tsx:3666:    min-height: 600px;
+  src\pages\Landing.tsx:3667:    padding: 26px 22px;
+  src\pages\Landing.tsx:3668:  }
+> src\pages\Landing.tsx:3669:  .pricing-price {
+  src\pages\Landing.tsx:3670:    min-height: 130px;
+  src\pages\Landing.tsx:3671:  }
+  src\pages\Landing.tsx:3672:
+  src\pages\Landing.tsx:3673:  .faq-item > button {
+  src\pages\Landing.tsx:3674:    grid-template-columns: 30px 1fr 24px;
+  src\pages\Landing.tsx:3675:    gap: 10px;
+  src\pages\Landing.tsx:3676:    min-height: 88px;
+  src\pages\Landing.tsx:3677:  }
+  src\pages\Landing.tsx:3678:  .faq-answer > p {
+  src\pages\Landing.tsx:3679:    margin: 0 0 0 40px;
+
+

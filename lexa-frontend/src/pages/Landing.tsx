@@ -1715,8 +1715,9 @@ body {
   align-items: center;
   justify-content: center;
   gap: 13px;
-  padding: 0 18px;
+  padding: 0 24px; /* Increased padding slightly for pill shape */
   border: 1px solid #fff;
+  border-radius: 999px; /* Pill shape */
   background: #fff;
   color: #000 !important;
   font-size: 12px;
@@ -1912,9 +1913,10 @@ body {
   min-height: 52px;
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 32px;
-  padding: 0 20px;
+  justify-content: center; /* Center the contents instead of space-between */
+  gap: 16px; /* Reduced gap since they are centered together now */
+  padding: 0 32px; /* Increased padding */
+  border-radius: 999px; /* Pill shape */
   border: 1px solid currentColor !important;
   font-size: 12px !important;
   font-weight: 600 !important;
@@ -2591,7 +2593,10 @@ body {
 }
 
 .feature-list {
-  border-top: 1px solid var(--lexa-line);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: none;
 }
 
 .feature-row {
@@ -2601,15 +2606,16 @@ body {
   display: grid;
   grid-template-columns: 52px 54px 1fr 34px;
   gap: 18px;
-  align-items: start;
-  padding: 28px 20px 32px 0;
+  align-items: center; /* Properly center text vertically */
+  padding: 32px; /* Uniform padding inside the box */
   overflow: hidden;
-  border-bottom: 1px solid var(--lexa-line) !important;
+  border: 1px solid var(--lexa-line) !important;
+  border-radius: 24px; /* Rounded corners */
   color: #fff !important;
   text-align: left;
   transition:
     color 0.48s var(--lexa-ease-out),
-    padding-left 0.48s var(--lexa-ease-out);
+    transform 0.48s var(--lexa-ease-out);
   isolation: isolate;
 }
 
@@ -2624,6 +2630,7 @@ body {
   inset: 0;
   z-index: 0;
   background: #fff;
+  border-radius: 24px; /* Match the parent border radius */
   transform: translateY(101%);
   transition: transform 0.55s var(--lexa-ease-in-out);
 }
@@ -2631,7 +2638,7 @@ body {
 .feature-row:hover,
 .feature-row.is-active {
   color: #000 !important;
-  padding-left: 18px;
+  transform: scale(1.01);
 }
 
 .feature-row:hover::before,

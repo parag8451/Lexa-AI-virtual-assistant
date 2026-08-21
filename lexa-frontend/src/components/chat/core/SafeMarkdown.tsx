@@ -12,8 +12,8 @@ interface SafeMarkdownProps {
   className?: string;
 }
 
-// Configure DOMPurify to be strict
-const PURIFY_CONFIG = {
+// Configure DOMPurify with strict security settings
+const PURIFY_CONFIG: DOMPurify.Config = {
   ALLOWED_TAGS: [
     "p", "br", "strong", "em", "u", "s", "code", "pre",
     "h1", "h2", "h3", "h4", "h5", "h6",
@@ -23,18 +23,27 @@ const PURIFY_CONFIG = {
   ],
   ALLOWED_ATTR: ["href", "target", "rel", "class", "id"],
   ALLOW_DATA_ATTR: false,
-  FORBID_TAGS: ["script", "style", "iframe", "form", "input", "button", "object", "embed"],
-  FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur"],
+  FORBID_TAGS: ["script", "style", "iframe", "form", "input", "button", "object", "embed", "svg", "math"],
+  FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur", "onsubmit", "onreset", "onchange", "oninput", "onkeydown", "onkeyup", "onkeypress", "onmousedown", "onmouseup", "onmouseenter", "onmouseleave", "oncontextmenu", "ondblclick", "ondrag", "ondrop", "onpaste"],
+  WHOLE_DOCUMENT: false,
+  RETURN_DOM: false,
+  RETURN_DOM_FRAGMENT: false,
+  FORCE_BODY: true,
 };
 
 // Sanitize content before rendering
 function sanitizeContent(content: string): string {
-  // First pass: basic sanitization
+  // First pass: DOMPurify sanitization
   let sanitized = DOMPurify.sanitize(content, PURIFY_CONFIG) as string;
   
-  // Remove any javascript: URLs that might have slipped through
-  sanitized = sanitized.replace(/javascript:/gi, "");
-  sanitized = sanitized.replace(/data:/gi, "data-blocked:");
+  // Second pass: strip dangerous URI schemes that might bypass DOMPurify
+  sanitized = sanitized.replace(/javascript\s*:/gi, "");
+  sanitized = sanitized.replace(/vbscript\s*:/gi, "");
+  sanitized = sanitized.replace(/data\s*:\s*text\/html/gi, "data-blocked:text/html");
+  sanitized = sanitized.replace(/blob\s*:/gi, "blob-blocked:");
+  
+  // Strip any remaining on* event handler attributes (broad catch-all)
+  sanitized = sanitized.replace(/\son\w+\s*=\s*["'][^"']*["']/gi, "");
   
   return sanitized;
 }

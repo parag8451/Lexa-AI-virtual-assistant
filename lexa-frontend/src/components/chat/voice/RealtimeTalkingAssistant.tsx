@@ -58,9 +58,8 @@ export function RealtimeTalkingAssistant({
   const durationTimerRef = useRef<any>(null);
   const { toast } = useToast();
 
-  const activeGeminiKey =
-    localStorage.getItem("lexa_gemini_key") ||
-    "";
+  // SECURITY: Voice AI calls should be proxied through the backend.
+  // API keys must never be read or sent directly from the browser.
 
   // Load available speech synthesis voices
   useEffect(() => {

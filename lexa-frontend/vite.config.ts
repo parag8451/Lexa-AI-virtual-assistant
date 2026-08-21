@@ -5,11 +5,17 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
-    host: "::",
+    // SECURITY: Bind dev server to localhost to prevent network exposure.
+    // Use --host flag explicitly if you need network access.
+    host: "localhost",
     port: 8080,
     hmr: {
       overlay: false,
     },
+  },
+  // SECURITY: Prevent accidental leakage of node environment variables
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
   },
   assetsInclude: ['**/*.glb'],
   plugins: [react()],

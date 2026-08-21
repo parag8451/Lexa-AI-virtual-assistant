@@ -1684,7 +1684,7 @@ export default function About() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const openAuth = () => navigate("/auth");
+  const openAuth = () => navigate("/chat");
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/20 selection:text-foreground">

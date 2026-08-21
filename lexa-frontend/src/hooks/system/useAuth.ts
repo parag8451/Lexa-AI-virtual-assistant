@@ -30,9 +30,22 @@ export function useAuth() {
   const signOut = async () => {
     await supabase.auth.signOut();
     try {
-      // Clear client-side stored conversations and any local session caches
-      localStorage.removeItem("lexa_saved_conversations_v3");
+      // SECURITY: Clear ALL Lexa-related data from localStorage on sign-out.
+      const keysToRemove = [
+        "lexa_saved_conversations_v3",
+        "lexa_gemini_key",
+        "lexa_elevenlabs_key",
+        "auth_rate_limit",
+        "lexa_last_search_time",
+        "lexa_notifications",
+        "theme",
+        "onboarding_completed",
+      ];
+      for (const key of keysToRemove) {
+        localStorage.removeItem(key);
+      }
     } catch (e) {}
+    
     // Redirect to auth page to force login flow
     try {
       window.location.href = "/auth";

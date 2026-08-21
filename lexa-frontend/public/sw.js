@@ -4,7 +4,6 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/favicon.ico',
   '/icon-192.png',
-  '/icon-512.png',
 ];
 
 // Install event - cache static assets
@@ -43,9 +42,15 @@ self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('/functions/') || 
       event.request.url.includes('/rest/') ||
       event.request.url.includes('/auth/')) return;
+      
+  // SECURITY: Never cache requests with Authorization headers
+  if (event.request.headers.has('Authorization')) return;
+
+  // Fetch with no-referrer for privacy/security
+  const fetchRequest = new Request(event.request, { referrerPolicy: 'no-referrer' });
 
   event.respondWith(
-    fetch(event.request)
+    fetch(fetchRequest)
       .then((response) => {
         // Clone and cache the response
         if (response.status === 200) {

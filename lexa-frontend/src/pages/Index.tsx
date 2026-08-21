@@ -667,6 +667,31 @@ function IndexContent() {
 
     if ((!content && currentAttachments.length === 0) || isStreaming) return;
 
+    // SECURITY: Client-side input validation
+    const MAX_INPUT_LENGTH = 100000;
+    if (content.length > MAX_INPUT_LENGTH) {
+      toast({
+        title: "Message too long",
+        description: `Your message exceeds the maximum allowed length of ${MAX_INPUT_LENGTH} characters.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate attachment size
+    const MAX_ATTACHMENT_SIZE_MB = 10;
+    for (const att of currentAttachments) {
+      // Calculate approx size from base64 if needed, or rely on fileParser size check if present
+      if (att.base64Data && (att.base64Data.length * 0.75) > (MAX_ATTACHMENT_SIZE_MB * 1024 * 1024)) {
+        toast({
+          title: "Attachment too large",
+          description: `File ${att.name} exceeds the ${MAX_ATTACHMENT_SIZE_MB}MB limit.`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     const userMessage: ChatMessage = {
       id: generateId(),
       role: "user",
@@ -817,94 +842,9 @@ function IndexContent() {
           }
         }
       } else {
-        // Direct Gemini client-side fallback
-        const clientApiKey =
-          localStorage.getItem("lexa_gemini_key") ||
-          import.meta.env.VITE_GEMINI_API_KEY ||
-          "";
-
-        if (clientApiKey) {
-          const latestParts: any[] = [
-            { text: content || "Please analyze this attached document or image in detail." },
-          ];
-
-          for (const att of currentAttachments) {
-            if (att.textContent) {
-              latestParts.push({
-                text: `\n\n[Attached File: ${att.name}]\n\`\`\`\n${att.textContent}\n\`\`\``,
-              });
-            } else if (att.base64Data && (att.isImage || att.isPdf)) {
-              latestParts.push({
-                inlineData: {
-                  mimeType: att.type,
-                  data: att.base64Data,
-                },
-              });
-            }
-          }
-
-          const directRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse&key=${clientApiKey}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [
-                  ...messages.slice(-10).map((m) => ({
-                    role: m.role === "ai" ? "model" : "user",
-                    parts: [{ text: m.content }],
-                  })),
-                  { role: "user", parts: latestParts },
-                ],
-                systemInstruction: {
-                  parts: [
-                    {
-                      text: "You are Lexa AI, an advanced multimodal assistant. Provide accurate vision analysis, OCR extraction, document summaries, and high-quality structured answers.",
-                    },
-                  ],
-                },
-              }),
-            }
-          );
-
-          if (directRes.ok && directRes.body) {
-            const reader = directRes.body.getReader();
-            const decoder = new TextDecoder();
-            let buf = "";
-
-            while (true) {
-              const { value, done } = await reader.read();
-              if (done) break;
-
-              buf += decoder.decode(value, { stream: true });
-              const lines = buf.split("\n");
-              buf = lines.pop() || "";
-
-              for (const line of lines) {
-                if (line.startsWith("data: ")) {
-                  try {
-                    const parsed = JSON.parse(line.slice(6).trim());
-                    const delta = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (delta) {
-                      accumulatedContent += delta;
-                      setMessages((prev) =>
-                        prev.map((msg) =>
-                          msg.id === aiMessageId
-                            ? { ...msg, content: accumulatedContent }
-                            : msg
-                        )
-                      );
-                    }
-                  } catch { }
-                }
-              }
-            }
-          } else {
-            throw new Error(`Direct Gemini API failed with status ${directRes.status}`);
-          }
-        } else {
-          throw new Error("Backend server unavailable and no API key configured. Check Settings > Integrations.");
-        }
+        // SECURITY: Never send API keys directly from the browser.
+        // All AI requests must be proxied through the backend (/api/chat or Edge Functions).
+        throw new Error("Backend server unavailable. Please ensure the API server is running. Check Settings > Integrations for configuration.");
       }
     } catch (err: any) {
       console.error("Chat generation error:", err);
@@ -1376,7 +1316,7 @@ function IndexContent() {
             </button>
           ) : (
             <button
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate("/chat")}
               className="ml-2 px-4 py-1.5 bg-white text-black rounded-full text-[11px] font-bold hover:bg-zinc-200 transition-colors"
             >
               Sign In

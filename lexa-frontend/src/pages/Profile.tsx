@@ -38,6 +38,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (!authLoading && !user) {
+      toast({ title: "Authentication required" });
       navigate("/auth");
     }
   }, [user, authLoading, navigate]);
