@@ -214,7 +214,7 @@ const PRICING = [
       "Voice synthesis",
       "Community support",
     ],
-    cta: "Start free",
+    cta: "Continue",
     highlighted: false,
   },
   {
@@ -230,7 +230,7 @@ const PRICING = [
       "Priority routing",
       "Custom instructions",
     ],
-    cta: "Upgrade to Pro",
+    cta: "Upgrade",
     highlighted: true,
   },
   {
@@ -246,7 +246,7 @@ const PRICING = [
       "Dedicated API keys",
       "99.9% uptime SLA",
     ],
-    cta: "Contact sales",
+    cta: "Upgrade",
     highlighted: false,
   },
 ] as const;
@@ -2911,10 +2911,9 @@ body {
 }
 
 .pricing-card {
-  min-height: 690px;
   display: flex;
   flex-direction: column;
-  padding: clamp(26px, 3vw, 44px);
+  padding: clamp(16px, 2vw, 24px);
   border-right: 1px solid var(--lexa-line);
   border-bottom: 1px solid var(--lexa-line);
   background: #000;
@@ -2935,7 +2934,6 @@ body {
 }
 
 .pricing-index {
-  min-height: 50px;
   color: currentColor;
   opacity: 0.56;
   font-size: 10px;
@@ -2943,14 +2941,13 @@ body {
 }
 
 .pricing-card h3 {
-  margin: 32px 0 16px;
-  font-size: clamp(36px, 4vw, 62px);
+  margin: 8px 0 0;
+  font-size: clamp(28px, 3.5vw, 48px);
   font-weight: 520;
   letter-spacing: -0.05em;
 }
 
 .pricing-description {
-  min-height: 50px;
   margin: 0;
   opacity: 0.64;
   font-size: 15px;
@@ -2958,18 +2955,17 @@ body {
 }
 
 .pricing-price {
-  min-height: 150px;
   display: flex;
   align-items: baseline;
-  gap: 9px;
-  margin-top: 44px;
-  padding: 28px 0;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 0;
   border-top: 1px solid currentColor;
   border-bottom: 1px solid currentColor;
 }
 
 .pricing-price strong {
-  font-size: clamp(55px, 6vw, 92px);
+  font-size: clamp(40px, 5vw, 76px);
   font-weight: 520;
   letter-spacing: -0.065em;
 }
@@ -2983,8 +2979,8 @@ body {
 .pricing-card ul {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin: 32px 0 40px;
+  gap: 6px;
+  margin: 8px 0 16px;
   padding: 0;
   list-style: none;
 }
@@ -3491,7 +3487,7 @@ body {
     grid-template-columns: 1fr;
   }
   .pricing-card {
-    min-height: 620px;
+    height: auto;
   }
   .pricing-card:hover {
     transform: none;
@@ -3670,11 +3666,11 @@ body {
   }
 
   .pricing-card {
-    min-height: 600px;
+    height: auto;
     padding: 26px 22px;
   }
   .pricing-price {
-    min-height: 130px;
+    min-height: auto;
   }
 
   .faq-item > button {

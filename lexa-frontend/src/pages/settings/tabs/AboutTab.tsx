@@ -3,7 +3,7 @@ import { BookOpen, Bug, ExternalLink, Mail, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LogoIcon } from "@/components/ui/LogoIcon";
-import { SettingsCard, SettingsPage } from "./primitives";
+import { SettingsCard, SettingsPage } from "./primitives.tsx";
 
 type IconType = React.ComponentType<{ className?: string }>;
 
