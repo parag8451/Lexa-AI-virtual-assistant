@@ -11,7 +11,7 @@
   <br />
 
   <p align="center">
-    <a href="https://ai-powered-portfolio-hhtog8xoz-parag1617.vercel.app">
+    <a href="https://lexa-ai-virtual-assistant.vercel.app/">
       <img src="https://img.shields.io/badge/🚀_Live_Demo-Experience_Lexa-6366f1?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" />
     </a>
     <a href="https://github.com/parag8451/Lexa-AI-virtual-assistant">
