@@ -51,7 +51,7 @@ export function isTextMimeOrExt(mime: string, name: string): boolean {
 }
 
 export async function parseFile(file: File): Promise<FileAttachment> {
-  const id = `att_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const id = `att_${Date.now()}_${crypto.randomUUID().slice(0, 7)}`;
   const isImage = isImageMime(file.type);
   const isPdf = isPdfMime(file.type);
   const isText = isTextMimeOrExt(file.type, file.name);
@@ -104,7 +104,7 @@ export function createAttachmentFromCanvas(
   canvas: HTMLCanvasElement,
   name: string = `scan_${Date.now()}.jpg`
 ): FileAttachment {
-  const id = `cam_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const id = `cam_${Date.now()}_${crypto.randomUUID().slice(0, 7)}`;
   const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
   const commaIndex = dataUrl.indexOf(",");
   const base64Data = commaIndex !== -1 ? dataUrl.slice(commaIndex + 1) : dataUrl;

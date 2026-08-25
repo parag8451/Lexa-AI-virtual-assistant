@@ -64,7 +64,7 @@ export function useConversations() {
     if (isPrivateMode()) {
       // Create a local-only conversation object (session-only)
       const localConv: Conversation = {
-        id: `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`,
+        id: `local-${crypto.randomUUID()}`,
         user_id: user.id,
         title: title || "New Chat",
         model: "session",

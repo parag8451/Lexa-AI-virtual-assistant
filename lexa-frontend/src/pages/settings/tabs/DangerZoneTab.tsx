@@ -27,7 +27,7 @@ export function DangerZoneTab() {
       toast.error("Please type DELETE MY ACCOUNT exactly.");
       return;
     }
-    if (!password) {
+    if (typeof password !== "string" || password.trim().length === 0) {
       toast.error("Please enter your password.");
       return;
     }

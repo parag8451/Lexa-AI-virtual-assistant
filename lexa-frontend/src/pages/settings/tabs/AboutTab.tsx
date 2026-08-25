@@ -34,7 +34,7 @@ export function AboutTab() {
             <Button
               key={resource.title}
               variant="outline"
-              onClick={() => resource.href && window.open(resource.href, "_blank")}
+              onClick={() => resource.href && window.open(resource.href, "_blank", "noopener,noreferrer")}
               className="h-14 justify-start gap-3 rounded-xl border-border/40 hover:bg-muted/50"
             >
               <Icon className={cn("h-5 w-5", resource.color)} />

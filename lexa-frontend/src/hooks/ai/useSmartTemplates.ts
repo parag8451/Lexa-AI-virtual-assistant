@@ -176,8 +176,7 @@ export function useSmartTemplates() {
     
     template.variables.forEach(variable => {
       const value = values[variable.name] || variable.defaultValue || `[${variable.name}]`;
-      const regex = new RegExp(`{{${variable.name}}}`, "g");
-      content = content.replace(regex, value);
+      content = content.split(`{{${variable.name}}}`).join(value);
     });
 
     return content;

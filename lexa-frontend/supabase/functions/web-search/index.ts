@@ -81,8 +81,8 @@ async function authenticateUser(req: Request): Promise<{ userId: string } | null
     global: { headers: { Authorization: authHeader } }
   });
 
-  const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await supabase.auth.getUser(token);
+  const accessToken = authHeader.replace("Bearer ", "");
+  const { data, error } = await supabase.auth.getUser(accessToken);
   
   if (error || !data?.user) {
     return null;
@@ -317,7 +317,7 @@ serve(async (req) => {
       },
     });
   } catch (error) {
-    console.error("[web-search] Error:", error);
+    console.error("[web-search] Request failed");
     return new Response(
       JSON.stringify({ 
         error: "Search failed. Please try again.",

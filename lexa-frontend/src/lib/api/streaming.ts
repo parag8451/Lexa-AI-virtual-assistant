@@ -49,7 +49,7 @@ export async function streamChat({
     if (!session?.access_token) {
       throw new Error("Please sign in to continue.");
     }
-    const token = session.access_token;
+    const authSessionToken = session.access_token;
 
     // Build messages with system prompt and memory context
     const fullMessages: ChatMessage[] = [];
@@ -71,7 +71,7 @@ export async function streamChat({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${authSessionToken}`,
       },
       body: JSON.stringify({ 
         messages: fullMessages.filter(m => m.role !== "system").map(m => ({ role: m.role, content: m.content })),

@@ -106,7 +106,7 @@ export function useChat(options: UseChatOptions = {}) {
     (message: Omit<ChatMessage, "id">) => {
       const newMessage: ChatMessage = {
         ...message,
-        id: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 11),
+        id: crypto.randomUUID(),
       };
 
       dispatch({ type: "ADD_MESSAGE", payload: newMessage });

@@ -93,7 +93,7 @@ const AVAILABLE_MODELS = [
 
 /* ─── Helper: Unique ID generator ─── */
 function generateId() {
-  return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return `msg_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
 /* ─── Error Fallback ─── */

@@ -235,11 +235,11 @@ async function authenticateUser(req: Request): Promise<{ userId: string } | null
     global: { headers: { Authorization: authHeader } }
   });
 
-  const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await supabase.auth.getUser(token);
+  const accessToken = authHeader.replace("Bearer ", "");
+  const { data, error } = await supabase.auth.getUser(accessToken);
   
   if (error || !data?.user) {
-    console.error("Auth error:", error?.message);
+    console.error("Auth verification failed");
     return null;
   }
 
@@ -482,7 +482,7 @@ serve(async (req) => {
       },
     });
   } catch (error) {
-    console.error("Chat error:", error);
+    console.error("Chat request failed");
     return new Response(
       JSON.stringify({ error: "Something went wrong. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

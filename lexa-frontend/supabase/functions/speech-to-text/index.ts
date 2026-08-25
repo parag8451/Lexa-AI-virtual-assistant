@@ -44,8 +44,8 @@ async function authenticateUser(req: Request): Promise<{ userId: string } | null
     global: { headers: { Authorization: authHeader } }
   });
 
-  const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await supabase.auth.getUser(token);
+  const accessToken = authHeader.replace("Bearer ", "");
+  const { data, error } = await supabase.auth.getUser(accessToken);
   
   if (error || !data?.user) {
     return null;
@@ -141,7 +141,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("STT error:", error);
+    console.error("STT processing failed");
     return new Response(
       JSON.stringify({ error: "Transcription failed. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

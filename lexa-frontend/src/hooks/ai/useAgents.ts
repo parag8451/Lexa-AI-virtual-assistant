@@ -78,7 +78,7 @@ export function useAgents() {
   const abortRef = useRef<AbortController | null>(null);
 
   // Generate a step ID
-  const generateStepId = () => `step-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const generateStepId = () => `step-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
 
   // Add a step to the current run
   const addStep = useCallback((step: Omit<AgentStep, "id">) => {

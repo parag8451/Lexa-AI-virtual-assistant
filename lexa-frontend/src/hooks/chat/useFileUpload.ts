@@ -54,7 +54,7 @@ export function useFileUpload() {
 
         const fileExt = file.name.split(".").pop()?.toLowerCase() || "bin";
         // Sanitize filename
-        const safeFileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const safeFileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("chat-attachments")

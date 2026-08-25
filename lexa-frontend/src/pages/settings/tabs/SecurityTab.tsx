@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export function SecurityTab() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -18,14 +19,45 @@ export function SecurityTab() {
   const hasSymbol = /[^A-Za-z0-9]/.test(newPassword);
 
   const handleUpdatePassword = async () => {
+    if (typeof currentPassword !== "string" || currentPassword.trim().length === 0) {
+      toast.error("Please enter your current password");
+      return;
+    }
     if (!hasMinLength || !hasUpper || !hasNumber || !hasSymbol) {
       toast.error("Please meet all password requirements");
       return;
     }
+    if (currentPassword === newPassword) {
+      toast.error("New password must be different from current password");
+      return;
+    }
     
-    // TODO: Implement actual password update via Supabase
-    // const { error } = await supabase.auth.updateUser({ password: newPassword });
-    toast.success("Password updated successfully");
+    try {
+      // Re-authenticate with current password to verify identity
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        toast.error("Unable to verify identity. Please sign in again.");
+        return;
+      }
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      if (signInError) {
+        toast.error("Current password is incorrect");
+        return;
+      }
+
+      // Update to new password via Supabase
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        toast.error("Failed to update password: " + error.message);
+        return;
+      }
+      toast.success("Password updated successfully");
+    } catch {
+      toast.error("An error occurred while updating your password");
+    }
     setCurrentPassword("");
     setNewPassword("");
   };

@@ -6,5 +6,5 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function generateId(): string {
-  return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return `msg_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 }

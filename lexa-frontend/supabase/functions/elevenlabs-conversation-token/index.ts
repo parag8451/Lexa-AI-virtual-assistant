@@ -43,8 +43,8 @@ async function authenticateUser(req: Request): Promise<{ userId: string } | null
     global: { headers: { Authorization: authHeader } }
   });
 
-  const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await supabase.auth.getUser(token);
+  const accessToken = authHeader.replace("Bearer ", "");
+  const { data, error } = await supabase.auth.getUser(accessToken);
   
   if (error || !data?.user) {
     return null;
@@ -96,7 +96,7 @@ serve(async (req) => {
     
     // For now, we'll use the signed URL approach for more flexibility
     // This generates a single-use token for the conversation
-    console.log(`Generating conversation token for user ${auth.userId}`);
+    console.log("Generating conversation token for authenticated user");
 
     // Generate a signed URL for WebSocket connection - use URL API for safe encoding
     const apiUrl = new URL("https://api.elevenlabs.io/v1/convai/conversation/get-signed-url");
@@ -114,7 +114,7 @@ serve(async (req) => {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      console.error("ElevenLabs token error:", tokenResponse.status, errorText);
+      console.error("ElevenLabs API error:", tokenResponse.status);
       return new Response(
         JSON.stringify({ error: "Failed to generate voice session" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -130,7 +130,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Token generation error:", error);
+    console.error("Voice session initialization failed");
     return new Response(
       JSON.stringify({ error: "Failed to initialize voice chat" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
